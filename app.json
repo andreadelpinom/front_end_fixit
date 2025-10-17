@@ -1,0 +1,24 @@
+{
+  "expo": {
+    "name": "FixIt Mobile",
+    "slug": "fixit-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "updates": {
+      "fallbackToCacheTimeout": 0
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true
+    },
+    "web": {
+      "bundler": "metro",
+      "favicon": ""
+    },
+    "extra": {
+      "API_URL": "http://localhost:8080/api"
+    }
+  }
+}
