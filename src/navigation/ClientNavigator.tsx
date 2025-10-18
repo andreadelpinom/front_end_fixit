@@ -22,11 +22,11 @@ function ClientTabs() {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: client.primary, // Azul para clientes
-        tabBarInactiveTintColor: "#999999",
+        tabBarActiveTintColor: client.primary,
+        tabBarInactiveTintColor: client.dark,
         tabBarStyle: {
-          backgroundColor: "#FFFFFF",
-          borderTopColor: "#E5E7EB",
+          backgroundColor: client.light,
+          borderTopColor: client.primary,
           borderTopWidth: 1,
           paddingBottom: Platform.OS === "ios" ? 20 : 10,
           paddingTop: 10

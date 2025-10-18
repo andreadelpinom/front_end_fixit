@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors } from "../../theme/colors";
 import HeaderNav from "../../components/HeaderNav";
 import NotificationsModal from "../../components/NotificationModal";
+import { getData, saveData, StorageKeys } from "../../shared/storage";
 
 const coursesData = [
   {
@@ -91,8 +92,27 @@ export default function Home() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [filteredCourses, setFilteredCourses] = useState(coursesData);
 
+  // Hydrate search query
+  useEffect(() => {
+    (async () => {
+      const saved = await getData<string>(StorageKeys.Client.SearchQuery);
+      if (saved) {
+        setSearchQuery(saved);
+        // re-filter
+        const filtered = coursesData.filter(course =>
+          course.title.toLowerCase().includes(saved.toLowerCase()) ||
+          course.subtitle.toLowerCase().includes(saved.toLowerCase()) ||
+          course.category.toLowerCase().includes(saved.toLowerCase())
+        );
+        setFilteredCourses(filtered);
+      }
+    })();
+  }, []);
+
   const handleSearch = (query: string) => {
     setSearchQuery(query);
+    // Persist query
+    saveData(StorageKeys.Client.SearchQuery, query);
     if (query.trim() === "") {
       setFilteredCourses(coursesData);
       return;

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors } from "../../theme/colors";
 import HeaderNav from "../../components/HeaderNav";
 import NotificationsModal from "../../components/NotificationModal";
+import { getData, saveData, StorageKeys } from "../../shared/storage";
 
 const myServices = [
   {
@@ -57,14 +58,25 @@ export default function MyServicesScreen() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [services, setServices] = useState(myServices);
 
-  const handleToggleService = (id: string) => {
-    setServices(
-      services.map(service =>
-        service.id === id
-          ? { ...service, isActive: !service.isActive }
-          : service
-      )
-    );
+  // Hydrate services from storage on mount
+  useEffect(() => {
+    (async () => {
+      const saved = await getData<typeof myServices>(StorageKeys.Technician.MyServices);
+      if (saved && Array.isArray(saved)) {
+        setServices(saved);
+      }
+    })();
+  }, []);
+
+  const handleToggleService = async (id: string) => {
+    setServices(prev => {
+      const next = prev.map(service =>
+        service.id === id ? { ...service, isActive: !service.isActive } : service
+      );
+      // Fire and forget persist
+      saveData(StorageKeys.Technician.MyServices, next);
+      return next;
+    });
   };
 
   const renderServiceCard = ({ item }: any) => (

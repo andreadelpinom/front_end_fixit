@@ -9,93 +9,38 @@ import {
   Alert
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { colors } from "../../theme/colors";
-import NotificationsModal from "../../components/NotificationModal";
 import { useAuth } from "../../context/AuthContext";
-
-const quickAccessItems = [
-  {
-    id: "history",
-    title: "Historial de solicitudes",
-    subtitle: "Ver todas mis solicitudes completadas",
-    icon: "📋",
-    count: 156
-  },
-  {
-    id: "active",
-    title: "Servicios activos",
-    subtitle: "Solicitudes en progreso",
-    icon: "⚙️",
-    count: 3
-  },
-  {
-    id: "notifications",
-    title: "Notificaciones",
-    subtitle: "Configurar alertas y avisos",
-    icon: "🔔",
-    count: 2
-  },
-  {
-    id: "support",
-    title: "Soporte técnico",
-    subtitle: "Ayuda y contacto",
-    icon: "🎧",
-    count: null
-  }
-];
-
-const settingsItems = [
-  { id: "privacy", title: "Privacidad", icon: "🔒" },
-  { id: "notifications", title: "Notificaciones", icon: "🔔" },
-  { id: "payments", title: "Métodos de pago", icon: "💳" },
-  { id: "language", title: "Idioma", icon: "🌐" }
-];
+import { colors, client, technician } from "../../theme/colors";
+import NotificationModal from "../../components/NotificationModal";
 
 export default function Profile() {
-  const { user, logout, isLoading } = useAuth();
+  const { user, logout, isLoading, requestTechnician } = useAuth();
   const insets = useSafeAreaInsets();
   const [showNotifications, setShowNotifications] = useState(false);
-  const [currentRole, setCurrentRole] = useState<"cliente" | "tecnico">(
-    user?.role || "cliente"
-  );
+  const [currentRole, setCurrentRole] = useState<"cliente" | "tecnico">(user?.role || "cliente");
+  const palette = currentRole === "tecnico" ? technician : client;
 
-  // Handle logout with confirmation
-  const handleLogout = async () => {
-    Alert.alert(
-      "Cerrar Sesión",
-      "¿Estás seguro de que deseas cerrar sesión?",
-      [
-        {
-          text: "Cancelar",
-          onPress: () => {},
-          style: "cancel"
-        },
-        {
-          text: "Cerrar Sesión",
-          onPress: async () => {
-            try {
-              await logout();
-            } catch (err) {
-              Alert.alert("Error", "Failed to logout. Please try again.");
-            }
-          },
-          style: "destructive"
-        }
-      ]
-    );
-  };
+  const quickAccessItems = [
+    { id: "history", title: "Historial de solicitudes", subtitle: "Ver todas mis solicitudes completadas", icon: "📋", count: 156 },
+    { id: "active", title: "Servicios activos", subtitle: "Solicitudes en progreso", icon: "⚙️", count: 3 },
+    { id: "notifications", title: "Notificaciones", subtitle: "Configurar alertas y avisos", icon: "🔔", count: 2 },
+    { id: "support", title: "Soporte técnico", subtitle: "Ayuda y contacto", icon: "🎧", count: null }
+  ];
 
-  // Use auth user data if available, otherwise use defaults
+  const settingsItems = [
+    { id: "privacy", title: "Privacidad", icon: "🔒" },
+    { id: "notifications", title: "Notificaciones", icon: "🔔" },
+    { id: "payments", title: "Métodos de pago", icon: "💳" },
+    { id: "language", title: "Idioma", icon: "🌐" }
+  ];
+
   const userData = user ? {
     name: user.name,
     email: user.email,
     completedServices: user.completedServices,
     averageRating: user.averageRating,
     responseTime: "15 min",
-    joinDate: new Date(user.joinDate).toLocaleDateString("es-ES", {
-      month: "long",
-      year: "numeric"
-    }),
+    joinDate: new Date(user.joinDate).toLocaleDateString("es-ES", { month: "long", year: "numeric" }),
     isVerified: user.isVerified
   } : {
     name: "Carlos Mendoza",
@@ -107,22 +52,26 @@ export default function Profile() {
     isVerified: false
   };
 
+  const handleLogout = async () => {
+    Alert.alert(
+      "Cerrar Sesión",
+      "¿Estás seguro de que deseas cerrar sesión?",
+      [
+        { text: "Cancelar", onPress: () => {}, style: "cancel" },
+        { text: "Cerrar Sesión", onPress: async () => { await logout(); } }
+      ]
+    );
+  };
+
   const renderQuickAccessItem = ({ item }: any) => (
-    <TouchableOpacity
-      style={styles.quickAccessItem}
-      onPress={() => console.log(`Navigating to ${item.id}`)}
-    >
-      <View style={styles.quickAccessIcon}>
-        <Text style={styles.iconText}>{item.icon}</Text>
-      </View>
+    <TouchableOpacity style={styles.quickAccessItem} onPress={() => console.log(`Navigating to ${item.id}`)}>
+      <View style={styles.quickAccessIcon}><Text style={styles.iconText}>{item.icon}</Text></View>
       <View style={styles.quickAccessContent}>
         <Text style={styles.quickAccessTitle}>{item.title}</Text>
         <Text style={styles.quickAccessSubtitle}>{item.subtitle}</Text>
       </View>
       {item.count !== null && (
-        <View style={styles.countBadge}>
-          <Text style={styles.countText}>{item.count}</Text>
-        </View>
+        <View style={styles.countBadge}><Text style={styles.countText}>{item.count}</Text></View>
       )}
     </TouchableOpacity>
   );
@@ -138,97 +87,48 @@ export default function Profile() {
   );
 
   return (
-    <View style={[styles.container, { paddingBottom: insets.bottom }]}>
+    <View style={[styles.container, { backgroundColor: palette.light, paddingBottom: insets.bottom }]}> 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Header with notification and settings */}
         <View style={styles.headerTop}>
-          <TouchableOpacity onPress={() => setShowNotifications(true)}>
-            <Text style={styles.headerIcon}>🔔</Text>
-          </TouchableOpacity>
-          <TouchableOpacity>
-            <Text style={styles.headerIcon}>⚙️</Text>
-          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setShowNotifications(true)}><Text style={styles.headerIcon}>🔔</Text></TouchableOpacity>
+          <TouchableOpacity><Text style={styles.headerIcon}>⚙️</Text></TouchableOpacity>
         </View>
-
-        {/* Profile Card */}
-        <View style={styles.profileCard}>
+        <View style={[styles.profileCard, { borderColor: palette.primary, backgroundColor: palette.light }]}> 
           <View style={styles.avatarContainer}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarInitial}>C</Text>
-            </View>
+            <View style={[styles.avatar, { backgroundColor: palette.primary }]}> <Text style={styles.avatarInitial}>C</Text></View>
             <View style={styles.nameContainer}>
               <Text style={styles.name}>{userData.name}</Text>
               <Text style={styles.email}>{userData.email}</Text>
             </View>
           </View>
-
-          {/* User Stats */}
           <View style={styles.statsContainer}>
-            <View style={styles.statBox}>
-              <Text style={styles.statValue}>{userData.completedServices}</Text>
-              <Text style={styles.statLabel}>Servicios</Text>
-            </View>
+            <View style={styles.statBox}><Text style={styles.statValue}>{userData.completedServices}</Text><Text style={styles.statLabel}>Servicios</Text></View>
             <View style={styles.statDivider} />
-            <View style={styles.statBox}>
-              <Text style={styles.statValue}>{userData.averageRating}</Text>
-              <Text style={styles.statLabel}>Rating</Text>
-            </View>
+            <View style={styles.statBox}><Text style={styles.statValue}>{userData.averageRating}</Text><Text style={styles.statLabel}>Rating</Text></View>
             <View style={styles.statDivider} />
-            <View style={styles.statBox}>
-              <Text style={styles.statValue}>{userData.responseTime}</Text>
-              <Text style={styles.statLabel}>Respuesta</Text>
-            </View>
+            <View style={styles.statBox}><Text style={styles.statValue}>{userData.responseTime}</Text><Text style={styles.statLabel}>Respuesta</Text></View>
           </View>
-
-          {/* Edit Profile Button */}
-          <TouchableOpacity style={styles.editButton}>
-            <Text style={styles.editButtonIcon}>✏️</Text>
-            <Text style={styles.editButtonText}>Editar Perfil</Text>
-          </TouchableOpacity>
+          <TouchableOpacity style={[styles.editButton, { backgroundColor: palette.primary }]}><Text style={styles.editButtonIcon}>✏️</Text><Text style={styles.editButtonText}>Editar Perfil</Text></TouchableOpacity>
         </View>
-
-        {/* Role Toggle */}
         <View style={styles.roleSection}>
           <Text style={styles.roleSectionTitle}>Mi Rol</Text>
           <View style={styles.roleButtons}>
             <TouchableOpacity
               onPress={() => setCurrentRole("cliente")}
-              style={[
-                styles.roleButton,
-                currentRole === "cliente" && styles.roleButtonActive
-              ]}
+              style={[styles.roleButton, { borderColor: client.primary }, currentRole === "cliente" && { backgroundColor: client.primary, borderColor: client.primary }]}
             >
-              <Text
-                style={[
-                  styles.roleButtonText,
-                  currentRole === "cliente" && styles.roleButtonTextActive
-                ]}
-              >
-                Cliente
-              </Text>
+              <Text style={[styles.roleButtonText, currentRole === "cliente" && { color: "#fff" }]}>Cliente</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              onPress={() => setCurrentRole("tecnico")}
-              style={[
-                styles.roleButton,
-                currentRole === "tecnico" && styles.roleButtonActive
-              ]}
+              onPress={() => { setCurrentRole("tecnico"); if (user && !user.isTechnicianRequested) requestTechnician(); }}
+              style={[styles.roleButton, { borderColor: technician.primary }, currentRole === "tecnico" && { backgroundColor: technician.primary, borderColor: technician.primary }]}
             >
-              <Text
-                style={[
-                  styles.roleButtonText,
-                  currentRole === "tecnico" && styles.roleButtonTextActive
-                ]}
-              >
-                Técnico
-              </Text>
+              <Text style={[styles.roleButtonText, currentRole === "tecnico" && { color: "#fff" }]}>Técnico</Text>
             </TouchableOpacity>
           </View>
         </View>
-
-        {/* Quick Access */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Acceso Rápido</Text>
+          <Text style={[styles.sectionTitle, { color: palette.dark }]}>Acceso Rápido</Text>
           <FlatList
             data={quickAccessItems}
             renderItem={renderQuickAccessItem}
@@ -237,10 +137,8 @@ export default function Profile() {
             ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
           />
         </View>
-
-        {/* Settings */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Configuración</Text>
+          <Text style={[styles.sectionTitle, { color: palette.dark }]}>Configuración</Text>
           <FlatList
             data={settingsItems}
             renderItem={renderSettingItem}
@@ -249,25 +147,16 @@ export default function Profile() {
             ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: colors.border }} />}
           />
         </View>
-
-        {/* Logout */}
         <TouchableOpacity
-          style={[styles.logoutButton, isLoading && styles.buttonDisabled]}
+          style={[styles.logoutButton, isLoading && styles.buttonDisabled, { borderColor: palette.primary }]}
           onPress={handleLogout}
           disabled={isLoading}
         >
-          <Text style={styles.logoutButtonText}>
-            {isLoading ? "Cerrando..." : "Cerrar Sesión"}
-          </Text>
+          <Text style={[styles.logoutButtonText, { color: palette.dark }]}>{isLoading ? "Cerrando..." : "Cerrar Sesión"}</Text>
         </TouchableOpacity>
-
         <View style={{ height: 20 }} />
       </ScrollView>
-
-      <NotificationsModal
-        isOpen={showNotifications}
-        onClose={() => setShowNotifications(false)}
-      />
+      <NotificationModal isOpen={showNotifications} onClose={() => setShowNotifications(false)} />
     </View>
   );
 }
@@ -508,4 +397,3 @@ const styles = StyleSheet.create({
     opacity: 0.6
   }
 });
-

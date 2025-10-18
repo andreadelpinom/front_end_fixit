@@ -1,4 +1,5 @@
-import React, { createContext, useState, useCallback, ReactNode } from "react";
+import React, { createContext, useState, useCallback, ReactNode, useEffect } from "react";
+import { getData, saveData, removeData, StorageKeys } from "../shared/storage";
 
 export interface User {
   id: string;
@@ -11,6 +12,9 @@ export interface User {
   averageRating: number;
   joinDate: string;
   certificates?: string[];
+  // Flags para técnico
+  isTechnicianRequested?: boolean;
+  isTechnicianVerified?: boolean;
 }
 
 interface AuthContextType {
@@ -27,6 +31,7 @@ interface AuthContextType {
   ) => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (userData: Partial<User>) => void;
+  requestTechnician: () => void;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -38,6 +43,13 @@ interface AuthProviderProps {
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  // Rehydrate session on mount
+  useEffect(() => {
+    (async () => {
+      const session = await getData<User | null>(StorageKeys.Auth.Session);
+      if (session) setUser(session);
+    })();
+  }, []);
 
   // MOCK USERS DATABASE
   const mockUsersDB: User[] = [
@@ -81,8 +93,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
         throw new Error("Usuario no encontrado");
       }
 
-      // Guardar usuario en contexto
-      setUser(existingUser);
+  // Guardar usuario en contexto y persistir
+  setUser(existingUser);
+  await saveData(StorageKeys.Auth.Session, existingUser);
     } finally {
       setIsLoading(false);
     }
@@ -131,14 +144,37 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setIsLoading(true);
     try {
       await new Promise(resolve => setTimeout(resolve, 500));
-      setUser(null);
+  setUser(null);
+  await removeData(StorageKeys.Auth.Session);
     } finally {
       setIsLoading(false);
     }
   }, []);
 
   const updateUser = useCallback((userData: Partial<User>) => {
-    setUser(prevUser => (prevUser ? { ...prevUser, ...userData } : null));
+    setUser(prevUser => {
+      if (!prevUser) return null;
+      const next = { ...prevUser, ...userData };
+      // Fire and forget persist
+      saveData(StorageKeys.Auth.Session, next);
+      return next;
+    });
+  }, []);
+
+  // Solicitar ser técnico (simulado: solo marca flags y cambia rol)
+  const requestTechnician = useCallback(() => {
+    setUser(prevUser => {
+      if (!prevUser) return null;
+      const next: User = {
+        ...prevUser,
+        isTechnicianRequested: true,
+        // Simular verificación automática por ahora
+        isTechnicianVerified: true,
+        role: "tecnico"
+      };
+      saveData(StorageKeys.Auth.Session, next);
+      return next;
+    });
   }, []);
 
   const value: AuthContextType = {
@@ -148,7 +184,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     login,
     register,
     logout,
-    updateUser
+    updateUser,
+    requestTechnician
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

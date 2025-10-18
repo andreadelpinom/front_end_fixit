@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors } from "../../theme/colors";
 import HeaderNav from "../../components/HeaderNav";
 import NotificationsModal from "../../components/NotificationModal";
+import { getData, saveData, StorageKeys } from "../../shared/storage";
 
 const requestsData = [
   {
@@ -77,6 +78,16 @@ export default function Requests() {
   const [filterStatus, setFilterStatus] = useState("Todos");
   const [searchQuery, setSearchQuery] = useState("");
 
+  // Hydrate filters/search from storage
+  useEffect(() => {
+    (async () => {
+      const savedFilter = await getData<string>(StorageKeys.Technician.Requests + ":filter");
+      const savedSearch = await getData<string>(StorageKeys.Technician.Requests + ":search");
+      if (savedFilter) setFilterStatus(savedFilter);
+      if (savedSearch) setSearchQuery(savedSearch);
+    })();
+  }, []);
+
   const statuses = ["Todos", "En progreso", "Completadas", "Canceladas"];
 
   const filteredRequests = requestsData.filter(request => {
@@ -86,6 +97,16 @@ export default function Requests() {
       request.location.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesStatus && matchesSearch;
   });
+
+  const handleChangeFilter = (value: string) => {
+    setFilterStatus(value);
+    saveData(StorageKeys.Technician.Requests + ":filter", value);
+  };
+
+  const handleChangeSearch = (value: string) => {
+    setSearchQuery(value);
+    saveData(StorageKeys.Technician.Requests + ":search", value);
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -178,7 +199,7 @@ export default function Requests() {
             placeholder="Buscar solicitudes..."
             placeholderTextColor={colors.text.tertiary}
             value={searchQuery}
-            onChangeText={setSearchQuery}
+            onChangeText={handleChangeSearch}
           />
           <Text style={styles.searchIcon}>🔍</Text>
         </View>
@@ -193,7 +214,7 @@ export default function Requests() {
             {statuses.map(status => (
               <TouchableOpacity
                 key={status}
-                onPress={() => setFilterStatus(status)}
+                onPress={() => handleChangeFilter(status)}
                 style={[
                   styles.filterButton,
                   filterStatus === status && styles.filterButtonActive

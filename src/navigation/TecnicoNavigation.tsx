@@ -28,11 +28,11 @@ function TecnicoTabs() {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: technician.primary, // Naranja para técnicos
-        tabBarInactiveTintColor: "#999999",
+        tabBarActiveTintColor: technician.primary,
+        tabBarInactiveTintColor: technician.dark,
         tabBarStyle: {
-          backgroundColor: "#FFFFFF",
-          borderTopColor: "#E5E7EB",
+          backgroundColor: technician.light,
+          borderTopColor: technician.primary,
           borderTopWidth: 1,
           paddingBottom: Platform.OS === "ios" ? 20 : 10,
           paddingTop: 10

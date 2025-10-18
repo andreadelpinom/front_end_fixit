@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors } from "../../theme/colors";
 import HeaderNav from "../../components/HeaderNav";
 import NotificationsModal from "../../components/NotificationModal";
+import { getData, saveData, StorageKeys } from "../../shared/storage";
 
 const servicesData = [
   {
@@ -87,6 +88,23 @@ export default function ServicesScreen() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Todos");
   const [showNotifications, setShowNotifications] = useState(false);
+  // Hydrate persisted state
+  useEffect(() => {
+    (async () => {
+      const savedQuery = await getData<string>(StorageKeys.Client.Filters + ":services:query");
+      const savedCategory = await getData<string>(StorageKeys.Client.Filters + ":services:category");
+      if (savedQuery) setSearchQuery(savedQuery);
+      if (savedCategory) setSelectedCategory(savedCategory);
+    })();
+  }, []);
+
+  // Persist on change
+  useEffect(() => {
+    saveData(StorageKeys.Client.Filters + ":services:query", searchQuery);
+  }, [searchQuery]);
+  useEffect(() => {
+    saveData(StorageKeys.Client.Filters + ":services:category", selectedCategory);
+  }, [selectedCategory]);
 
   const categories = ["Todos", "Electricidad", "Plomería", "Carpintería", "Climatización", "Limpieza"];
 

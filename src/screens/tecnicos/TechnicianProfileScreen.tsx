@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useNavigation } from "@react-navigation/native";
 import {
   View,
   Text,
@@ -8,14 +9,16 @@ import {
   FlatList
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { colors } from "../../theme/colors";
+import { colors, technician } from "../../theme/colors";
 import NotificationsModal from "../../components/NotificationModal";
 import CertificationBanner from "../../components/CertificationBanner";
+import { getData, saveData, StorageKeys } from "../../shared/storage";
 
 export default function TechnicianProfileScreen() {
+  const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const [showNotifications, setShowNotifications] = useState(false);
-  const [showBanner, setShowBanner] = useState(true);
+  const [showBanner, setShowBanner] = useState(false);
 
   const userData = {
     name: "Carlos Mendoza",
@@ -55,9 +58,16 @@ export default function TechnicianProfileScreen() {
     { id: "4", name: "Carpintería", level: "Intermedio" }
   ];
 
-  const handleBannerClose = () => {
+  useEffect(() => {
+    (async () => {
+      const seen = await getData<boolean>(StorageKeys.Technician.CertBannerSeen);
+      setShowBanner(!seen);
+    })();
+  }, []);
+
+  const handleBannerClose = async () => {
     setShowBanner(false);
-    localStorage?.setItem('certificationBannerSeen', 'true');
+    await saveData(StorageKeys.Technician.CertBannerSeen, true);
   };
 
   const renderCertification = ({ item }: any) => (
@@ -98,17 +108,19 @@ export default function TechnicianProfileScreen() {
   );
 
   return (
-    <View style={[styles.container, { paddingBottom: insets.bottom }]}>
+    <View style={[styles.container, { backgroundColor: technician.light, paddingBottom: insets.bottom }]}> 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Back Button */}
-        <View style={styles.backButtonContainer}>
-          <TouchableOpacity onPress={() => console.log("Go back")}>
-            <Text style={styles.backButton}>← Atrás</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => setShowNotifications(true)}>
-            <Text style={styles.notificationIcon}>🔔</Text>
-          </TouchableOpacity>
-        </View>
+        {/* Back Button: solo mostrar si se puede volver atrás */}
+        {navigation.canGoBack() && (
+          <View style={styles.backButtonContainer}>
+            <TouchableOpacity onPress={() => navigation.goBack()}>
+              <Text style={[styles.backButton, { color: technician.primary }]}>← Atrás</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setShowNotifications(true)}>
+              <Text style={styles.notificationIcon}>🔔</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Certification Banner */}
         {showBanner && (
@@ -119,9 +131,9 @@ export default function TechnicianProfileScreen() {
         )}
 
         {/* Profile Card */}
-        <View style={styles.profileCard}>
+  <View style={[styles.profileCard, { borderColor: technician.primary, backgroundColor: technician.light }]}> 
           <View style={styles.avatarSection}>
-            <View style={styles.avatar}>
+            <View style={[styles.avatar, { backgroundColor: technician.primary }]}> 
               <Text style={styles.avatarInitial}>C</Text>
             </View>
             {userData.isVerified && (
@@ -135,7 +147,7 @@ export default function TechnicianProfileScreen() {
             <View style={styles.nameRow}>
               <Text style={styles.name}>{userData.name}</Text>
               {userData.isVerified && (
-                <View style={styles.certificationBadge}>
+                <View style={[styles.certificationBadge, { backgroundColor: technician.primary }]}> 
                   <Text style={styles.certificationBadgeText}>
                     🛡️ Técnico Certificado
                   </Text>
@@ -150,8 +162,8 @@ export default function TechnicianProfileScreen() {
         </View>
 
         {/* Stats */}
-        <View style={styles.statsGrid}>
-          <View style={styles.statCard}>
+  <View style={styles.statsGrid}>
+          <View style={[styles.statCard, { borderColor: technician.primary, backgroundColor: technician.light }]}> 
             <Text style={styles.statIcon}>⭐</Text>
             <Text style={styles.statValue}>{userData.averageRating}</Text>
             <Text style={styles.statLabel}>Rating</Text>
@@ -170,7 +182,7 @@ export default function TechnicianProfileScreen() {
 
         {/* Certifications */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Certificaciones</Text>
+          <Text style={[styles.sectionTitle, { color: technician.dark }]}>Certificaciones</Text>
           <FlatList
             data={certifications}
             renderItem={renderCertification}
@@ -182,7 +194,7 @@ export default function TechnicianProfileScreen() {
 
         {/* Skills */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Habilidades</Text>
+          <Text style={[styles.sectionTitle, { color: technician.dark }]}>Habilidades</Text>
           <FlatList
             data={skills}
             renderItem={renderSkill}
@@ -194,10 +206,10 @@ export default function TechnicianProfileScreen() {
 
         {/* Action Buttons */}
         <View style={styles.actionButtons}>
-          <TouchableOpacity style={styles.primaryButton}>
+          <TouchableOpacity style={[styles.primaryButton, { backgroundColor: technician.primary }]}> 
             <Text style={styles.primaryButtonText}>💬 Contactar</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.secondaryButton}>
+          <TouchableOpacity style={[styles.secondaryButton, { borderColor: technician.primary }]}> 
             <Text style={styles.secondaryButtonText}>📋 Ver Solicitudes</Text>
           </TouchableOpacity>
         </View>
