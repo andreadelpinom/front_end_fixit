@@ -9,9 +9,9 @@ import {
   TextInput
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { colors } from "../theme/colors";
-import HeaderNav from "../components/HeaderNav";
-import NotificationsModal from "../components/NotificationModal";
+import { colors } from "../../theme/colors";
+import HeaderNav from "../../components/HeaderNav";
+import NotificationsModal from "../../components/NotificationModal";
 
 const requestsData = [
   {

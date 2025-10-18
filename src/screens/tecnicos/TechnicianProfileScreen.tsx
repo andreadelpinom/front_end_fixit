@@ -8,9 +8,9 @@ import {
   FlatList
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { colors } from "../theme/colors";
-import NotificationsModal from "../components/NotificationModal";
-import CertificationBanner from "../components/CertificationBanner";
+import { colors } from "../../theme/colors";
+import NotificationsModal from "../../components/NotificationModal";
+import CertificationBanner from "../../components/CertificationBanner";
 
 export default function TechnicianProfileScreen() {
   const insets = useSafeAreaInsets();

@@ -7,8 +7,8 @@ import {
   TouchableOpacity
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { colors } from "../theme/colors";
-import AcceptRequestFlow from "../components/AcceptRequestFlow";
+import { colors } from "../../theme/colors";
+import AcceptRequestFlow from "../../components/AcceptRequestFlow";
 
 export default function RequestDetail({ navigation }: any) {
   const insets = useSafeAreaInsets();

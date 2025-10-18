@@ -9,9 +9,9 @@ import {
   Alert
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { colors } from "../theme/colors";
-import NotificationsModal from "../components/NotificationModal";
-import { useAuth } from "../context/AuthContext";
+import { colors } from "../../theme/colors";
+import NotificationsModal from "../../components/NotificationModal";
+import { useAuth } from "../../context/AuthContext";
 
 const quickAccessItems = [
   {

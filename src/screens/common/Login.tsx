@@ -10,8 +10,8 @@ import {
   Platform
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { colors } from "../theme/colors";
-import { useAuth } from "../context/AuthContext";
+import { colors } from "../../theme/colors";
+import { useAuth } from "../../context/AuthContext";
 
 interface LoginScreenProps {
   navigation: any;
