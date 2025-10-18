@@ -1,9 +1,5 @@
 import React, { createContext, useState, useCallback, ReactNode } from "react";
 
-/**
- * User type definition for authentication context
- * Represents a logged-in user with their profile information
- */
 export interface User {
   id: string;
   email: string;
@@ -17,10 +13,6 @@ export interface User {
   certificates?: string[];
 }
 
-/**
- * AuthContext type definition
- * Provides authentication state and methods
- */
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
@@ -37,66 +29,66 @@ interface AuthContextType {
   updateUser: (userData: Partial<User>) => void;
 }
 
-/**
- * Create authentication context
- * Uses mock authentication for demonstration purposes
- */
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 interface AuthProviderProps {
   children: ReactNode;
 }
 
-/**
- * AuthProvider component
- * Manages authentication state and provides auth methods
- * 
- * Features:
- * - Mock user login/registration
- * - User state persistence
- * - Role-based access (cliente/tecnico)
- */
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  /**
-   * Mock login function
-   * Validates email and password, creates mock user session
-   */
+  // MOCK USERS DATABASE
+  const mockUsersDB: User[] = [
+    {
+      id: "1",
+      email: "cliente@fixit.com",
+      name: "Cliente Demo",
+      role: "cliente",
+      isVerified: true,
+      completedServices: 5,
+      averageRating: 4.5,
+      joinDate: new Date().toISOString()
+    },
+    {
+      id: "2",
+      email: "tecnico@fixit.com",
+      name: "Técnico Demo",
+      role: "tecnico",
+      isVerified: true,
+      completedServices: 10,
+      averageRating: 4.8,
+      joinDate: new Date().toISOString(),
+      certificates: []
+    }
+  ];
+
+  // LOGIN
   const login = useCallback(async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await new Promise(resolve => setTimeout(resolve, 1000)); // simulate API call
 
-      // Basic validation
       if (!email.includes("@") || password.length < 6) {
-        throw new Error("Invalid credentials");
+        throw new Error("Credenciales inválidas");
       }
 
-      // Mock user creation
-      const mockUser: User = {
-        id: "user_" + Math.random().toString(36).substr(2, 9),
-        email,
-        name: email.split("@")[0] ?? email,
-        role: "cliente",
-        isVerified: false,
-        completedServices: 0,
-        averageRating: 0,
-        joinDate: new Date().toISOString()
-      };
+      // BUSCAR USUARIO EN MOCK DB
+      const existingUser = mockUsersDB.find(u => u.email === email);
 
-      setUser(mockUser);
+      if (!existingUser) {
+        throw new Error("Usuario no encontrado");
+      }
+
+      // Guardar usuario en contexto
+      setUser(existingUser);
     } finally {
       setIsLoading(false);
     }
   }, []);
 
-  /**
-   * Mock register function
-   * Validates input and creates new user account
-   */
+  // REGISTER
   const register = useCallback(
     async (
       fullName: string,
@@ -107,16 +99,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
     ) => {
       setIsLoading(true);
       try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await new Promise(resolve => setTimeout(resolve, 1500));
 
-        // Basic validation
         if (!fullName.trim() || !email.includes("@") || password.length < 6) {
-          throw new Error("Invalid registration data");
+          throw new Error("Datos de registro inválidos");
         }
 
-        // Mock user creation
-        const mockUser: User = {
+        const newUser: User = {
           id: "user_" + Math.random().toString(36).substr(2, 9),
           email,
           name: fullName,
@@ -129,7 +118,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           certificates: role === "tecnico" ? [] : undefined
         };
 
-        setUser(mockUser);
+        setUser(newUser);
       } finally {
         setIsLoading(false);
       }
@@ -137,14 +126,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
     []
   );
 
-  /**
-   * Logout function
-   * Clears user session
-   */
+  // LOGOUT
   const logout = useCallback(async () => {
     setIsLoading(true);
     try {
-      // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 500));
       setUser(null);
     } finally {
@@ -152,15 +137,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }, []);
 
-  /**
-   * Update user profile information
-   * Merges new data with existing user object
-   */
   const updateUser = useCallback((userData: Partial<User>) => {
-    setUser(prevUser => {
-      if (!prevUser) return null;
-      return { ...prevUser, ...userData };
-    });
+    setUser(prevUser => (prevUser ? { ...prevUser, ...userData } : null));
   }, []);
 
   const value: AuthContextType = {
@@ -173,21 +151,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
     updateUser
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-/**
- * Hook to use authentication context
- * Must be used within AuthProvider
- */
+// Hook para usar AuthContext
 export function useAuth() {
   const context = React.useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
+  if (!context) throw new Error("useAuth debe usarse dentro de AuthProvider");
   return context;
 }
+
