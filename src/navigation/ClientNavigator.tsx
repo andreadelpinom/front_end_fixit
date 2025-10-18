@@ -1,4 +1,4 @@
-import React from "react";
+//import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { Platform } from "react-native";
@@ -12,6 +12,8 @@ import HomeTabIcon from "../components/HomeTabIcon";
 import ServicesTabIcon from "../components/ServicesTabIcon";
 import ProfileTabIcon from "../components/ProfileTabIcon";
 
+import { client } from "../theme/colors";
+
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
@@ -20,7 +22,7 @@ function ClientTabs() {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: "#EA8B49",
+        tabBarActiveTintColor: client.primary, // Azul para clientes
         tabBarInactiveTintColor: "#999999",
         tabBarStyle: {
           backgroundColor: "#FFFFFF",

@@ -1,5 +1,5 @@
 export const colors = {
-  primary: "#EA8B49",
+  primary: "#EA8B49", // Naranja - color principal
   secondary: "#F97316",
   tertiary: "#06B6D4",
   
@@ -30,9 +30,20 @@ export const colors = {
   }
 };
 
+// Colores específicos para CLIENTES (Azul)
+export const client = {
+  primary: "#3B82F6", // Azul
+  secondary: "#2563EB",
+  light: "#DBEAFE",
+  dark: "#1E40AF",
+  accent: "#60A5FA"
+};
+
+// Colores específicos para TÉCNICOS (Naranja)
 export const technician = {
-  primary: "#EA8B49",
+  primary: "#EA8B49", // Naranja
   secondary: "#F97316",
-  light: "#FECACA",
-  dark: "#B45309"
+  light: "#FED7AA",
+  dark: "#B45309",
+  accent: "#FB923C"
 };
