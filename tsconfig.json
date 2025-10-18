@@ -38,5 +38,5 @@
     "node_modules",
     "**/*.spec.ts"
   ],
-  "extends": "expo/tsconfig.base"
+  "extends": "expo/tsconfig.base.json"
 }
