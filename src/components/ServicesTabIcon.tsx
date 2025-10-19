@@ -5,23 +5,30 @@ interface TabIconProps {
   size?: number;
 }
 
+// Llave inglesa (wrench) estilo outline
 export default function ServicesTabIcon({ color = "#000000", size = 24 }: TabIconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      {/* Ícono de gráfica de barras para "Desempeño" */}
+      {/* Mango */}
       <Path
-        d="M3 3v18h18"
+        d="M14.5 13.5L6 22"
         stroke={color}
-        strokeWidth={2}
+        strokeWidth={1.8}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
+      {/* Cabeza de la llave */}
       <Path
-        d="M7 16V12M12 16V8M17 16V14"
+        d="M21 7a4 4 0 0 1-5.657 3.657L12 14l-2-2 3.343-3.343A4 4 0 1 1 21 7Z"
         stroke={color}
-        strokeWidth={2}
+        strokeWidth={1.8}
         strokeLinecap="round"
         strokeLinejoin="round"
+      />
+      {/* Orificio del mango */}
+      <Path
+        d="M5 21a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z"
+        fill={color}
       />
     </Svg>
   );

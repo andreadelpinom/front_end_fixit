@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigation } from "@react-navigation/native";
 import {
   View,
   Text,
@@ -6,186 +7,82 @@ import {
   ScrollView,
   TextInput,
   TouchableOpacity,
-  FlatList
+  
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { colors } from "../../theme/colors";
+import { colors, client } from "../../theme/colors";
 import HeaderNav from "../../components/HeaderNav";
 import NotificationsModal from "../../components/NotificationModal";
 import { getData, saveData, StorageKeys } from "../../shared/storage";
 
-const coursesData = [
-  {
-    id: "1",
-    title: "Electricidad Residencial",
-    subtitle: "Nivel básico",
-    duration: "8 horas",
-    rating: 4.8,
-    price: "$49",
-    originalPrice: "$89",
-    category: "electricidad",
-    level: "básico"
-  },
-  {
-    id: "2",
-    title: "Plomería Avanzada",
-    subtitle: "Certificación",
-    duration: "12 horas",
-    rating: 4.9,
-    price: "$69",
-    originalPrice: "$120",
-    category: "plomería",
-    level: "avanzado"
-  },
-  {
-    id: "3",
-    title: "Carpintería Moderna",
-    subtitle: "Técnicas nuevas",
-    duration: "16 horas",
-    rating: 4.7,
-    price: "$79",
-    originalPrice: "$140",
-    category: "carpintería",
-    level: "intermedio"
-  },
-  {
-    id: "4",
-    title: "Instalación Básica",
-    subtitle: "Módulo inicial",
-    duration: "6 horas",
-    rating: 4.6,
-    price: "Gratis",
-    originalPrice: "$45",
-    category: "instalación",
-    level: "básico",
-    type: "beca"
-  }
+// Tipos de datos simulados (listos para conectar a backend)
+interface Category {
+  id: string;
+  name: string;
+  icon: string; // emoji por ahora
+}
+
+interface TechnicianCard {
+  id: string;
+  name: string;
+  specialty: string;
+  rating: number;
+  distanceKm: number;
+  isOnline: boolean;
+}
+
+interface OfferCard {
+  id: string;
+  title: string;
+  description: string;
+  urgent?: boolean;
+  validUntil: string; // fecha legible
+  fromPrice: string; // texto como "$800"
+}
+
+const categoriesMock: Category[] = [
+  { id: "electricidad", name: "Electricidad", icon: "⚡" },
+  { id: "plomeria", name: "Plomería", icon: "💧" },
+  { id: "pintura", name: "Pintura", icon: "🎨" },
+  { id: "jardineria", name: "Jardinería", icon: "🌿" },
+  { id: "aire", name: "Aire Acond.", icon: "❄️" },
+  { id: "electro", name: "Electrodomést.", icon: "🛠️" }
 ];
 
-const servicesData = [
-  {
-    id: "1",
-    name: "María González",
-    status: "En progreso",
-    progress: 65,
-    date: "Hoy, 14:30"
-  },
-  {
-    id: "2",
-    name: "Juan Pérez",
-    status: "Completado",
-    progress: 100,
-    date: "Ayer"
-  },
-  {
-    id: "3",
-    name: "Carlos López",
-    status: "En progreso",
-    progress: 40,
-    date: "Hoy, 10:00"
-  }
+const topTechniciansMock: TechnicianCard[] = [
+  { id: "t1", name: "Carlos Méndez", specialty: "Electricista Certificado", rating: 4.9, distanceKm: 2.3, isOnline: true },
+  { id: "t2", name: "Lucía Pérez", specialty: "Plomería", rating: 4.8, distanceKm: 1.1, isOnline: true },
+  { id: "t3", name: "Jorge Ruiz", specialty: "Pintura", rating: 4.7, distanceKm: 3.5, isOnline: false }
+];
+
+const offersMock: OfferCard[] = [
+  { id: "o1", title: "20% OFF en Plomería", description: "Reparación de fugas e instalaciones", urgent: true, validUntil: "Válido hasta hoy", fromPrice: "$800" },
+  { id: "o2", title: "Limpieza de aire A/C", description: "Mantenimiento preventivo", validUntil: "Esta semana", fromPrice: "$600" },
+  { id: "o3", title: "Pintura express", description: "Interiores de 1 habitación", validUntil: "Hasta fin de mes", fromPrice: "$1,200" }
 ];
 
 export default function Home() {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation();
   const [searchQuery, setSearchQuery] = useState("");
   const [showNotifications, setShowNotifications] = useState(false);
-  const [filteredCourses, setFilteredCourses] = useState(coursesData);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(
+    null
+  );
 
-  // Hydrate search query
+  // Rehidratar búsqueda (para futura API)
   useEffect(() => {
     (async () => {
       const saved = await getData<string>(StorageKeys.Client.SearchQuery);
-      if (saved) {
-        setSearchQuery(saved);
-        // re-filter
-        const filtered = coursesData.filter(course =>
-          course.title.toLowerCase().includes(saved.toLowerCase()) ||
-          course.subtitle.toLowerCase().includes(saved.toLowerCase()) ||
-          course.category.toLowerCase().includes(saved.toLowerCase())
-        );
-        setFilteredCourses(filtered);
-      }
+      if (saved) setSearchQuery(saved);
     })();
   }, []);
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
-    // Persist query
     saveData(StorageKeys.Client.SearchQuery, query);
-    if (query.trim() === "") {
-      setFilteredCourses(coursesData);
-      return;
-    }
-
-    const filtered = coursesData.filter(course =>
-      course.title.toLowerCase().includes(query.toLowerCase()) ||
-      course.subtitle.toLowerCase().includes(query.toLowerCase()) ||
-      course.category.toLowerCase().includes(query.toLowerCase())
-    );
-    setFilteredCourses(filtered);
+    // En el futuro: llamar API con query
   };
-
-  const renderCourseCard = ({ item }: any) => (
-    <View style={styles.courseCard}>
-      <View style={styles.courseHeader}>
-        <Text style={styles.courseTitle}>{item.title}</Text>
-        {item.type === "beca" && (
-          <View style={styles.becaBadge}>
-            <Text style={styles.becaText}>BECA</Text>
-          </View>
-        )}
-      </View>
-      <Text style={styles.courseSubtitle}>{item.subtitle}</Text>
-      <View style={styles.courseDetails}>
-        <Text style={styles.duration}>⏱ {item.duration}</Text>
-        <Text style={styles.rating}>⭐ {item.rating}</Text>
-      </View>
-      <View style={styles.courseFooter}>
-        <Text style={styles.price}>{item.price}</Text>
-        <TouchableOpacity style={styles.enrollButton}>
-          <Text style={styles.enrollButtonText}>Inscribirse</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-
-  const renderServiceCard = ({ item }: any) => (
-    <View style={styles.serviceCard}>
-      <View style={styles.serviceAvatar}>
-        <Text style={styles.avatarInitial}>
-          {item.name.charAt(0)}
-        </Text>
-      </View>
-      <View style={styles.serviceInfo}>
-        <Text style={styles.serviceName}>{item.name}</Text>
-        <Text style={styles.serviceDate}>{item.date}</Text>
-        <View style={styles.progressBar}>
-          <View
-            style={[
-              styles.progressFill,
-              { width: `${item.progress}%` }
-            ]}
-          />
-        </View>
-      </View>
-      <View style={styles.serviceStatus}>
-        <Text
-          style={[
-            styles.statusText,
-            {
-              color:
-                item.progress === 100
-                  ? colors.status.success
-                  : colors.primary
-            }
-          ]}
-        >
-          {item.status}
-        </Text>
-      </View>
-    </View>
-  );
 
   return (
     <View style={[styles.container, { paddingBottom: insets.bottom }]}>
@@ -201,7 +98,7 @@ export default function Home() {
         <View style={styles.greetingSection}>
           <Text style={styles.greetingText}>Hola, Carlos 👋</Text>
           <Text style={styles.greetingSubtext}>
-            Encuentra los mejores cursos para ti
+            ¿Qué servicio necesitas hoy?
           </Text>
         </View>
 
@@ -209,7 +106,7 @@ export default function Home() {
         <View style={styles.searchContainer}>
           <TextInput
             style={styles.searchInput}
-            placeholder="Buscar cursos..."
+            placeholder="¿Qué servicio necesitas hoy?"
             placeholderTextColor={colors.text.tertiary}
             value={searchQuery}
             onChangeText={handleSearch}
@@ -219,65 +116,121 @@ export default function Home() {
           </TouchableOpacity>
         </View>
 
-        {/* Promociones Banner */}
-        <View style={styles.promoBanner}>
-          <View>
-            <Text style={styles.promoTitle}>Becas y promociones activas</Text>
-            <Text style={styles.promoSubtitle}>
-              Acceso a cursos premium con descuento
-            </Text>
-          </View>
-          <TouchableOpacity style={styles.promoButton}>
-            <Text style={styles.promoButtonText}>Ver ofertas →</Text>
-          </TouchableOpacity>
-        </View>
+        {/* Hero / Carrusel simple */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          pagingEnabled
+          style={styles.heroCarousel}
+          contentContainerStyle={{ gap: 12 }}
+        >
+          {[1, 2, 3].map(i => (
+            <View key={i} style={styles.heroCard}>
+              <Text style={styles.heroTitle}>Encuentra los mejores técnicos verificados</Text>
+              <Text style={styles.heroSubtitle}>
+                Servicio garantizado y profesionales certificados
+              </Text>
+              <TouchableOpacity
+                style={styles.heroButton}
+                onPress={() => navigation.navigate("Services" as never)}
+              >
+                <Text style={styles.heroButtonText}>Explorar ahora</Text>
+              </TouchableOpacity>
+            </View>
+          ))}
+        </ScrollView>
 
-        {/* Cursos disponibles */}
+        {/* Categorías */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Cursos disponibles para ti</Text>
-          <FlatList
-            data={filteredCourses}
-            renderItem={renderCourseCard}
-            keyExtractor={(item) => item.id}
-            scrollEnabled={false}
-            ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
-          />
+          <Text style={styles.sectionTitle}>Servicios Populares</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: 12 }}
+          >
+            {categoriesMock.map(cat => {
+              const selected = selectedCategory === cat.id;
+              return (
+                <TouchableOpacity
+                  key={cat.id}
+                  style={[styles.categoryChip, selected && styles.categoryChipSelected]}
+                  onPress={() => {
+                    setSelectedCategory(cat.id);
+                    // Navegar a servicios (filtro simulado)
+                    navigation.navigate("Services" as never);
+                  }}
+                >
+                  <Text style={[styles.categoryIcon, selected && { color: "#FFF" }]}>{cat.icon}</Text>
+                  <Text style={[styles.categoryText, selected && { color: "#FFF" }]}>{cat.name}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
         </View>
 
-        {/* Tus servicios */}
+        {/* Top técnicos del mes */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Tus servicios en curso</Text>
-            <TouchableOpacity>
+            <Text style={styles.sectionTitle}>🔥 Top técnicos del mes</Text>
+            <TouchableOpacity onPress={() => navigation.navigate("Services" as never)}>
               <Text style={styles.seeAllLink}>Ver todos →</Text>
             </TouchableOpacity>
           </View>
-          <FlatList
-            data={servicesData}
-            renderItem={renderServiceCard}
-            keyExtractor={(item) => item.id}
-            scrollEnabled={false}
-            ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
-          />
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
+            {topTechniciansMock.map(t => (
+              <View key={t.id} style={styles.techCard}>
+                <View style={styles.techHeader}>
+                  <View style={styles.techAvatar}>
+                    <Text style={styles.techAvatarText}>{t.name.charAt(0)}</Text>
+                  </View>
+                  <View style={styles.techInfo}>
+                    <Text style={styles.techName}>{t.name}</Text>
+                    <Text style={styles.techRole}>{t.specialty}</Text>
+                    <View style={styles.techMetaRow}>
+                      <Text style={styles.techMeta}>⭐ {t.rating}</Text>
+                      <Text style={styles.techMeta}>• {t.distanceKm} km</Text>
+                    </View>
+                  </View>
+                  <View style={[styles.onlineDot, { backgroundColor: t.isOnline ? colors.status.success : colors.text.light }]} />
+                </View>
+                <TouchableOpacity
+                  style={styles.viewProfileBtn}
+                  onPress={() => navigation.navigate("Services" as never)}
+                >
+                  <Text style={styles.viewProfileText}>👁️ Ver perfil</Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+          </ScrollView>
         </View>
 
-        {/* Solicitudes cercanas */}
+        {/* Ofertas cerca de ti */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Solicitudes cercanas</Text>
-          <TouchableOpacity style={styles.requestCard}>
-            <View style={styles.requestContent}>
-              <View>
-                <Text style={styles.requestTitle}>Reparación de lavadora</Text>
-                <Text style={styles.requestDetails}>
-                  Centro, Guayaquil • Hoy, 16:00
-                </Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>💸 Ofertas cerca de ti</Text>
+            <TouchableOpacity onPress={() => navigation.navigate("Services" as never)}>
+              <Text style={styles.seeAllLink}>Ver más</Text>
+            </TouchableOpacity>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
+            {offersMock.map(o => (
+              <View key={o.id} style={styles.offerCard}>
+                <View style={styles.offerHeader}>
+                  <Text style={styles.offerTitle} numberOfLines={1}>{o.title}</Text>
+                  {o.urgent && (
+                    <View style={styles.urgentBadge}>
+                      <Text style={styles.urgentText}>Urgente</Text>
+                    </View>
+                  )}
+                </View>
+                <Text style={styles.offerDesc} numberOfLines={2}>{o.description}</Text>
+                <View style={styles.offerFooter}>
+                  <Text style={styles.offerValid}>⏱ {o.validUntil}</Text>
+                  <Text style={styles.offerPrice}>Desde {o.fromPrice}</Text>
+                </View>
               </View>
-            </View>
-            <View style={styles.requestPrice}>
-              <Text style={styles.priceAmount}>$85</Text>
-              <Text style={styles.priceLabel}>precio</Text>
-            </View>
-          </TouchableOpacity>
+            ))}
+          </ScrollView>
         </View>
 
         <View style={{ height: 20 }} />
@@ -294,7 +247,7 @@ export default function Home() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background
+    backgroundColor: colors.surface
   },
   content: {
     flex: 1,
@@ -302,7 +255,7 @@ const styles = StyleSheet.create({
   },
   greetingSection: {
     marginTop: 24,
-    marginBottom: 24
+    marginBottom: 16
   },
   greetingText: {
     fontSize: 24,
@@ -318,9 +271,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 20,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.background,
     borderRadius: 12,
-    paddingRight: 12
+    paddingRight: 12,
+    borderWidth: 1,
+    borderColor: colors.border
   },
   searchInput: {
     flex: 1,
@@ -336,38 +291,39 @@ const styles = StyleSheet.create({
   filterIcon: {
     fontSize: 18
   },
-  promoBanner: {
-    backgroundColor: colors.glass.background,
+  // Hero
+  heroCarousel: {
+    marginBottom: 24
+  },
+  heroCard: {
+    width: 320,
+    backgroundColor: client.dark,
     borderRadius: 20,
-    padding: 16,
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: colors.glass.border,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center"
+    padding: 16
   },
-  promoTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: colors.text.primary,
-    marginBottom: 4
-  },
-  promoSubtitle: {
-    fontSize: 12,
-    color: colors.text.secondary
-  },
-  promoButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: colors.primary,
-    borderRadius: 8
-  },
-  promoButtonText: {
+  heroTitle: {
     color: "#FFFFFF",
-    fontSize: 12,
-    fontWeight: "600"
+    fontSize: 18,
+    fontWeight: "800",
+    marginBottom: 6
   },
+  heroSubtitle: {
+    color: "#E5E7EB",
+    fontSize: 12,
+    marginBottom: 12
+  },
+  heroButton: {
+    alignSelf: "flex-start",
+    backgroundColor: colors.background,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999
+  },
+  heroButtonText: {
+    color: client.dark,
+    fontWeight: "700"
+  },
+  // Secciones
   section: {
     marginBottom: 24
   },
@@ -384,162 +340,151 @@ const styles = StyleSheet.create({
   },
   seeAllLink: {
     fontSize: 12,
-    color: colors.primary,
-    fontWeight: "600"
+    color: client.primary,
+    fontWeight: "700"
   },
-  courseCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    padding: 16,
+  // Categorías
+  categoryChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    backgroundColor: colors.background,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: colors.border
   },
-  courseHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 8
+  categoryChipSelected: {
+    backgroundColor: client.primary,
+    borderColor: client.primary
   },
-  courseTitle: {
-    fontSize: 15,
+  categoryIcon: {
+    fontSize: 16,
+    color: client.primary
+  },
+  categoryText: {
+    fontSize: 13,
     fontWeight: "700",
-    color: colors.text.primary,
-    flex: 1
+    color: colors.text.primary
   },
-  becaBadge: {
-    backgroundColor: colors.status.success,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6
+  // Top técnicos
+  techCard: {
+    width: 260,
+    backgroundColor: colors.background,
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: colors.border
   },
-  becaText: {
-    color: "#FFFFFF",
-    fontSize: 10,
-    fontWeight: "700"
-  },
-  courseSubtitle: {
-    fontSize: 12,
-    color: colors.text.secondary,
-    marginBottom: 12
-  },
-  courseDetails: {
-    flexDirection: "row",
-    gap: 16,
-    marginBottom: 12
-  },
-  duration: {
-    fontSize: 12,
-    color: colors.text.tertiary
-  },
-  rating: {
-    fontSize: 12,
-    color: colors.text.tertiary
-  },
-  courseFooter: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center"
-  },
-  price: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: colors.primary
-  },
-  enrollButton: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8
-  },
-  enrollButtonText: {
-    color: "#FFFFFF",
-    fontSize: 12,
-    fontWeight: "600"
-  },
-  serviceCard: {
+  techHeader: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    padding: 12,
     gap: 12
   },
-  serviceAvatar: {
+  techAvatar: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: colors.primary,
+    backgroundColor: client.light,
     justifyContent: "center",
     alignItems: "center"
   },
-  avatarInitial: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700"
+  techAvatarText: {
+    color: client.dark,
+    fontSize: 18,
+    fontWeight: "800"
   },
-  serviceInfo: {
+  techInfo: {
     flex: 1
   },
-  serviceName: {
+  techName: {
     fontSize: 14,
-    fontWeight: "600",
-    color: colors.text.primary,
-    marginBottom: 2
+    fontWeight: "700",
+    color: colors.text.primary
   },
-  serviceDate: {
+  techRole: {
     fontSize: 12,
-    color: colors.text.tertiary,
+    color: colors.text.secondary,
+    marginBottom: 4
+  },
+  techMetaRow: {
+    flexDirection: "row",
+    gap: 6
+  },
+  techMeta: {
+    fontSize: 11,
+    color: colors.text.tertiary
+  },
+  onlineDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5
+  },
+  viewProfileBtn: {
+    marginTop: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: "center"
+  },
+  viewProfileText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: colors.text.primary
+  },
+  // Ofertas
+  offerCard: {
+    width: 260,
+    backgroundColor: colors.background,
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: colors.border
+  },
+  offerHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 6
   },
-  progressBar: {
-    height: 6,
-    backgroundColor: colors.border,
-    borderRadius: 3,
-    overflow: "hidden"
+  offerTitle: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: colors.text.primary,
+    flex: 1,
+    marginRight: 8
   },
-  progressFill: {
-    height: "100%",
-    backgroundColor: colors.primary,
-    borderRadius: 3
+  urgentBadge: {
+    backgroundColor: colors.status.warning,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8
   },
-  serviceStatus: {
-    alignItems: "flex-end"
+  urgentText: {
+    color: "#fff",
+    fontSize: 10,
+    fontWeight: "800"
   },
-  statusText: {
+  offerDesc: {
     fontSize: 12,
-    fontWeight: "600"
+    color: colors.text.secondary,
+    marginBottom: 10
   },
-  requestCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    padding: 12,
+  offerFooter: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center"
   },
-  requestContent: {
-    flex: 1
-  },
-  requestTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: colors.text.primary,
-    marginBottom: 4
-  },
-  requestDetails: {
+  offerValid: {
     fontSize: 12,
-    color: colors.text.secondary
-  },
-  requestPrice: {
-    alignItems: "flex-end"
-  },
-  priceAmount: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: colors.primary
-  },
-  priceLabel: {
-    fontSize: 10,
     color: colors.text.tertiary
+  },
+  offerPrice: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: client.primary
   }
 });

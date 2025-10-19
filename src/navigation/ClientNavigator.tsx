@@ -11,6 +11,7 @@ import CreateService from "../screens/clients/CreateService";
 
 import HomeTabIcon from "../components/HomeTabIcon";
 import ServicesTabIcon from "../components/ServicesTabIcon";
+import CreateServiceTabIcon from "../components/CreateServiceTabIcon";
 import ProfileTabIcon from "../components/ProfileTabIcon";
 
 import { client } from "../theme/colors";
@@ -60,7 +61,7 @@ function ClientTabs() {
         component={CreateService}
         options={{
           tabBarLabel: "Crear Servicio",
-          tabBarIcon: ({ color, size }) => <ServicesTabIcon color={color} size={size} />
+          tabBarIcon: ({ color, size }) => <CreateServiceTabIcon color={color} size={size} />
         }}
       />
       
