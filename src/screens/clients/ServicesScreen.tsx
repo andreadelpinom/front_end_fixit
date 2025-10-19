@@ -1,173 +1,68 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useNavigation } from "@react-navigation/native";
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
-  FlatList,
-  TextInput
+  TouchableOpacity
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { colors } from "../../theme/colors";
+import { colors, client } from "../../theme/colors";
 import HeaderNav from "../../components/HeaderNav";
 import NotificationsModal from "../../components/NotificationModal";
-import { getData, saveData, StorageKeys } from "../../shared/storage";
 
-const servicesData = [
-  {
-    id: "1",
-    title: "Reparación de aire acondicionado",
-    description: "Limpieza y mantenimiento general",
-    price: "$95",
-    rating: 4.9,
-    reviews: 156,
-    category: "Climatización",
-    duration: "2-3 horas",
-    image: "🌬️"
-  },
-  {
-    id: "2",
-    title: "Instalación de interruptores",
-    description: "Nuevos interruptores y tomacorrientes",
-    price: "$45",
-    rating: 4.8,
-    reviews: 89,
-    category: "Electricidad",
-    duration: "1 hora",
-    image: "⚡"
-  },
-  {
-    id: "3",
-    title: "Reparación de tuberías",
-    description: "Fugas y goteos",
-    price: "$75",
-    rating: 4.7,
-    reviews: 234,
-    category: "Plomería",
-    duration: "1-2 horas",
-    image: "🔧"
-  },
-  {
-    id: "4",
-    title: "Carpintería general",
-    description: "Puertas, marcos y muebles",
-    price: "$120",
-    rating: 4.6,
-    reviews: 112,
-    category: "Carpintería",
-    duration: "3-4 horas",
-    image: "🪚"
-  },
-  {
-    id: "5",
-    title: "Limpieza profunda",
-    description: "Hogar completo o áreas específicas",
-    price: "$65",
-    rating: 4.8,
-    reviews: 445,
-    category: "Limpieza",
-    duration: "2-3 horas",
-    image: "🧹"
-  },
-  {
-    id: "6",
-    title: "Reparación de puertas",
-    description: "Cerraduras y bisagras",
-    price: "$55",
-    rating: 4.5,
-    reviews: 78,
-    category: "Carpintería",
-    duration: "1-2 horas",
-    image: "🚪"
-  }
+// Tipos simulados
+type Status = "Finalizado" | "Cancelado" | "En progreso";
+
+interface FavoriteTechnician {
+  id: string;
+  name: string;
+  specialty: "Electricidad" | "Plomería" | string;
+  rating: number;
+  jobs: number;
+}
+
+interface ServiceHistoryItem {
+  id: string;
+  title: string; // "Electricidad - Reparación"
+  code: string; // REQ-ABC123
+  status: Status;
+  date: string; // 14/1/2024
+}
+
+interface FrequentService {
+  id: string;
+  title: string; // "Electricidad - Reparación"
+  times: number; // 3
+  lastDate: string; // 14/1/2024
+  icon: string; // emoji temporal
+}
+
+const favoriteTechnicians: FavoriteTechnician[] = [
+  { id: "t1", name: "Carlos Mendoza", specialty: "Electricidad", rating: 4.8, jobs: 127 },
+  { id: "t2", name: "Ana Rodriguez", specialty: "Plomería", rating: 4.9, jobs: 89 }
+];
+
+const historyItems: ServiceHistoryItem[] = [
+  { id: "h1", title: "Electricidad - Reparación", code: "REQ-ABC123", status: "Finalizado", date: "14/1/2024" },
+  { id: "h2", title: "Plomería - Instalación", code: "REQ-DEF456", status: "Cancelado", date: "9/1/2024" },
+  { id: "h3", title: "Pintura - Mantenimiento", code: "REQ-GHI789", status: "Finalizado", date: "4/1/2024" }
+];
+
+const frequentServices: FrequentService[] = [
+  { id: "f1", title: "Electricidad - Reparación", times: 3, lastDate: "14/1/2024", icon: "⚡" },
+  { id: "f2", title: "Plomería - Instalación", times: 2, lastDate: "9/1/2024", icon: "�" }
 ];
 
 export default function ServicesScreen() {
   const insets = useSafeAreaInsets();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("Todos");
+  const navigation = useNavigation();
   const [showNotifications, setShowNotifications] = useState(false);
-  // Hydrate persisted state
-  useEffect(() => {
-    (async () => {
-      const savedQuery = await getData<string>(StorageKeys.Client.Filters + ":services:query");
-      const savedCategory = await getData<string>(StorageKeys.Client.Filters + ":services:category");
-      if (savedQuery) setSearchQuery(savedQuery);
-      if (savedCategory) setSelectedCategory(savedCategory);
-    })();
-  }, []);
 
-  // Persist on change
-  useEffect(() => {
-    saveData(StorageKeys.Client.Filters + ":services:query", searchQuery);
-  }, [searchQuery]);
-  useEffect(() => {
-    saveData(StorageKeys.Client.Filters + ":services:category", selectedCategory);
-  }, [selectedCategory]);
-
-  const categories = ["Todos", "Electricidad", "Plomería", "Carpintería", "Climatización", "Limpieza"];
-
-  const filteredServices = servicesData.filter(service => {
-    const matchesSearch = service.title
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase()) ||
-      service.description
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === "Todos" || service.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
-
-  const renderServiceCard = ({ item }: any) => (
-    <TouchableOpacity style={styles.serviceCard}>
-      <View style={styles.serviceImageContainer}>
-        <Text style={styles.serviceImage}>{item.image}</Text>
-      </View>
-      <View style={styles.serviceContent}>
-        <View>
-          <Text style={styles.serviceCategory}>{item.category}</Text>
-          <Text style={styles.serviceTitle} numberOfLines={2}>
-            {item.title}
-          </Text>
-          <Text style={styles.serviceDescription} numberOfLines={1}>
-            {item.description}
-          </Text>
-        </View>
-        <View style={styles.serviceFooter}>
-          <View style={styles.ratingContainer}>
-            <Text style={styles.rating}>⭐ {item.rating}</Text>
-            <Text style={styles.reviewCount}>({item.reviews})</Text>
-          </View>
-          <Text style={styles.duration}>⏱ {item.duration}</Text>
-          <Text style={styles.price}>{item.price}</Text>
-        </View>
-      </View>
-      <TouchableOpacity style={styles.addButton}>
-        <Text style={styles.addButtonText}>+</Text>
-      </TouchableOpacity>
-    </TouchableOpacity>
-  );
-
-  const renderCategoryButton = (category: string) => (
-    <TouchableOpacity
-      key={category}
-      onPress={() => setSelectedCategory(category)}
-      style={[
-        styles.categoryButton,
-        selectedCategory === category && styles.categoryButtonActive
-      ]}
-    >
-      <Text
-        style={[
-          styles.categoryButtonText,
-          selectedCategory === category && styles.categoryButtonTextActive
-        ]}
-      >
-        {category}
-      </Text>
-    </TouchableOpacity>
-  );
+  const goToCreateService = () => (navigation as any).navigate("CreateService");
+  const goToRequestDetail = (item: ServiceHistoryItem) =>
+    (navigation as any).navigate("RequestDetail", { requestId: item.id });
 
   return (
     <View style={[styles.container, { paddingBottom: insets.bottom }]}>
@@ -181,51 +76,103 @@ export default function ServicesScreen() {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Title */}
         <View style={styles.titleSection}>
-          <Text style={styles.title}>Mis Servicios</Text>
-          <Text style={styles.subtitle}>
-            Explore nuestras ofertas disponibles
-          </Text>
+          <Text style={styles.title}>Mis servicios</Text>
+          <Text style={styles.subtitle}>Gestiona tus técnicos favoritos y servicios frecuentes</Text>
         </View>
 
-        {/* Search */}
-        <View style={styles.searchContainer}>
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Buscar servicios..."
-            placeholderTextColor={colors.text.tertiary}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-          <Text style={styles.searchIcon}>🔍</Text>
-        </View>
-
-        {/* Categories */}
-        <View style={styles.categoriesContainer}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.categoriesList}
-          >
-            {categories.map(renderCategoryButton)}
-          </ScrollView>
-        </View>
-
-        {/* Services List */}
-        {filteredServices.length > 0 ? (
-          <FlatList
-            data={filteredServices}
-            renderItem={renderServiceCard}
-            keyExtractor={(item) => item.id}
-            scrollEnabled={false}
-            ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
-            contentContainerStyle={styles.servicesList}
-          />
-        ) : (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>🔍</Text>
-            <Text style={styles.emptyText}>No se encontraron servicios</Text>
+        {/* Técnicos favoritos */}
+        <View style={styles.cardSection}>
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionTitleRow}>
+              <Text style={styles.sectionEmoji}>💗</Text>
+              <Text style={styles.sectionTitle}>Técnicos favoritos</Text>
+            </View>
           </View>
-        )}
+
+          {favoriteTechnicians.map(t => (
+            <View key={t.id} style={styles.favoriteCard}>
+              <View style={styles.favoriteLeft}>
+                <View style={styles.avatar}>
+                  <Text style={styles.avatarText}>👤</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.techName}>{t.name}</Text>
+                  <Text style={styles.techSpecialty}>
+                    {t.specialty === "Electricidad" ? "⚡" : "💧"}  {t.specialty}
+                  </Text>
+                  <View style={styles.ratingRow}>
+                    <Text style={styles.stars}>⭐ ⭐ ⭐ ⭐</Text>
+                    <Text style={styles.ratingNumber}>{t.rating.toFixed(1)}</Text>
+                  </View>
+                  <Text style={styles.jobsText}>{t.jobs} trabajos</Text>
+                </View>
+              </View>
+              <TouchableOpacity style={styles.primaryPill} onPress={goToCreateService}>
+                <Text style={styles.primaryPillText}>Solicitar</Text>
+              </TouchableOpacity>
+            </View>
+          ))}
+        </View>
+
+        {/* Historial de servicios */}
+        <View style={styles.cardSection}>
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionTitleRow}>
+              <Text style={[styles.sectionEmoji, { color: client.primary }]}>📄</Text>
+              <Text style={styles.sectionTitle}>Historial de servicios</Text>
+            </View>
+          </View>
+
+          {historyItems.map(h => (
+            <View key={h.id} style={styles.historyItem}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.historyTitle}>{h.title}</Text>
+                <Text style={styles.historyCode}>{h.code}</Text>
+                <View style={styles.historyMetaRow}>
+                  <View style={[styles.statusBadge, statusStyle(h.status)]}>
+                    <Text style={[styles.statusText, statusTextStyle(h.status)]}>
+                      {h.status === "Finalizado" ? "✔" : h.status === "Cancelado" ? "✖" : "•"} {h.status}
+                    </Text>
+                  </View>
+                  <View style={styles.datePill}>
+                    <Text style={styles.dateText}>📅 {h.date}</Text>
+                  </View>
+                </View>
+              </View>
+              <TouchableOpacity onPress={() => goToRequestDetail(h)}>
+                <Text style={styles.eyeIcon}>�️</Text>
+              </TouchableOpacity>
+            </View>
+          ))}
+        </View>
+
+        {/* Servicios frecuentes */}
+        <View style={styles.cardSection}>
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionTitleRow}>
+              <Text style={[styles.sectionEmoji, { color: colors.status.success }]}>🌀</Text>
+              <Text style={styles.sectionTitle}>Servicios frecuentes</Text>
+            </View>
+          </View>
+
+          {frequentServices.map(f => (
+            <View key={f.id} style={styles.frequentItem}>
+              <View style={styles.frequentLeft}>
+                <View style={styles.frequentIconWrap}><Text style={styles.frequentIcon}>{f.icon}</Text></View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.frequentTitle} numberOfLines={1}>{f.title}</Text>
+                  <View style={styles.frequentMetaRow}>
+                    <Text style={styles.frequentMeta}>{f.times} veces</Text>
+                    <Text style={styles.frequentMeta}>• {f.lastDate}</Text>
+                  </View>
+                </View>
+              </View>
+              <TouchableOpacity style={styles.secondaryPill} onPress={goToCreateService}>
+                <Text style={styles.secondaryPillText}>Solicitar</Text>
+              </TouchableOpacity>
+            </View>
+          ))}
+        </View>
 
         <View style={{ height: 20 }} />
       </ScrollView>
@@ -241,7 +188,7 @@ export default function ServicesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background
+    backgroundColor: colors.surface
   },
   content: {
     flex: 1,
@@ -249,165 +196,248 @@ const styles = StyleSheet.create({
   },
   titleSection: {
     marginTop: 24,
-    marginBottom: 20
+    marginBottom: 16
   },
   title: {
-    fontSize: 28,
-    fontWeight: "700",
+    fontSize: 24,
+    fontWeight: "800",
     color: colors.text.primary,
     marginBottom: 4
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: 13,
     color: colors.text.secondary
   },
-  searchContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    marginBottom: 16,
-    height: 44
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 14,
-    color: colors.text.primary,
-    paddingVertical: 10
-  },
-  searchIcon: {
-    fontSize: 18,
-    marginLeft: 8
-  },
-  categoriesContainer: {
+  // Section container card
+  cardSection: {
+    backgroundColor: colors.background,
+    borderRadius: 16,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
     marginBottom: 16
   },
-  categoriesList: {
-    paddingRight: 16,
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8
+  },
+  sectionTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8
   },
-  categoryButton: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border
+  sectionEmoji: {
+    fontSize: 16
   },
-  categoryButtonActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary
-  },
-  categoryButtonText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: colors.text.secondary
-  },
-  categoryButtonTextActive: {
-    color: "#FFFFFF"
-  },
-  servicesList: {
-    gap: 12
-  },
-  serviceCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    padding: 12,
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 12,
-    borderWidth: 1,
-    borderColor: colors.border
-  },
-  serviceImageContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 12,
-    backgroundColor: colors.borderLight,
-    justifyContent: "center",
-    alignItems: "center",
-    flexShrink: 0
-  },
-  serviceImage: {
-    fontSize: 28
-  },
-  serviceContent: {
-    flex: 1,
-    justifyContent: "space-between"
-  },
-  serviceCategory: {
-    fontSize: 11,
-    color: colors.primary,
-    fontWeight: "600",
-    marginBottom: 2
-  },
-  serviceTitle: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: colors.text.primary,
-    marginBottom: 2
-  },
-  serviceDescription: {
-    fontSize: 11,
-    color: colors.text.secondary,
-    marginBottom: 6
-  },
-  serviceFooter: {
-    gap: 2
-  },
-  ratingContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 2
-  },
-  rating: {
-    fontSize: 11,
-    fontWeight: "600",
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "800",
     color: colors.text.primary
   },
-  reviewCount: {
-    fontSize: 10,
-    color: colors.text.tertiary
+  // Favorite techs
+  favoriteCard: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: 12,
+    backgroundColor: colors.background,
+    marginTop: 8
   },
-  duration: {
-    fontSize: 10,
-    color: colors.text.tertiary
+  favoriteLeft: {
+    flexDirection: "row",
+    gap: 12,
+    alignItems: "center",
+    flex: 1
   },
-  price: {
+  avatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: client.light,
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  avatarText: {
+    fontSize: 20
+  },
+  techName: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: colors.text.primary
+  },
+  techSpecialty: {
+    fontSize: 12,
+    color: colors.text.secondary,
+    marginTop: 2
+  },
+  ratingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 4
+  },
+  stars: {
+    fontSize: 12
+  },
+  ratingNumber: {
     fontSize: 12,
     fontWeight: "700",
-    color: colors.primary
+    color: colors.text.primary
   },
-  addButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: colors.primary,
-    justifyContent: "center",
+  jobsText: {
+    fontSize: 11,
+    color: colors.text.tertiary,
+    marginTop: 2
+  },
+  primaryPill: {
+    backgroundColor: client.dark,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999
+  },
+  primaryPillText: {
+    color: "#fff",
+    fontWeight: "800"
+  },
+  // History list
+  historyItem: {
+    flexDirection: "row",
     alignItems: "center",
-    flexShrink: 0
+    justifyContent: "space-between",
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    padding: 12,
+    marginTop: 8
   },
-  addButtonText: {
-    color: "#FFFFFF",
-    fontSize: 18,
-    fontWeight: "700",
-    lineHeight: 24
-  },
-  emptyState: {
-    justifyContent: "center",
-    alignItems: "center",
-    paddingVertical: 40,
-    marginTop: 20
-  },
-  emptyIcon: {
-    fontSize: 48,
-    marginBottom: 12
-  },
-  emptyText: {
-    fontSize: 16,
-    fontWeight: "600",
+  historyTitle: {
+    fontSize: 14,
+    fontWeight: "800",
     color: colors.text.primary,
-    marginBottom: 4
+    marginBottom: 2
+  },
+  historyCode: {
+    fontSize: 12,
+    color: colors.text.secondary,
+    marginBottom: 8
+  },
+  historyMetaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8
+  },
+  statusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: "800"
+  },
+  datePill: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: colors.surface,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.border
+  },
+  dateText: {
+    fontSize: 12,
+    color: colors.text.secondary
+  },
+  eyeIcon: {
+    fontSize: 18,
+    color: colors.text.tertiary
+  },
+  // Frequent services
+  frequentItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: 12,
+    marginTop: 8
+  },
+  frequentLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    flex: 1
+  },
+  frequentIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.background,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: colors.border
+  },
+  frequentIcon: {
+    fontSize: 16
+  },
+  frequentTitle: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: colors.text.primary
+  },
+  frequentMetaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 2
+  },
+  frequentMeta: {
+    fontSize: 12,
+    color: colors.text.secondary
+  },
+  secondaryPill: {
+    backgroundColor: colors.background,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: client.primary
+  },
+  secondaryPillText: {
+    color: client.primary,
+    fontWeight: "800"
   }
 });
+
+// Helpers para estilos de estado
+function statusStyle(status: Status) {
+  switch (status) {
+    case "Finalizado":
+      return { backgroundColor: "#ECFDF5", borderColor: "#10B981" };
+    case "Cancelado":
+      return { backgroundColor: "#FEF2F2", borderColor: "#EF4444" };
+    default:
+      return { backgroundColor: colors.surface, borderColor: colors.border };
+  }
+}
+
+function statusTextStyle(status: Status) {
+  switch (status) {
+    case "Finalizado":
+      return { color: "#065F46" };
+    case "Cancelado":
+      return { color: "#991B1B" };
+    default:
+      return { color: colors.text.secondary };
+  }
+}

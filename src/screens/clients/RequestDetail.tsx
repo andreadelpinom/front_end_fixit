@@ -10,26 +10,35 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors } from "../../theme/colors";
 import AcceptRequestFlow from "../../components/AcceptRequestFlow";
 
-export default function RequestDetail({ navigation }: any) {
+export default function RequestDetail({ navigation, route }: any) {
   const insets = useSafeAreaInsets();
   const [showAcceptFlow, setShowAcceptFlow] = useState(false);
 
+  // Conectar con requestId (simulado desde ServicesScreen)
+  const requestId: string | undefined = route?.params?.requestId;
+  const historyMap: Record<string, { title: string; code: string; date: string; status: "Finalizado" | "Cancelado" | "En progreso" }> = {
+    h1: { title: "Electricidad - Reparación", code: "REQ-ABC123", date: "14/1/2024", status: "Finalizado" },
+    h2: { title: "Plomería - Instalación", code: "REQ-DEF456", date: "9/1/2024", status: "Cancelado" },
+    h3: { title: "Pintura - Mantenimiento", code: "REQ-GHI789", date: "4/1/2024", status: "Finalizado" }
+  };
+  const mapped = requestId ? historyMap[requestId] : undefined;
+
   const request = {
-    id: "REQ-001",
-    title: "Electricidad - Instalación de interruptores",
+    id: mapped?.code ?? "REQ-001",
+    title: mapped?.title ?? "Electricidad - Instalación de interruptores",
     description: "Instalar nuevos interruptores y tomacorrientes en la sala y cocina",
     client: "María González",
     clientPhone: "+593 9 8765 4321",
     clientRating: 4.9,
     clientReviews: 234,
-    date: "2024-03-15",
+    date: mapped?.date ?? "2024-03-15",
     time: "14:30",
     location: "Centro, Guayaquil",
     address: "Calle Principal #123, Apto 4B",
     price: 85,
     urgency: "Normal",
-    status: "Publicado",
-    isNew: true,
+    status: mapped?.status ?? "Publicado",
+    isNew: mapped ? false : true,
     category: "Electricidad",
     details: [
       "Instalar 3 interruptores de pared",

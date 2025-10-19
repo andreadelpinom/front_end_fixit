@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 
 import {
   View,
@@ -13,7 +13,7 @@ import {
   Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors } from '../../theme/colors';
+import { colors, client } from '../../theme/colors';
 
 
 // Service categories with icons and descriptions
@@ -96,6 +96,13 @@ export default function CreateService({ navigation }: any) {
 
   const [selectedDuration, setSelectedDuration] = useState('');
   const [selectedAvailability, setSelectedAvailability] = useState('');
+
+  /**
+   * Update form field - memoized to prevent re-renders
+   */
+  const updateFormField = useCallback((field: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  }, []);
 
   /**
    * Navigate to next step with validation
@@ -256,11 +263,12 @@ export default function CreateService({ navigation }: any) {
         <Text style={styles.label}>Título del servicio *</Text>
         <View style={styles.inputContainer}>
           <TextInput
+            key="title-input"
             style={styles.input}
             placeholder="Ej: Reparación de grifería"
             placeholderTextColor={colors.text.tertiary}
             value={formData.title}
-            onChangeText={(text) => setFormData({ ...formData, title: text })}
+            onChangeText={(text) => updateFormField('title', text)}
           />
         </View>
       </View>
@@ -270,13 +278,15 @@ export default function CreateService({ navigation }: any) {
         <Text style={styles.label}>Descripción detallada *</Text>
         <View style={styles.inputContainer}>
           <TextInput
+            key="description-input"
             style={[styles.input, styles.textArea]}
             placeholder="Describe qué incluye tu servicio..."
             placeholderTextColor={colors.text.tertiary}
             value={formData.description}
-            onChangeText={(text) => setFormData({ ...formData, description: text })}
+            onChangeText={(text) => updateFormField('description', text)}
             multiline
             numberOfLines={4}
+            textAlignVertical="top"
           />
         </View>
       </View>
@@ -287,11 +297,12 @@ export default function CreateService({ navigation }: any) {
         <View style={styles.inputContainer}>
           <Text style={styles.currencySymbol}>$</Text>
           <TextInput
+            key="price-input"
             style={[styles.input, styles.priceInput]}
             placeholder="0.00"
             placeholderTextColor={colors.text.tertiary}
             value={formData.price}
-            onChangeText={(text) => setFormData({ ...formData, price: text })}
+            onChangeText={(text) => updateFormField('price', text)}
             keyboardType="decimal-pad"
           />
         </View>
@@ -343,11 +354,12 @@ export default function CreateService({ navigation }: any) {
         <View style={styles.inputContainer}>
           <Text style={styles.inputIcon}>📍</Text>
           <TextInput
+            key="location-input"
             style={styles.input}
             placeholder="Ej: Centro, Guayaquil"
             placeholderTextColor={colors.text.tertiary}
             value={formData.location}
-            onChangeText={(text) => setFormData({ ...formData, location: text })}
+            onChangeText={(text) => updateFormField('location', text)}
           />
         </View>
       </View>
@@ -357,13 +369,15 @@ export default function CreateService({ navigation }: any) {
         <Text style={styles.label}>Dirección completa *</Text>
         <View style={styles.inputContainer}>
           <TextInput
+            key="address-input"
             style={[styles.input, styles.textArea]}
             placeholder="Ej: Calle Principal #123, Apto 4B"
             placeholderTextColor={colors.text.tertiary}
             value={formData.address}
-            onChangeText={(text) => setFormData({ ...formData, address: text })}
+            onChangeText={(text) => updateFormField('address', text)}
             multiline
             numberOfLines={2}
+            textAlignVertical="top"
           />
         </View>
       </View>
@@ -401,13 +415,15 @@ export default function CreateService({ navigation }: any) {
         <Text style={styles.label}>Notas adicionales</Text>
         <View style={styles.inputContainer}>
           <TextInput
+            key="notes-input"
             style={[styles.input, styles.textArea]}
             placeholder="Información adicional para los clientes..."
             placeholderTextColor={colors.text.tertiary}
             value={formData.notes}
-            onChangeText={(text) => setFormData({ ...formData, notes: text })}
+            onChangeText={(text) => updateFormField('notes', text)}
             multiline
             numberOfLines={3}
+            textAlignVertical="top"
           />
         </View>
       </View>
@@ -629,7 +645,7 @@ export default function CreateService({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.surface,
   },
   header: {
     flexDirection: 'row',
@@ -638,7 +654,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: client.primary,
+    backgroundColor: colors.background,
   },
   backButton: {
     paddingHorizontal: 8,
@@ -647,7 +664,7 @@ const styles = StyleSheet.create({
   backButtonText: {
     fontSize: 13,
     fontWeight: '600',
-    color: colors.primary,
+    color: client.primary,
   },
   headerTitle: {
     fontSize: 16,
@@ -657,6 +674,7 @@ const styles = StyleSheet.create({
   progressContainer: {
     paddingHorizontal: 16,
     paddingVertical: 12,
+    backgroundColor: colors.background,
   },
   progressBar: {
     height: 4,
@@ -667,7 +685,7 @@ const styles = StyleSheet.create({
   },
   progressFill: {
     height: '100%',
-    backgroundColor: colors.primary,
+    backgroundColor: client.primary,
   },
   progressText: {
     fontSize: 12,
@@ -679,6 +697,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     marginBottom: 16,
+    backgroundColor: colors.background,
+    paddingVertical: 12,
   },
   stepDot: {
     width: 40,
@@ -691,12 +711,12 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   stepDotActive: {
-    backgroundColor: colors.borderLight,
-    borderColor: colors.primary,
+    backgroundColor: client.light,
+    borderColor: client.primary,
   },
   stepDotCurrent: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    backgroundColor: client.primary,
+    borderColor: client.primary,
   },
   stepNumber: {
     fontSize: 16,
@@ -705,7 +725,7 @@ const styles = StyleSheet.create({
   },
   checkmarkSmall: {
     fontSize: 18,
-    color: colors.primary,
+    color: '#FFFFFF',
     fontWeight: '700',
   },
   content: {
@@ -732,15 +752,15 @@ const styles = StyleSheet.create({
   categoryCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surface,
+    backgroundColor: colors.background,
     borderRadius: 12,
     padding: 14,
     borderWidth: 2,
     borderColor: colors.border,
   },
   categoryCardSelected: {
-    backgroundColor: colors.borderLight,
-    borderColor: colors.primary,
+    backgroundColor: client.light,
+    borderColor: client.primary,
   },
   categoryIcon: {
     fontSize: 32,
@@ -761,7 +781,7 @@ const styles = StyleSheet.create({
   },
   checkmark: {
     fontSize: 20,
-    color: colors.primary,
+    color: client.primary,
     fontWeight: '700',
   },
   formGroup: {
@@ -776,7 +796,7 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surface,
+    backgroundColor: colors.background,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: colors.border,
@@ -810,7 +830,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: colors.surface,
+    backgroundColor: colors.background,
     borderRadius: 10,
     paddingVertical: 12,
     paddingHorizontal: 14,
@@ -818,8 +838,8 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   optionCardSelected: {
-    backgroundColor: colors.borderLight,
-    borderColor: colors.primary,
+    backgroundColor: client.light,
+    borderColor: client.primary,
   },
   optionLabel: {
     fontSize: 13,
@@ -827,7 +847,7 @@ const styles = StyleSheet.create({
     color: colors.text.primary,
   },
   summaryCard: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.background,
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
@@ -863,7 +883,7 @@ const styles = StyleSheet.create({
   priceText: {
     fontSize: 18,
     fontWeight: '700',
-    color: colors.primary,
+    color: client.primary,
   },
   infoBox: {
     flexDirection: 'row',
@@ -889,6 +909,7 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: colors.border,
+    backgroundColor: colors.background,
   },
   backNavigationButton: {
     flex: 1,
@@ -909,7 +930,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
-    backgroundColor: colors.primary,
+    backgroundColor: client.primary,
   },
   nextButtonText: {
     fontSize: 14,
@@ -921,7 +942,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
-    backgroundColor: colors.status.success,
+    backgroundColor: client.dark,
   },
   submitButtonText: {
     fontSize: 14,
