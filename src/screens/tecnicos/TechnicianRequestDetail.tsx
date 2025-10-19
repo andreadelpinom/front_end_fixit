@@ -55,10 +55,10 @@ export default function TechnicianRequestDetail({ navigation }: any) {
   };
 
   return (
-    <View style={[styles.container, { paddingBottom: insets.bottom }]}>
+    <View style={styles.container}>
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Back Button */}
-        <View style={styles.header}>
+        <View style={[styles.header, { marginTop: insets.top + 8 }]}>
           <TouchableOpacity onPress={() => navigation.goBack()}>
             <Text style={styles.backButton}>← Atrás</Text>
           </TouchableOpacity>
@@ -186,7 +186,7 @@ export default function TechnicianRequestDetail({ navigation }: any) {
       </ScrollView>
 
       {/* Action Buttons */}
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
         <TouchableOpacity 
           style={styles.secondaryButton}
           onPress={handleCallClient}
@@ -232,7 +232,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginTop: 16,
     marginBottom: 16
   },
   backButton: {

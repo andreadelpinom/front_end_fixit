@@ -6,17 +6,20 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  FlatList
+  FlatList,
+  Alert
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors, technician } from "../../theme/colors";
 import NotificationsModal from "../../components/NotificationModal";
 import CertificationBanner from "../../components/CertificationBanner";
 import { getData, saveData, StorageKeys } from "../../shared/storage";
+import { useAuth } from "../../context/AuthContext";
 
 export default function TechnicianProfileScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  const { logout } = useAuth();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showBanner, setShowBanner] = useState(false);
 
@@ -131,9 +134,9 @@ export default function TechnicianProfileScreen() {
         )}
 
         {/* Profile Card */}
-  <View style={[styles.profileCard, { borderColor: technician.primary, backgroundColor: technician.light }]}> 
+  <View style={[styles.profileCard, { borderColor: technician.primary, backgroundColor: '#FFFFFF' }]}> 
           <View style={styles.avatarSection}>
-            <View style={[styles.avatar, { backgroundColor: technician.primary }]}> 
+            <View style={[styles.avatar, { backgroundColor: technician.dark }]}> 
               <Text style={styles.avatarInitial}>C</Text>
             </View>
             {userData.isVerified && (
@@ -147,7 +150,7 @@ export default function TechnicianProfileScreen() {
             <View style={styles.nameRow}>
               <Text style={styles.name}>{userData.name}</Text>
               {userData.isVerified && (
-                <View style={[styles.certificationBadge, { backgroundColor: technician.primary }]}> 
+                <View style={[styles.certificationBadge, { backgroundColor: technician.dark }]}> 
                   <Text style={styles.certificationBadgeText}>
                     🛡️ Técnico Certificado
                   </Text>
@@ -163,19 +166,19 @@ export default function TechnicianProfileScreen() {
 
         {/* Stats */}
   <View style={styles.statsGrid}>
-          <View style={[styles.statCard, { borderColor: technician.primary, backgroundColor: technician.light }]}> 
+          <View style={[styles.statCard, { borderColor: technician.primary, backgroundColor: '#FFFFFF' }]}> 
             <Text style={styles.statIcon}>⭐</Text>
-            <Text style={styles.statValue}>{userData.averageRating}</Text>
+            <Text style={[styles.statValue, { color: technician.dark }]}>{userData.averageRating}</Text>
             <Text style={styles.statLabel}>Rating</Text>
           </View>
           <View style={styles.statCard}>
             <Text style={styles.statIcon}>✓</Text>
-            <Text style={styles.statValue}>{userData.completedServices}</Text>
+            <Text style={[styles.statValue, { color: technician.dark }]}>{userData.completedServices}</Text>
             <Text style={styles.statLabel}>Servicios</Text>
           </View>
           <View style={styles.statCard}>
             <Text style={styles.statIcon}>⏱️</Text>
-            <Text style={styles.statValue}>{userData.responseTime}</Text>
+            <Text style={[styles.statValue, { color: technician.dark }]}>{userData.responseTime}</Text>
             <Text style={styles.statLabel}>Respuesta</Text>
           </View>
         </View>
@@ -206,13 +209,43 @@ export default function TechnicianProfileScreen() {
 
         {/* Action Buttons */}
         <View style={styles.actionButtons}>
-          <TouchableOpacity style={[styles.primaryButton, { backgroundColor: technician.primary }]}> 
+          <TouchableOpacity style={[styles.primaryButton, { backgroundColor: technician.dark }]}> 
             <Text style={styles.primaryButtonText}>💬 Contactar</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.secondaryButton, { borderColor: technician.primary }]}> 
+          <TouchableOpacity style={[styles.secondaryButton, { borderColor: technician.dark }]}> 
             <Text style={styles.secondaryButtonText}>📋 Ver Solicitudes</Text>
           </TouchableOpacity>
         </View>
+
+        {/* Logout Button */}
+        <TouchableOpacity 
+          style={styles.logoutButton}
+          onPress={() => {
+            Alert.alert(
+              "Cerrar Sesión",
+              "¿Estás seguro que deseas cerrar sesión?",
+              [
+                {
+                  text: "Cancelar",
+                  style: "cancel"
+                },
+                {
+                  text: "Cerrar Sesión",
+                  style: "destructive",
+                  onPress: async () => {
+                    try {
+                      await logout();
+                    } catch (error) {
+                      Alert.alert("Error", "No se pudo cerrar sesión");
+                    }
+                  }
+                }
+              ]
+            );
+          }}
+        >
+          <Text style={styles.logoutButtonText}>🚪 Cerrar Sesión</Text>
+        </TouchableOpacity>
 
         <View style={{ height: 20 }} />
       </ScrollView>
@@ -456,6 +489,20 @@ const styles = StyleSheet.create({
   },
   secondaryButtonText: {
     color: colors.text.primary,
+    fontSize: 14,
+    fontWeight: "600"
+  },
+  logoutButton: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.status.error,
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: "center",
+    marginTop: 24
+  },
+  logoutButtonText: {
+    color: colors.status.error,
     fontSize: 14,
     fontWeight: "600"
   }

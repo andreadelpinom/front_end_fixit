@@ -250,19 +250,18 @@ export default function AcceptRequestFlow({
   return (
     <Modal
       visible={isOpen}
-      animationType="slide"
+      animationType="fade"
       transparent={true}
       onRequestClose={onClose}
     >
-      <View style={styles.overlay}>
-        <KeyboardAvoidingView 
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          style={{ flex: 1 }}
-          keyboardVerticalOffset={0}
-        >
-          <View style={styles.modalContent}>
-            {/* Header */}
-            <View style={styles.header}>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.overlay}
+        keyboardVerticalOffset={0}
+      >
+        <View style={styles.modalContent}>
+          {/* Header */}
+          <View style={styles.header}>
             <TouchableOpacity onPress={onClose}>
               <Text style={styles.closeButton}>✕</Text>
             </TouchableOpacity>
@@ -322,8 +321,7 @@ export default function AcceptRequestFlow({
             )}
           </View>
         </View>
-        </KeyboardAvoidingView>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -334,13 +332,15 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "flex-end"
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20
   },
   modalContent: {
     backgroundColor: colors.background,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    height: windowHeight * 0.75, // Altura fija al 75% de la pantalla
+    borderRadius: 16,
+    width: "100%",
+    height: windowHeight * 0.75,
     display: "flex",
     flexDirection: "column"
   },
@@ -349,7 +349,8 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingTop: 16,
+    paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: colors.border
   },

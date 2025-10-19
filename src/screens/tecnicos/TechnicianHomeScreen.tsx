@@ -5,6 +5,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { colors } from '../../theme/colors';
 import HeaderNav from '../../components/HeaderNav';
+import NotificationsModal from '../../components/NotificationModal';
 
 // TODO: Replace with API data when backend is ready
 const demoCourses = [
@@ -81,6 +82,7 @@ type TecnicoStackParamList = {
 const TechnicianHomeScreen = () => {
   // Tipar navigation para stack y tabs
   const navigation = useNavigation<NativeStackNavigationProp<TecnicoStackParamList> & BottomTabNavigationProp<TecnicoTabParamList>>();
+  const [showNotifications, setShowNotifications] = useState(false);
   // TODO: Replace with API calls
   const [courses] = useState(demoCourses);
   const [promos] = useState(demoPromos);
@@ -95,6 +97,7 @@ const TechnicianHomeScreen = () => {
         location="Centro, Guayaquil"
         notificationCount={2}
         showProfilePhoto={true}
+        onNotificationClick={() => setShowNotifications(true)}
       />
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Cursos y Certificaciones */}
@@ -152,6 +155,11 @@ const TechnicianHomeScreen = () => {
           ))}
         </View>
       </ScrollView>
+
+      <NotificationsModal
+        isOpen={showNotifications}
+        onClose={() => setShowNotifications(false)}
+      />
     </View>
   );
 };
