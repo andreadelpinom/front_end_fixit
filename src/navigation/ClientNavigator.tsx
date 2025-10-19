@@ -7,6 +7,7 @@ import Home from "../screens/clients/Home";
 import ServicesScreen from "../screens/clients/ServicesScreen";
 import ProfileScreen from "../screens/clients/Profile";
 import RequestDetailScreen from "../screens/clients/RequestDetail";
+import CreateService from "../screens/clients/CreateService";
 
 import HomeTabIcon from "../components/HomeTabIcon";
 import ServicesTabIcon from "../components/ServicesTabIcon";
@@ -55,6 +56,15 @@ function ClientTabs() {
         }}
       />
       <Tab.Screen
+        name="CreateService"
+        component={CreateService}
+        options={{
+          tabBarLabel: "Crear Servicio",
+          tabBarIcon: ({ color, size }) => <ServicesTabIcon color={color} size={size} />
+        }}
+      />
+      
+      <Tab.Screen
         name="Profile"
         component={ProfileScreen}
         options={{
@@ -75,6 +85,7 @@ export default function ClientNavigator() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="ClientTabs" component={ClientTabs} />
       <Stack.Screen name="RequestDetail" component={RequestDetailScreen} />
+      <Stack.Screen name="CreateService" component={CreateService} />
     </Stack.Navigator>
   );
 }
