@@ -59,7 +59,7 @@ const sampleRequests = [
   }
 ];
 
-export default function TechnicianRequestsScreen() {
+export default function TechnicianRequestsScreen({ navigation }: any) {
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState("disponibles");
   const [searchQuery, setSearchQuery] = useState("");
@@ -130,7 +130,10 @@ export default function TechnicianRequestsScreen() {
           <Text style={styles.priceAmount}>${item.price}</Text>
         </View>
         <View style={styles.actionButtons}>
-          <TouchableOpacity style={styles.detailButton}>
+          <TouchableOpacity 
+            style={styles.detailButton}
+            onPress={() => navigation.navigate("TechnicianRequestDetail", { requestId: item.id })}
+          >
             <Text style={styles.detailButtonText}>Ver detalles</Text>
           </TouchableOpacity>
           <TouchableOpacity
