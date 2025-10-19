@@ -1,29 +1,28 @@
-import { View } from "react-native";
+import Svg, { Path } from "react-native-svg";
 
 interface TabIconProps {
-  color: string;
-  size: number;
+  color?: string;
+  size?: number;
 }
 
-export default function ServicesTabIcon({ color, size }: TabIconProps) {
+export default function ServicesTabIcon({ color = "#000000", size = 24 }: TabIconProps) {
   return (
-    <View
-      style={{
-        width: size,
-        height: size,
-        justifyContent: "center",
-        alignItems: "center"
-      }}
-    >
-      <View
-        style={{
-          width: size * 0.6,
-          height: size * 0.6,
-          borderWidth: 2,
-          borderColor: color,
-          borderRadius: 4
-        }}
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      {/* Ícono de gráfica de barras para "Desempeño" */}
+      <Path
+        d="M3 3v18h18"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
-    </View>
+      <Path
+        d="M7 16V12M12 16V8M17 16V14"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
   );
 }

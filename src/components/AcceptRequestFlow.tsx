@@ -7,8 +7,11 @@ import {
   TouchableOpacity,
   TextInput,
   ScrollView,
-  Dimensions
+  Dimensions,
+  KeyboardAvoidingView,
+  Platform
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors } from "../theme/colors";
 
 interface Request {
@@ -34,6 +37,7 @@ export default function AcceptRequestFlow({
   onClose,
   request
 }: AcceptRequestFlowProps) {
+  const insets = useSafeAreaInsets();
   const [currentStep, setCurrentStep] = useState<StepType>(1);
   const [formData, setFormData] = useState({
     price: request?.suggestedPrice.toString() || "",
@@ -130,31 +134,39 @@ export default function AcceptRequestFlow({
                   setFormData({ ...formData, price: text })
                 }
                 keyboardType="decimal-pad"
+                returnKeyType="done"
+                blurOnSubmit={true}
               />
             </View>
             <View style={styles.formGroup}>
               <Text style={styles.inputLabel}>Fecha</Text>
               <TextInput
                 style={styles.input}
-                placeholder="YYYY-MM-DD"
+                placeholder="YYYY-MM-DD (ej: 2024-03-15)"
                 placeholderTextColor={colors.text.tertiary}
                 value={formData.date}
                 onChangeText={(text) =>
                   setFormData({ ...formData, date: text })
                 }
+                returnKeyType="next"
+                blurOnSubmit={false}
               />
+              <Text style={styles.inputHint}>💡 Usa formato: YYYY-MM-DD</Text>
             </View>
             <View style={styles.formGroup}>
               <Text style={styles.inputLabel}>Hora</Text>
               <TextInput
                 style={styles.input}
-                placeholder="HH:MM"
+                placeholder="HH:MM (ej: 14:30)"
                 placeholderTextColor={colors.text.tertiary}
                 value={formData.time}
                 onChangeText={(text) =>
                   setFormData({ ...formData, time: text })
                 }
+                returnKeyType="done"
+                blurOnSubmit={true}
               />
+              <Text style={styles.inputHint}>💡 Formato de 24 horas</Text>
             </View>
           </View>
         );
@@ -177,10 +189,13 @@ export default function AcceptRequestFlow({
                   setFormData({ ...formData, code: text })
                 }
                 maxLength={6}
+                keyboardType="number-pad"
+                returnKeyType="done"
+                blurOnSubmit={true}
               />
             </View>
             <Text style={styles.codeHint}>
-              No recibiste el código? Resend after 30 seconds
+              No recibiste el código? Reenviar después de 30 segundos
             </Text>
           </View>
         );
@@ -240,9 +255,14 @@ export default function AcceptRequestFlow({
       onRequestClose={onClose}
     >
       <View style={styles.overlay}>
-        <View style={styles.modalContent}>
-          {/* Header */}
-          <View style={styles.header}>
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={{ flex: 1 }}
+          keyboardVerticalOffset={0}
+        >
+          <View style={styles.modalContent}>
+            {/* Header */}
+            <View style={styles.header}>
             <TouchableOpacity onPress={onClose}>
               <Text style={styles.closeButton}>✕</Text>
             </TouchableOpacity>
@@ -265,16 +285,17 @@ export default function AcceptRequestFlow({
             ))}
           </View>
 
-          {/* Content */}
+          {/* Content - ScrollView with explicit height */}
           <ScrollView
             style={styles.content}
+            contentContainerStyle={styles.contentContainer}
             showsVerticalScrollIndicator={false}
           >
             {renderStep()}
           </ScrollView>
 
           {/* Footer */}
-          <View style={styles.footer}>
+          <View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
             {currentStep > 1 && (
               <TouchableOpacity
                 onPress={handlePrevious}
@@ -301,6 +322,7 @@ export default function AcceptRequestFlow({
             )}
           </View>
         </View>
+        </KeyboardAvoidingView>
       </View>
     </Modal>
   );
@@ -318,7 +340,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    maxHeight: windowHeight * 0.9,
+    height: windowHeight * 0.75, // Altura fija al 75% de la pantalla
     display: "flex",
     flexDirection: "column"
   },
@@ -362,6 +384,10 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 16,
     paddingVertical: 16
+  },
+  contentContainer: {
+    flexGrow: 1,
+    paddingBottom: 20
   },
   stepContent: {
     marginBottom: 16
@@ -423,6 +449,12 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     fontSize: 14,
     color: colors.text.primary
+  },
+  inputHint: {
+    fontSize: 11,
+    color: colors.text.secondary,
+    marginTop: 4,
+    fontStyle: "italic"
   },
   codeHint: {
     fontSize: 11,

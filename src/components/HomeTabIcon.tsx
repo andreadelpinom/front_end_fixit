@@ -1,28 +1,26 @@
-import { View } from "react-native";
+import Svg, { Path, SvgProps } from 'react-native-svg';
 
-interface TabIconProps {
-  color: string;
-  size: number;
-}
+type Props = SvgProps & { color?: string; size?: number; filled?: boolean };
 
-export default function HomeTabIcon({ color, size }: TabIconProps) {
+export default function HomeTabIcon({ color = '#D97706', size = 24, filled = false, ...rest }: Props) {
   return (
-    <View
-      style={{
-        width: size,
-        height: size,
-        justifyContent: "center",
-        alignItems: "center"
-      }}
-    >
-      <View
-        style={{
-          width: size * 0.7,
-          height: size * 0.7,
-          backgroundColor: color,
-          borderRadius: 6
-        }}
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" {...rest}>
+      {/* casa simple estilo outline/filled */}
+      <Path
+        d="M3 11.5L12 4l9 7.5"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
-    </View>
+      <Path
+        d="M5.5 10.5V19a1.5 1.5 0 0 0 1.5 1.5h10a1.5 1.5 0 0 0 1.5-1.5v-8.5"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill={filled ? color + '22' : 'none'}
+      />
+    </Svg>
   );
 }

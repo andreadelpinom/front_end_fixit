@@ -9,6 +9,7 @@ import TechnicianPerformanceScreen from "../screens/tecnicos/TechnicianPerforman
 import TechnicianRequestsScreen from "../screens/tecnicos/TechnicianRequestsScreen";
 import TechnicianRequestDetail from "../screens/tecnicos/TechnicianRequestDetail";
 import CertificationsScreen from "../screens/tecnicos/CertificationsScreens";
+import TechnicianHomeScreen from "../screens/tecnicos/TechnicianHomeScreen";
 
 import HomeTabIcon from "../components/HomeTabIcon";
 import ServicesTabIcon from "../components/ServicesTabIcon";
@@ -21,7 +22,7 @@ const Stack = createNativeStackNavigator();
 
 /**
  * TecnicoTabs
- * Bottom Tab Navigator para técnicos con 3 pestañas principales
+ * Bottom Tab Navigator para técnicos con 4 pestañas principales
  */
 
 function TecnicoTabs() {
@@ -29,14 +30,15 @@ function TecnicoTabs() {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: technician.primary,
-        tabBarInactiveTintColor: technician.dark,
+        tabBarActiveTintColor: technician.primary, // Naranja cuando está activo
+        tabBarInactiveTintColor: "#999999", // Gris cuando está inactivo
         tabBarStyle: {
-          backgroundColor: technician.light,
-          borderTopColor: technician.primary,
+          backgroundColor: "#FFFFFF", // Fondo blanco
+          borderTopColor: "#E5E7EB", // Borde gris claro
           borderTopWidth: 1,
           paddingBottom: Platform.OS === "ios" ? 20 : 10,
-          paddingTop: 10
+          paddingTop: 10,
+          height: Platform.OS === "ios" ? 85 : 65
         },
         tabBarLabelStyle: {
           fontSize: 12,
@@ -47,7 +49,7 @@ function TecnicoTabs() {
     >
       <Tab.Screen
         name="Home"
-        component={TechnicianRequestsScreen}
+        component={TechnicianHomeScreen}
         options={{
           tabBarLabel: "Inicio",
           tabBarIcon: ({ color, size }) => <HomeTabIcon color={color} size={size} />

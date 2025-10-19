@@ -1,28 +1,30 @@
-import { View } from "react-native";
+import Svg, { Path, Circle } from "react-native-svg";
 
 interface TabIconProps {
-  color: string;
-  size: number;
+  color?: string;
+  size?: number;
 }
 
-export default function ProfileTabIcon({ color, size }: TabIconProps) {
+export default function ProfileTabIcon({ color = "#000000", size = 24 }: TabIconProps) {
   return (
-    <View
-      style={{
-        width: size,
-        height: size,
-        justifyContent: "center",
-        alignItems: "center"
-      }}
-    >
-      <View
-        style={{
-          width: size * 0.6,
-          height: size * 0.6,
-          backgroundColor: color,
-          borderRadius: size * 0.3
-        }}
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      {/* Ícono de persona para "Perfil" */}
+      <Circle
+        cx={12}
+        cy={8}
+        r={4}
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
-    </View>
+      <Path
+        d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
   );
 }
