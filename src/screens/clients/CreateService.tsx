@@ -1,5 +1,4 @@
 import { useState, useCallback } from 'react';
-
 import {
   View,
   Text,
@@ -15,48 +14,14 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, client } from '../../theme/colors';
 
-
-// Service categories with icons and descriptions
 const SERVICE_CATEGORIES = [
-  {
-    id: 'electricidad',
-    label: 'Electricidad',
-    icon: '⚡',
-    description: 'Instalaciones y reparaciones eléctricas',
-  },
-  {
-    id: 'plomeria',
-    label: 'Plomería',
-    icon: '🔧',
-    description: 'Reparaciones de tuberías y grifería',
-  },
-  {
-    id: 'carpinteria',
-    label: 'Carpintería',
-    icon: '🪚',
-    description: 'Puertas, marcos y trabajos en madera',
-  },
-  {
-    id: 'climatizacion',
-    label: 'Climatización',
-    icon: '🌬️',
-    description: 'Aire acondicionado y calefacción',
-  },
-  {
-    id: 'limpieza',
-    label: 'Limpieza',
-    icon: '🧹',
-    description: 'Servicios de limpieza profunda',
-  },
-  {
-    id: 'pintura',
-    label: 'Pintura',
-    icon: '🎨',
-    description: 'Pintura de interiores y exteriores',
-  },
+  { id: 'electricidad', label: 'Electricidad', icon: '⚡', description: 'Instalaciones y reparaciones eléctricas' },
+  { id: 'plomeria', label: 'Plomería', icon: '🔧', description: 'Reparaciones de tuberías y grifería' },
+  { id: 'carpinteria', label: 'Carpintería', icon: '🪚', description: 'Puertas, marcos y trabajos en madera' },
+  { id: 'climatizacion', label: 'Climatización', icon: '🌬️', description: 'Aire acondicionado y calefacción' },
+  { id: 'limpieza', label: 'Limpieza', icon: '🧹', description: 'Servicios de limpieza profunda' },
+  { id: 'pintura', label: 'Pintura', icon: '🎨', description: 'Pintura de interiores y exteriores' },
 ];
-
-// Duration options
 const DURATION_OPTIONS = [
   { id: '1', label: 'Menos de 1 hora', value: '< 1h' },
   { id: '2', label: '1-2 horas', value: '1-2h' },
@@ -64,8 +29,6 @@ const DURATION_OPTIONS = [
   { id: '4', label: '4-8 horas', value: '4-8h' },
   { id: '5', label: 'Más de 8 horas', value: '> 8h' },
 ];
-
-// Service availability
 const AVAILABILITY_OPTIONS = [
   { id: '1', label: 'Hoy', value: 'today' },
   { id: '2', label: 'Mañana', value: 'tomorrow' },
@@ -74,14 +37,269 @@ const AVAILABILITY_OPTIONS = [
   { id: '5', label: 'Por acordar', value: 'flexible' },
 ];
 
-export default function CreateService({ navigation }: any) {
-  const insets = useSafeAreaInsets();
+// @ts-ignore
+export function StepOne(props) {
+  const { category, setCategory } = props;
+  return (
+    <View style={styles.stepContent}>
+      <Text style={styles.stepTitle}>Selecciona la categoría de servicio</Text>
+      <Text style={styles.stepDescription}>Elige el tipo de servicio que ofreces</Text>
+      <FlatList
+        data={SERVICE_CATEGORIES}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={[
+              styles.categoryCard,
+              category === item.id && styles.categoryCardSelected,
+            ]}
+            onPress={() => setCategory(item.id)}
+          >
+            <Text style={styles.categoryIcon}>{item.icon}</Text>
+            <View style={styles.categoryInfo}>
+              <Text style={styles.categoryLabel}>{item.label}</Text>
+              <Text style={styles.categoryDescription}>{item.description}</Text>
+            </View>
+            {category === item.id && (
+              <Text style={styles.checkmark}>✓</Text>
+            )}
+          </TouchableOpacity>
+        )}
+        keyExtractor={item => item.id}
+        scrollEnabled={false}
+        ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
+      />
+    </View>
+  );
+}
 
-  // Step management
+// @ts-ignore
+export function StepTwo(props) {
+  const { title, description, price, duration, setField, setDuration } = props;
+  return (
+    <View style={styles.stepContent}>
+      <Text style={styles.stepTitle}>Detalles del servicio</Text>
+      <Text style={styles.stepDescription}>Describe tu servicio con precisión</Text>
+      <View style={styles.formGroup}>
+        <Text style={styles.label}>Título del servicio *</Text>
+        <View style={styles.inputContainer}>
+          <TextInput
+            key="title-input"
+            style={styles.input}
+            placeholder="Ej: Reparación de grifería"
+            placeholderTextColor={colors.text.tertiary}
+            value={title}
+            onChangeText={text => setField('title', text)}
+          />
+        </View>
+      </View>
+      <View style={styles.formGroup}>
+        <Text style={styles.label}>Descripción detallada *</Text>
+        <View style={styles.inputContainer}>
+          <TextInput
+            key="description-input"
+            style={[styles.input, styles.textArea]}
+            placeholder="Describe qué incluye tu servicio..."
+            placeholderTextColor={colors.text.tertiary}
+            value={description}
+            onChangeText={text => setField('description', text)}
+            multiline
+            numberOfLines={4}
+            textAlignVertical="top"
+          />
+        </View>
+      </View>
+      <View style={styles.formGroup}>
+        <Text style={styles.label}>Precio estimado ($) *</Text>
+        <View style={styles.inputContainer}>
+          <Text style={styles.currencySymbol}>$</Text>
+          <TextInput
+            key="price-input"
+            style={[styles.input, styles.priceInput]}
+            placeholder="0.00"
+            placeholderTextColor={colors.text.tertiary}
+            value={price}
+            onChangeText={text => setField('price', text)}
+            keyboardType="decimal-pad"
+          />
+        </View>
+      </View>
+      <View style={styles.formGroup}>
+        <Text style={styles.label}>Duración estimada *</Text>
+        <FlatList
+          data={DURATION_OPTIONS}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={[
+                styles.optionCard,
+                duration === item.value && styles.optionCardSelected,
+              ]}
+              onPress={() => {
+                setDuration(item.value);
+                setField('duration', item.value);
+              }}
+            >
+              <Text style={styles.optionLabel}>{item.label}</Text>
+              {duration === item.value && (
+                <Text style={styles.checkmark}>✓</Text>
+              )}
+            </TouchableOpacity>
+          )}
+          keyExtractor={item => item.id}
+          scrollEnabled={false}
+          ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
+        />
+      </View>
+    </View>
+  );
+}
+
+// @ts-ignore
+export function StepThree(props) {
+  const { location, address, availability, notes, setField, setAvailability } = props;
+  return (
+    <View style={styles.stepContent}>
+      <Text style={styles.stepTitle}>Ubicación y disponibilidad</Text>
+      <Text style={styles.stepDescription}>Dónde y cuándo ofreces tu servicio</Text>
+      <View style={styles.formGroup}>
+        <Text style={styles.label}>Ubicación (zona) *</Text>
+        <View style={styles.inputContainer}>
+          <Text style={styles.inputIcon}>📍</Text>
+          <TextInput
+            key="location-input"
+            style={styles.input}
+            placeholder="Ej: Centro, Guayaquil"
+            placeholderTextColor={colors.text.tertiary}
+            value={location}
+            onChangeText={text => setField('location', text)}
+          />
+        </View>
+      </View>
+      <View style={styles.formGroup}>
+        <Text style={styles.label}>Dirección completa *</Text>
+        <View style={styles.inputContainer}>
+          <TextInput
+            key="address-input"
+            style={[styles.input, styles.textArea]}
+            placeholder="Ej: Calle Principal #123, Apto 4B"
+            placeholderTextColor={colors.text.tertiary}
+            value={address}
+            onChangeText={text => setField('address', text)}
+            multiline
+            numberOfLines={2}
+            textAlignVertical="top"
+          />
+        </View>
+      </View>
+      <View style={styles.formGroup}>
+        <Text style={styles.label}>Disponibilidad *</Text>
+        <FlatList
+          data={AVAILABILITY_OPTIONS}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={[
+                styles.optionCard,
+                availability === item.value && styles.optionCardSelected,
+              ]}
+              onPress={() => {
+                setAvailability(item.value);
+                setField('availability', item.value);
+              }}
+            >
+              <Text style={styles.optionLabel}>{item.label}</Text>
+              {availability === item.value && (
+                <Text style={styles.checkmark}>✓</Text>
+              )}
+            </TouchableOpacity>
+          )}
+          keyExtractor={item => item.id}
+          scrollEnabled={false}
+          ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
+        />
+      </View>
+      <View style={styles.formGroup}>
+        <Text style={styles.label}>Notas adicionales</Text>
+        <View style={styles.inputContainer}>
+          <TextInput
+            key="notes-input"
+            style={[styles.input, styles.textArea]}
+            placeholder="Información adicional para los clientes..."
+            placeholderTextColor={colors.text.tertiary}
+            value={notes}
+            onChangeText={text => setField('notes', text)}
+            multiline
+            numberOfLines={3}
+            textAlignVertical="top"
+          />
+        </View>
+      </View>
+    </View>
+  );
+}
+
+// @ts-ignore
+export function StepFour(props) {
+  const { category, title, description, price, duration, location, address, availability, notes } = props;
+  const selectedCategory = SERVICE_CATEGORIES.find(cat => cat.id === category);
+  return (
+    <View style={styles.stepContent}>
+      <Text style={styles.stepTitle}>Revisa tu servicio</Text>
+      <Text style={styles.stepDescription}>Verifica que toda la información sea correcta</Text>
+      <View style={styles.summaryCard}>
+        <View style={styles.summarySection}>
+          <Text style={styles.summaryLabel}>Categoría</Text>
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryIcon}>{selectedCategory?.icon}</Text>
+            <Text style={styles.summaryValue}>{selectedCategory?.label}</Text>
+          </View>
+        </View>
+        <View style={styles.summarySection}>
+          <Text style={styles.summaryLabel}>Título</Text>
+          <Text style={styles.summaryValue}>{title}</Text>
+        </View>
+        <View style={styles.summarySection}>
+          <Text style={styles.summaryLabel}>Descripción</Text>
+          <Text style={styles.summaryValue}>{description}</Text>
+        </View>
+        <View style={styles.summarySection}>
+          <Text style={styles.summaryLabel}>Precio estimado</Text>
+          <Text style={styles.priceText}>${price}</Text>
+        </View>
+        <View style={styles.summarySection}>
+          <Text style={styles.summaryLabel}>Duración</Text>
+          <Text style={styles.summaryValue}>{duration}</Text>
+        </View>
+        <View style={styles.summarySection}>
+          <Text style={styles.summaryLabel}>Ubicación</Text>
+          <Text style={styles.summaryValue}>📍 {location} - {address}</Text>
+        </View>
+        <View style={styles.summarySection}>
+          <Text style={styles.summaryLabel}>Disponibilidad</Text>
+          <Text style={styles.summaryValue}>
+            {AVAILABILITY_OPTIONS.find(opt => opt.value === availability)?.label}
+          </Text>
+        </View>
+        {notes ? (
+          <View style={styles.summarySection}>
+            <Text style={styles.summaryLabel}>Notas</Text>
+            <Text style={styles.summaryValue}>{notes}</Text>
+          </View>
+        ) : null}
+      </View>
+      <View style={styles.infoBox}>
+        <Text style={styles.infoIcon}>ℹ️</Text>
+        <Text style={styles.infoText}>
+          Una vez confirmes, tu servicio será publicado y los clientes podrán contactarte para realizar el trabajo.
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+// @ts-ignore
+export default function CreateService({ navigation }) {
+  const insets = useSafeAreaInsets();
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 4;
-
-  // Form state
   const [formData, setFormData] = useState({
     category: '',
     title: '',
@@ -93,39 +311,25 @@ export default function CreateService({ navigation }: any) {
     address: '',
     notes: '',
   });
-
   const [selectedDuration, setSelectedDuration] = useState('');
   const [selectedAvailability, setSelectedAvailability] = useState('');
 
-  /**
-   * Update form field - memoized to prevent re-renders
-   */
-  const updateFormField = useCallback((field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+  // @ts-ignore
+  const updateFormField = useCallback((field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
   }, []);
 
-  /**
-   * Navigate to next step with validation
-   */
   const handleNext = () => {
     if (validateCurrentStep()) {
       setCurrentStep(currentStep + 1);
     }
   };
-
-  /**
-   * Navigate to previous step
-   */
   const handleBack = () => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
     }
   };
-
-  /**
-   * Validate current step data
-   */
-  const validateCurrentStep = (): boolean => {
+  const validateCurrentStep = () => {
     switch (currentStep) {
       case 1:
         if (!formData.category) {
@@ -171,10 +375,6 @@ export default function CreateService({ navigation }: any) {
         return true;
     }
   };
-
-  /**
-   * Submit service creation
-   */
   const handleSubmit = () => {
     Alert.alert(
       'Confirmar',
@@ -191,7 +391,6 @@ export default function CreateService({ navigation }: any) {
                 duration: selectedDuration,
                 availability: selectedAvailability,
               });
-
               Alert.alert(
                 'Éxito',
                 'Servicio creado correctamente',
@@ -210,338 +409,63 @@ export default function CreateService({ navigation }: any) {
       ],
     );
   };
-
-  /**
-   * STEP 1: Select Category
-   */
-  const StepOne = () => (
-    <View style={styles.stepContent}>
-      <Text style={styles.stepTitle}>Selecciona la categoría de servicio</Text>
-      <Text style={styles.stepDescription}>
-        Elige el tipo de servicio que ofreces
-      </Text>
-
-      <FlatList
-        data={SERVICE_CATEGORIES}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={[
-              styles.categoryCard,
-              formData.category === item.id && styles.categoryCardSelected,
-            ]}
-            onPress={() => setFormData({ ...formData, category: item.id })}
-          >
-            <Text style={styles.categoryIcon}>{item.icon}</Text>
-            <View style={styles.categoryInfo}>
-              <Text style={styles.categoryLabel}>{item.label}</Text>
-              <Text style={styles.categoryDescription}>{item.description}</Text>
-            </View>
-            {formData.category === item.id && (
-              <Text style={styles.checkmark}>✓</Text>
-            )}
-          </TouchableOpacity>
-        )}
-        keyExtractor={(item) => item.id}
-        scrollEnabled={false}
-        ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
-      />
-    </View>
-  );
-
-  /**
-   * STEP 2: Add Service Details
-   */
-  const StepTwo = () => (
-    <View style={styles.stepContent}>
-      <Text style={styles.stepTitle}>Detalles del servicio</Text>
-      <Text style={styles.stepDescription}>
-        Describe tu servicio con precisión
-      </Text>
-
-      {/* Service Title */}
-      <View style={styles.formGroup}>
-        <Text style={styles.label}>Título del servicio *</Text>
-        <View style={styles.inputContainer}>
-          <TextInput
-            key="title-input"
-            style={styles.input}
-            placeholder="Ej: Reparación de grifería"
-            placeholderTextColor={colors.text.tertiary}
-            value={formData.title}
-            onChangeText={(text) => updateFormField('title', text)}
-          />
-        </View>
-      </View>
-
-      {/* Description */}
-      <View style={styles.formGroup}>
-        <Text style={styles.label}>Descripción detallada *</Text>
-        <View style={styles.inputContainer}>
-          <TextInput
-            key="description-input"
-            style={[styles.input, styles.textArea]}
-            placeholder="Describe qué incluye tu servicio..."
-            placeholderTextColor={colors.text.tertiary}
-            value={formData.description}
-            onChangeText={(text) => updateFormField('description', text)}
-            multiline
-            numberOfLines={4}
-            textAlignVertical="top"
-          />
-        </View>
-      </View>
-
-      {/* Price */}
-      <View style={styles.formGroup}>
-        <Text style={styles.label}>Precio estimado ($) *</Text>
-        <View style={styles.inputContainer}>
-          <Text style={styles.currencySymbol}>$</Text>
-          <TextInput
-            key="price-input"
-            style={[styles.input, styles.priceInput]}
-            placeholder="0.00"
-            placeholderTextColor={colors.text.tertiary}
-            value={formData.price}
-            onChangeText={(text) => updateFormField('price', text)}
-            keyboardType="decimal-pad"
-          />
-        </View>
-      </View>
-
-      {/* Duration */}
-      <View style={styles.formGroup}>
-        <Text style={styles.label}>Duración estimada *</Text>
-        <FlatList
-          data={DURATION_OPTIONS}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={[
-                styles.optionCard,
-                selectedDuration === item.value && styles.optionCardSelected,
-              ]}
-              onPress={() => {
-                setSelectedDuration(item.value);
-                setFormData({ ...formData, duration: item.value });
-              }}
-            >
-              <Text style={styles.optionLabel}>{item.label}</Text>
-              {selectedDuration === item.value && (
-                <Text style={styles.checkmark}>✓</Text>
-              )}
-            </TouchableOpacity>
-          )}
-          keyExtractor={(item) => item.id}
-          scrollEnabled={false}
-          ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
-        />
-      </View>
-    </View>
-  );
-
-  /**
-   * STEP 3: Location & Preferences
-   */
-  const StepThree = () => (
-    <View style={styles.stepContent}>
-      <Text style={styles.stepTitle}>Ubicación y disponibilidad</Text>
-      <Text style={styles.stepDescription}>
-        Dónde y cuándo ofreces tu servicio
-      </Text>
-
-      {/* Location */}
-      <View style={styles.formGroup}>
-        <Text style={styles.label}>Ubicación (zona) *</Text>
-        <View style={styles.inputContainer}>
-          <Text style={styles.inputIcon}>📍</Text>
-          <TextInput
-            key="location-input"
-            style={styles.input}
-            placeholder="Ej: Centro, Guayaquil"
-            placeholderTextColor={colors.text.tertiary}
-            value={formData.location}
-            onChangeText={(text) => updateFormField('location', text)}
-          />
-        </View>
-      </View>
-
-      {/* Address */}
-      <View style={styles.formGroup}>
-        <Text style={styles.label}>Dirección completa *</Text>
-        <View style={styles.inputContainer}>
-          <TextInput
-            key="address-input"
-            style={[styles.input, styles.textArea]}
-            placeholder="Ej: Calle Principal #123, Apto 4B"
-            placeholderTextColor={colors.text.tertiary}
-            value={formData.address}
-            onChangeText={(text) => updateFormField('address', text)}
-            multiline
-            numberOfLines={2}
-            textAlignVertical="top"
-          />
-        </View>
-      </View>
-
-      {/* Availability */}
-      <View style={styles.formGroup}>
-        <Text style={styles.label}>Disponibilidad *</Text>
-        <FlatList
-          data={AVAILABILITY_OPTIONS}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={[
-                styles.optionCard,
-                selectedAvailability === item.value && styles.optionCardSelected,
-              ]}
-              onPress={() => {
-                setSelectedAvailability(item.value);
-                setFormData({ ...formData, availability: item.value });
-              }}
-            >
-              <Text style={styles.optionLabel}>{item.label}</Text>
-              {selectedAvailability === item.value && (
-                <Text style={styles.checkmark}>✓</Text>
-              )}
-            </TouchableOpacity>
-          )}
-          keyExtractor={(item) => item.id}
-          scrollEnabled={false}
-          ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
-        />
-      </View>
-
-      {/* Notes */}
-      <View style={styles.formGroup}>
-        <Text style={styles.label}>Notas adicionales</Text>
-        <View style={styles.inputContainer}>
-          <TextInput
-            key="notes-input"
-            style={[styles.input, styles.textArea]}
-            placeholder="Información adicional para los clientes..."
-            placeholderTextColor={colors.text.tertiary}
-            value={formData.notes}
-            onChangeText={(text) => updateFormField('notes', text)}
-            multiline
-            numberOfLines={3}
-            textAlignVertical="top"
-          />
-        </View>
-      </View>
-    </View>
-  );
-
-  /**
-   * STEP 4: Review & Confirm
-   */
-  const StepFour = () => {
-    const selectedCategory = SERVICE_CATEGORIES.find(
-      (cat) => cat.id === formData.category,
-    );
-
-    return (
-      <View style={styles.stepContent}>
-        <Text style={styles.stepTitle}>Revisa tu servicio</Text>
-        <Text style={styles.stepDescription}>
-          Verifica que toda la información sea correcta
-        </Text>
-
-        {/* Summary Card */}
-        <View style={styles.summaryCard}>
-          {/* Category */}
-          <View style={styles.summarySection}>
-            <Text style={styles.summaryLabel}>Categoría</Text>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryIcon}>{selectedCategory?.icon}</Text>
-              <Text style={styles.summaryValue}>{selectedCategory?.label}</Text>
-            </View>
-          </View>
-
-          {/* Title */}
-          <View style={styles.summarySection}>
-            <Text style={styles.summaryLabel}>Título</Text>
-            <Text style={styles.summaryValue}>{formData.title}</Text>
-          </View>
-
-          {/* Description */}
-          <View style={styles.summarySection}>
-            <Text style={styles.summaryLabel}>Descripción</Text>
-            <Text style={styles.summaryValue}>{formData.description}</Text>
-          </View>
-
-          {/* Price */}
-          <View style={styles.summarySection}>
-            <Text style={styles.summaryLabel}>Precio estimado</Text>
-            <Text style={styles.priceText}>${formData.price}</Text>
-          </View>
-
-          {/* Duration */}
-          <View style={styles.summarySection}>
-            <Text style={styles.summaryLabel}>Duración</Text>
-            <Text style={styles.summaryValue}>{selectedDuration}</Text>
-          </View>
-
-          {/* Location */}
-          <View style={styles.summarySection}>
-            <Text style={styles.summaryLabel}>Ubicación</Text>
-            <Text style={styles.summaryValue}>
-              📍 {formData.location} - {formData.address}
-            </Text>
-          </View>
-
-          {/* Availability */}
-          <View style={styles.summarySection}>
-            <Text style={styles.summaryLabel}>Disponibilidad</Text>
-            <Text style={styles.summaryValue}>
-              {AVAILABILITY_OPTIONS.find((opt) => opt.value === selectedAvailability)
-                ?.label}
-            </Text>
-          </View>
-
-          {/* Notes */}
-          {formData.notes && (
-            <View style={styles.summarySection}>
-              <Text style={styles.summaryLabel}>Notas</Text>
-              <Text style={styles.summaryValue}>{formData.notes}</Text>
-            </View>
-          )}
-        </View>
-
-        {/* Info Message */}
-        <View style={styles.infoBox}>
-          <Text style={styles.infoIcon}>ℹ️</Text>
-          <Text style={styles.infoText}>
-            Una vez confirmes, tu servicio será publicado y los clientes
-            podrán contactarte para realizar el trabajo.
-          </Text>
-        </View>
-      </View>
-    );
-  };
-
-  /**
-   * Render current step
-   */
   const renderStep = () => {
     switch (currentStep) {
       case 1:
-        return <StepOne />;
+        return (
+          <StepOne
+            category={formData.category}
+            // @ts-ignore
+            setCategory={id => updateFormField('category', id)}
+          />
+        );
       case 2:
-        return <StepTwo />;
+        return (
+          <StepTwo
+            title={formData.title}
+            description={formData.description}
+            price={formData.price}
+            duration={selectedDuration}
+            setField={updateFormField}
+            setDuration={setSelectedDuration}
+          />
+        );
       case 3:
-        return <StepThree />;
+        return (
+          <StepThree
+            location={formData.location}
+            address={formData.address}
+            availability={selectedAvailability}
+            notes={formData.notes}
+            setField={updateFormField}
+            setAvailability={setSelectedAvailability}
+          />
+        );
       case 4:
-        return <StepFour />;
+        return (
+          <StepFour
+            category={formData.category}
+            title={formData.title}
+            description={formData.description}
+            price={formData.price}
+            duration={selectedDuration}
+            location={formData.location}
+            address={formData.address}
+            availability={selectedAvailability}
+            notes={formData.notes}
+          />
+        );
       default:
-        return <StepOne />;
+  // @ts-ignore
+  return <StepOne category={formData.category} setCategory={id => updateFormField('category', id)} />;
     }
   };
-
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
-      <View style={[styles.container, { paddingTop: insets.top }]}>
+      <View style={[styles.container, { paddingTop: insets.top }]}> 
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity
@@ -553,7 +477,6 @@ export default function CreateService({ navigation }: any) {
           <Text style={styles.headerTitle}>Crear servicio</Text>
           <View style={{ width: 60 }} />
         </View>
-
         {/* Progress Indicator */}
         <View style={styles.progressContainer}>
           <View style={styles.progressBar}>
@@ -570,10 +493,9 @@ export default function CreateService({ navigation }: any) {
             Paso {currentStep} de {totalSteps}
           </Text>
         </View>
-
         {/* Step Indicator */}
         <View style={styles.stepIndicator}>
-          {[1, 2, 3, 4].map((step) => (
+          {[1, 2, 3, 4].map(step => (
             <View
               key={step}
               style={[
@@ -590,7 +512,6 @@ export default function CreateService({ navigation }: any) {
             </View>
           ))}
         </View>
-
         {/* Content */}
         <ScrollView
           style={styles.content}
@@ -599,7 +520,6 @@ export default function CreateService({ navigation }: any) {
         >
           {renderStep()}
         </ScrollView>
-
         {/* Navigation Buttons */}
         <View
           style={[
@@ -615,7 +535,6 @@ export default function CreateService({ navigation }: any) {
               <Text style={styles.backNavigationButtonText}>← Anterior</Text>
             </TouchableOpacity>
           )}
-
           {currentStep < totalSteps && (
             <TouchableOpacity
               style={[
@@ -627,7 +546,6 @@ export default function CreateService({ navigation }: any) {
               <Text style={styles.nextButtonText}>Siguiente →</Text>
             </TouchableOpacity>
           )}
-
           {currentStep === totalSteps && (
             <TouchableOpacity
               style={styles.submitButton}
