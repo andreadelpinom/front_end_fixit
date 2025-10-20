@@ -80,24 +80,30 @@ type TecnicoStackParamList = {
 };
 
 const TechnicianHomeScreen = () => {
-  // Tipar navigation para stack y tabs
   const navigation = useNavigation<NativeStackNavigationProp<TecnicoStackParamList> & BottomTabNavigationProp<TecnicoTabParamList>>();
   const [showNotifications, setShowNotifications] = useState(false);
-  // TODO: Replace with API calls
   const [courses] = useState(demoCourses);
   const [promos] = useState(demoPromos);
   const [services] = useState(demoServices);
   const [requests] = useState(demoRequests);
+  // Estado para el rol
+  const [role, setRole] = useState<'tecnico' | 'client'>('tecnico');
+
+  // Alternar rol al hacer click en el avatar
+  const handleProfileClick = () => {
+    setRole(prev => (prev === 'tecnico' ? 'client' : 'tecnico'));
+  };
 
   return (
     <View style={styles.container}>
-      {/* HeaderNav adaptado, puedes personalizar userName/location/notificationCount */}
       <HeaderNav
         userName="Carlos"
         location="Centro, Guayaquil"
         notificationCount={2}
         showProfilePhoto={true}
         onNotificationClick={() => setShowNotifications(true)}
+        onProfileClick={handleProfileClick}
+        role={role}
       />
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Cursos y Certificaciones */}

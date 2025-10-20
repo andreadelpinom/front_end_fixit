@@ -5,7 +5,7 @@ import {
   TouchableOpacity
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { colors } from "../theme/colors";
+import { colors, client, technician } from "../theme/colors";
 
 interface HeaderNavProps {
   userName?: string;
@@ -14,6 +14,7 @@ interface HeaderNavProps {
   showProfilePhoto?: boolean;
   onNotificationClick?: () => void;
   onProfileClick?: () => void;
+  role?: "client" | "admin" | "tecnico";
 }
 
 export default function HeaderNav({
@@ -22,9 +23,15 @@ export default function HeaderNav({
   notificationCount = 0,
   showProfilePhoto = true,
   onNotificationClick,
-  onProfileClick
+  onProfileClick,
+  role = "client"
 }: HeaderNavProps) {
   const insets = useSafeAreaInsets();
+
+  // Color dinámico según rol
+  let mainColor = client.primary;
+  if (role === "admin") mainColor = colors.primary;
+  if (role === "tecnico") mainColor = technician.primary;
 
   return (
     <View
@@ -40,7 +47,7 @@ export default function HeaderNav({
             onPress={onProfileClick}
             style={styles.profilePhoto}
           >
-            <View style={styles.avatarCircle}>
+            <View style={[styles.avatarCircle, { backgroundColor: mainColor }]}> 
               <Text style={styles.avatarText}>
                 {userName.charAt(0).toUpperCase()}
               </Text>
@@ -60,7 +67,7 @@ export default function HeaderNav({
         >
           <Text style={styles.bellIcon}>🔔</Text>
           {notificationCount > 0 && (
-            <View style={styles.notificationBadge}>
+            <View style={[styles.notificationBadge, { backgroundColor: mainColor }]}> 
               <Text style={styles.notificationCount}>
                 {notificationCount}
               </Text>

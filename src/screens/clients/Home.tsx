@@ -91,6 +91,7 @@ export default function Home() {
         location="Centro, Guayaquil"
         notificationCount={3}
         onNotificationClick={() => setShowNotifications(true)}
+        role="client"
       />
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
