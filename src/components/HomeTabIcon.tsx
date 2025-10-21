@@ -1,6 +1,5 @@
-import Svg, { Path, SvgProps } from 'react-native-svg';
-
-type Props = SvgProps & { color?: string; size?: number; filled?: boolean };
+import Svg, { Path } from 'react-native-svg';
+import { Props } from '../types';
 
 export default function HomeTabIcon({ color = '#D97706', size = 24, filled = false, ...rest }: Props) {
   return (

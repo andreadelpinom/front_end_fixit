@@ -1,7 +1,7 @@
-//import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import LoginScreen from "../screens/common/Login";
 import RegisterScreen from "../screens/common/Register";
+import { AuthStackParamList } from "../types";
 
 /**
  * Authentication Stack Navigator
@@ -11,10 +11,6 @@ import RegisterScreen from "../screens/common/Register";
  * - Login: Main login screen
  * - Register: User registration screen
  */
-export type AuthStackParamList = {
-  Login: undefined;
-  Register: undefined;
-};
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();
 

@@ -1,6 +1,5 @@
-import Svg, { Path, Rect, Line, SvgProps } from 'react-native-svg';
-
-type Props = SvgProps & { color?: string; size?: number; filled?: boolean };
+import Svg, { Path, Rect, Line } from 'react-native-svg';
+import { Props } from '../types';
 
 export default function ClipboardTabIcon({ color = '#D97706', size = 24, filled = false, ...rest }: Props) {
   return (
@@ -11,7 +10,7 @@ export default function ClipboardTabIcon({ color = '#D97706', size = 24, filled 
         stroke={color} strokeWidth={2} fill={filled ? color + '22' : 'none'} />
       <Line x1={9.5} y1={10} x2={14.5} y2={10} stroke={color} strokeWidth={2} strokeLinecap="round" />
       <Line x1={9.5} y1={13} x2={14.5} y2={13} stroke={color} strokeWidth={2} strokeLinecap="round" />
-      <Line x1={9.5} y1={16} x2={13}   y2={16} stroke={color} strokeWidth={2} strokeLinecap="round" />
+      <Line x1={9.5} y1={16} x2={13} y2={16} stroke={color} strokeWidth={2} strokeLinecap="round" />
     </Svg>
   );
 }

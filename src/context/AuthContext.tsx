@@ -1,48 +1,13 @@
-import React, { createContext, useState, useCallback, ReactNode, useEffect } from "react";
+import React, { createContext, useState, useCallback, useEffect, useMemo } from "react";
 import { getData, saveData, removeData, StorageKeys } from "../shared/storage";
-
-export interface User {
-  id: string;
-  email: string;
-  name: string;
-  phone?: string;
-  role: "cliente" | "tecnico";
-  isVerified: boolean;
-  completedServices: number;
-  averageRating: number;
-  joinDate: string;
-  certificates?: string[];
-  // Flags para técnico
-  isTechnicianRequested?: boolean;
-  isTechnicianVerified?: boolean;
-}
-
-interface AuthContextType {
-  user: User | null;
-  isLoading: boolean;
-  isSignedIn: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (
-    fullName: string,
-    email: string,
-    password: string,
-    phone: string,
-    role: "cliente" | "tecnico"
-  ) => Promise<void>;
-  logout: () => Promise<void>;
-  updateUser: (userData: Partial<User>) => void;
-  requestTechnician: () => void;
-}
+import { AuthContextType, AuthProviderProps, User } from "../interface";
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-interface AuthProviderProps {
-  children: ReactNode;
-}
-
-export function AuthProvider({ children }: AuthProviderProps) {
+export function AuthProvider({ children }: Readonly<AuthProviderProps>) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
   // Rehydrate session on mount
   useEffect(() => {
     (async () => {
@@ -51,8 +16,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     })();
   }, []);
 
-  // MOCK USERS DATABASE
-  const mockUsersDB: User[] = [
+  // MOCK USERS DATABASE (se define fuera de render)
+  const mockUsersDB: User[] = useMemo(() => [
     {
       id: "1",
       email: "cliente@fixit.com",
@@ -74,7 +39,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       joinDate: new Date().toISOString(),
       certificates: []
     }
-  ];
+  ], []);
 
   // LOGIN
   const login = useCallback(async (email: string, password: string) => {
@@ -86,20 +51,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
         throw new Error("Credenciales inválidas");
       }
 
-      // BUSCAR USUARIO EN MOCK DB
       const existingUser = mockUsersDB.find(u => u.email === email);
+      if (!existingUser) throw new Error("Usuario no encontrado");
 
-      if (!existingUser) {
-        throw new Error("Usuario no encontrado");
-      }
-
-  // Guardar usuario en contexto y persistir
-  setUser(existingUser);
-  await saveData(StorageKeys.Auth.Session, existingUser);
+      setUser(existingUser);
+      await saveData(StorageKeys.Auth.Session, existingUser);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [mockUsersDB]);
 
   // REGISTER
   const register = useCallback(
@@ -119,7 +79,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         }
 
         const newUser: User = {
-          id: "user_" + Math.random().toString(36).substr(2, 9),
+          id: "user_" + Math.random().toString(36).slice(2, 11), // ✅ slice en lugar de substr
           email,
           name: fullName,
           phone,
@@ -144,31 +104,30 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setIsLoading(true);
     try {
       await new Promise(resolve => setTimeout(resolve, 500));
-  setUser(null);
-  await removeData(StorageKeys.Auth.Session);
+      setUser(null);
+      await removeData(StorageKeys.Auth.Session);
     } finally {
       setIsLoading(false);
     }
   }, []);
 
+  // UPDATE USER
   const updateUser = useCallback((userData: Partial<User>) => {
     setUser(prevUser => {
       if (!prevUser) return null;
       const next = { ...prevUser, ...userData };
-      // Fire and forget persist
       saveData(StorageKeys.Auth.Session, next);
       return next;
     });
   }, []);
 
-  // Solicitar ser técnico (simulado: solo marca flags y cambia rol)
+  // REQUEST TECHNICIAN
   const requestTechnician = useCallback(() => {
     setUser(prevUser => {
       if (!prevUser) return null;
       const next: User = {
         ...prevUser,
         isTechnicianRequested: true,
-        // Simular verificación automática por ahora
         isTechnicianVerified: true,
         role: "tecnico"
       };
@@ -177,7 +136,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     });
   }, []);
 
-  const value: AuthContextType = {
+  // Memoizar value del contexto
+  const value = useMemo<AuthContextType>(() => ({
     user,
     isLoading,
     isSignedIn: user !== null,
@@ -186,7 +146,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     logout,
     updateUser,
     requestTechnician
-  };
+  }), [user, isLoading, login, register, logout, updateUser, requestTechnician]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
@@ -197,4 +157,3 @@ export function useAuth() {
   if (!context) throw new Error("useAuth debe usarse dentro de AuthProvider");
   return context;
 }
-

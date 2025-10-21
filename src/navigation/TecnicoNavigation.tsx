@@ -1,30 +1,43 @@
-//import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { Platform } from "react-native";
-
-
 import TechnicianProfileScreen from "../screens/tecnicos/TechnicianProfileScreen";
 import TechnicianPerformanceScreen from "../screens/tecnicos/TechnicianPerformanceScreen";
 import TechnicianRequestsScreen from "../screens/tecnicos/TechnicianRequestsScreen";
 import TechnicianRequestDetail from "../screens/tecnicos/TechnicianRequestDetail";
 import CertificationsScreen from "../screens/tecnicos/CertificationsScreens";
-import TechnicianHomeScreen from "../screens/tecnicos/TechnicianHomeScreen";
 
 import HomeTabIcon from "../components/HomeTabIcon";
 import ServicesTabIcon from "../components/ServicesTabIcon";
 import ClipboardTabIcon from "../components/ClipboardTabIcon";
 import ProfileTabIcon from "../components/ProfileTabIcon";
 import { technician } from "../theme/colors";
+import { TechnicianHomeScreen } from "../screens/tecnicos/TechnicianHomeScreen";
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
+
+// Definir los componentes de iconos fuera del componente principal
+const renderHomeIcon = (props: { color: string; size: number }) => (
+  <HomeTabIcon color={props.color} size={props.size} />
+);
+
+const renderServicesIcon = (props: { color: string; size: number }) => (
+  <ServicesTabIcon color={props.color} size={props.size} />
+);
+
+const renderClipboardIcon = (props: { color: string; size: number }) => (
+  <ClipboardTabIcon color={props.color} size={props.size} />
+);
+
+const renderProfileIcon = (props: { color: string; size: number }) => (
+  <ProfileTabIcon color={props.color} size={props.size} />
+);
 
 /**
  * TecnicoTabs
  * Bottom Tab Navigator para técnicos con 4 pestañas principales
  */
-
 function TecnicoTabs() {
   return (
     <Tab.Navigator
@@ -52,7 +65,7 @@ function TecnicoTabs() {
         component={TechnicianHomeScreen}
         options={{
           tabBarLabel: "Inicio",
-          tabBarIcon: ({ color, size }) => <HomeTabIcon color={color} size={size} />
+          tabBarIcon: renderHomeIcon
         }}
       />
       <Tab.Screen
@@ -60,7 +73,7 @@ function TecnicoTabs() {
         component={TechnicianPerformanceScreen}
         options={{
           tabBarLabel: "Desempeño",
-          tabBarIcon: ({ color, size }) => <ServicesTabIcon color={color} size={size} />
+          tabBarIcon: renderServicesIcon
         }}
       />
       <Tab.Screen
@@ -68,7 +81,7 @@ function TecnicoTabs() {
         component={TechnicianRequestsScreen}
         options={{
           tabBarLabel: "Solicitudes",
-          tabBarIcon: ({ color, size }) => <ClipboardTabIcon color={color} size={size} />
+          tabBarIcon: renderClipboardIcon
         }}
       />
       <Tab.Screen
@@ -76,7 +89,7 @@ function TecnicoTabs() {
         component={TechnicianProfileScreen}
         options={{
           tabBarLabel: "Perfil",
-          tabBarIcon: ({ color, size }) => <ProfileTabIcon color={color} size={size} />
+          tabBarIcon: renderProfileIcon
         }}
       />
     </Tab.Navigator>
@@ -87,7 +100,6 @@ function TecnicoTabs() {
  * TecnicoNavigator
  * Stack principal para el rol técnico con navegación por pestañas
  */
-
 export default function TecnicoNavigator() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>

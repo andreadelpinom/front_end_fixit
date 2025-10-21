@@ -3,19 +3,173 @@ import { useNavigation } from "@react-navigation/native";
 import {
   View,
   Text,
-  StyleSheet,
   ScrollView,
   TouchableOpacity,
   FlatList,
   Alert
 } from "react-native";
+import { TechnicianProfileScreenStyles as styles } from "../../styles";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { colors, technician } from "../../theme/colors";
 import NotificationsModal from "../../components/NotificationModal";
 import CertificationBanner from "../../components/CertificationBanner";
 import { getData, saveData, StorageKeys } from "../../shared/storage";
 import { useAuth } from "../../context/AuthContext";
+import { technician } from "../../theme/colors";
+import { CertificationItemProps, SkillItemProps } from "../../types";
+import { ActionButtonsProps, CertificationsSectionProps, LogoutButtonProps, ProfileCardProps, SkillsSectionProps, StatsSectionProps } from "../../interface";
 
+// ----------------------------
+// Componentes externos para FlatList
+// ----------------------------
+
+export const CertificationItem = ({ item }: CertificationItemProps) => (
+  <View style={styles.certCard}>
+    <View style={styles.certIcon}>
+      <Text style={styles.certIconText}>🏆</Text>
+    </View>
+    <View style={styles.certContent}>
+      <Text style={styles.certName}>{item.name}</Text>
+      <Text style={styles.certIssuer}>{item.issuer}</Text>
+      <Text style={styles.certDate}>{item.date}</Text>
+    </View>
+  </View>
+);
+
+export const SkillItem = ({ item }: SkillItemProps) => {
+  const getSkillWidth = (level: string) => {
+    if (level === "Avanzado") return "90%";
+    if (level === "Intermedio") return "60%";
+    return "40%";
+  };
+
+  return (
+    <View style={styles.skillCard}>
+      <View>
+        <Text style={styles.skillName}>{item.name}</Text>
+        <Text style={styles.skillLevel}>{item.level}</Text>
+      </View>
+      <View style={styles.skillLevelBar}>
+        <View
+          style={[
+            styles.skillLevelFill,
+            { width: getSkillWidth(item.level) }
+          ]}
+        />
+      </View>
+    </View>
+  );
+};
+
+// ----------------------------
+// Componentes para las secciones (extraídos del componente principal)
+// ----------------------------
+const ListSeparator = () => <View style={{ height: 10 }} />;
+
+const CertificationsSection = ({ certifications }: CertificationsSectionProps) => (
+  <View style={styles.section}>
+    <Text style={[styles.sectionTitle, { color: technician.dark }]}>
+      Certificaciones
+    </Text>
+    <FlatList
+      data={certifications}
+      renderItem={({ item }) => <CertificationItem item={item} />}
+      keyExtractor={(item) => item.id}
+      scrollEnabled={false}
+      ItemSeparatorComponent={ListSeparator}
+    />
+  </View>
+);
+
+const SkillsSection = ({ skills }: SkillsSectionProps) => (
+  <View style={styles.section}>
+    <Text style={[styles.sectionTitle, { color: technician.dark }]}>Habilidades</Text>
+    <FlatList
+      data={skills}
+      renderItem={({ item }) => <SkillItem item={item} />}
+      keyExtractor={(item) => item.id}
+      scrollEnabled={false}
+      ItemSeparatorComponent={ListSeparator}
+    />
+  </View>
+);
+
+const StatsSection = ({ userData }: StatsSectionProps) => (
+  <View style={styles.statsGrid}>
+    <View style={[styles.statCard, { borderColor: technician.primary, backgroundColor: '#FFFFFF' }]}>
+      <Text style={styles.statIcon}>⭐</Text>
+      <Text style={[styles.statValue, { color: technician.dark }]}>{userData.averageRating}</Text>
+      <Text style={styles.statLabel}>Rating</Text>
+    </View>
+    <View style={styles.statCard}>
+      <Text style={styles.statIcon}>✓</Text>
+      <Text style={[styles.statValue, { color: technician.dark }]}>{userData.completedServices}</Text>
+      <Text style={styles.statLabel}>Servicios</Text>
+    </View>
+    <View style={styles.statCard}>
+      <Text style={styles.statIcon}>⏱️</Text>
+      <Text style={[styles.statValue, { color: technician.dark }]}>{userData.responseTime}</Text>
+      <Text style={styles.statLabel}>Respuesta</Text>
+    </View>
+  </View>
+);
+
+const ProfileCard = ({ userData }: ProfileCardProps) => (
+  <View style={[styles.profileCard, { borderColor: technician.primary, backgroundColor: '#FFFFFF' }]}>
+    <View style={styles.avatarSection}>
+      <View style={[styles.avatar, { backgroundColor: technician.dark }]}>
+        <Text style={styles.avatarInitial}>C</Text>
+      </View>
+      {userData.isVerified && (
+        <View style={styles.verifiedBadge}>
+          <Text style={styles.verifiedIcon}>✓</Text>
+        </View>
+      )}
+    </View>
+
+    <View style={styles.nameSection}>
+      <View style={styles.nameRow}>
+        <Text style={styles.name}>{userData.name}</Text>
+        {userData.isVerified && (
+          <View style={[styles.certificationBadge, { backgroundColor: technician.dark }]}>
+            <Text style={styles.certificationBadgeText}>🛡️ Técnico Certificado</Text>
+          </View>
+        )}
+      </View>
+      <Text style={styles.email}>{userData.email}</Text>
+      <Text style={styles.joinDate}>Miembro desde {userData.joinDate}</Text>
+    </View>
+  </View>
+);
+
+const ActionButtons = ({ onContact, onViewRequests }: ActionButtonsProps) => (
+  <View style={styles.actionButtons}>
+    <TouchableOpacity
+      style={[styles.primaryButton, { backgroundColor: technician.dark }]}
+      onPress={onContact}
+    >
+      <Text style={styles.primaryButtonText}>💬 Contactar</Text>
+    </TouchableOpacity>
+    <TouchableOpacity
+      style={[styles.secondaryButton, { borderColor: technician.dark }]}
+      onPress={onViewRequests}
+    >
+      <Text style={styles.secondaryButtonText}>📋 Ver Solicitudes</Text>
+    </TouchableOpacity>
+  </View>
+);
+
+const LogoutButton = ({ onLogout }: LogoutButtonProps) => (
+  <TouchableOpacity
+    style={styles.logoutButton}
+    onPress={onLogout}
+  >
+    <Text style={styles.logoutButtonText}>🚪 Cerrar Sesión</Text>
+  </TouchableOpacity>
+);
+
+// ----------------------------
+// Pantalla principal
+// ----------------------------
 export default function TechnicianProfileScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
@@ -34,24 +188,9 @@ export default function TechnicianProfileScreen() {
   };
 
   const certifications = [
-    {
-      id: "1",
-      name: "Electricidad Residencial",
-      issuer: "Instituto Técnico Nacional",
-      date: "2023-06-15"
-    },
-    {
-      id: "2",
-      name: "Plomería Avanzada",
-      issuer: "Colegio de Técnicos",
-      date: "2023-08-20"
-    },
-    {
-      id: "3",
-      name: "Aire Acondicionado",
-      issuer: "Asociación de Técnicos",
-      date: "2023-10-10"
-    }
+    { id: "1", name: "Electricidad Residencial", issuer: "Instituto Técnico Nacional", date: "2023-06-15" },
+    { id: "2", name: "Plomería Avanzada", issuer: "Colegio de Técnicos", date: "2023-08-20" },
+    { id: "3", name: "Aire Acondicionado", issuer: "Asociación de Técnicos", date: "2023-10-10" }
   ];
 
   const skills = [
@@ -73,47 +212,44 @@ export default function TechnicianProfileScreen() {
     await saveData(StorageKeys.Technician.CertBannerSeen, true);
   };
 
-  const renderCertification = ({ item }: any) => (
-    <View style={styles.certCard}>
-      <View style={styles.certIcon}>
-        <Text style={styles.certIconText}>🏆</Text>
-      </View>
-      <View style={styles.certContent}>
-        <Text style={styles.certName}>{item.name}</Text>
-        <Text style={styles.certIssuer}>{item.issuer}</Text>
-        <Text style={styles.certDate}>{item.date}</Text>
-      </View>
-    </View>
-  );
+  const handleContact = () => {
+    // Lógica para contactar
+    console.log("Contactar técnico");
+  };
 
-  const renderSkill = ({ item }: any) => (
-    <View style={styles.skillCard}>
-      <View>
-        <Text style={styles.skillName}>{item.name}</Text>
-        <Text style={styles.skillLevel}>{item.level}</Text>
-      </View>
-      <View style={styles.skillLevelBar}>
-        <View
-          style={[
-            styles.skillLevelFill,
-            {
-              width:
-                item.level === "Avanzado"
-                  ? "90%"
-                  : item.level === "Intermedio"
-                  ? "60%"
-                  : "40%"
-            }
-          ]}
-        />
-      </View>
-    </View>
-  );
+  const handleViewRequests = () => {
+    // Lógica para ver solicitudes
+    console.log("Ver solicitudes");
+  };
+
+  const handleLogout = () => {
+    Alert.alert(
+      "Cerrar Sesión",
+      "¿Estás seguro que deseas cerrar sesión?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Cerrar Sesión",
+          style: "destructive",
+          onPress: () => {
+            (async () => {
+              try {
+                await logout();
+              } catch (error) {
+                console.error("Logout error:", error);
+                Alert.alert("Error", "No se pudo cerrar sesión");
+              }
+            })();
+          }
+        }
+      ]
+    );
+  };
 
   return (
-    <View style={[styles.container, { backgroundColor: technician.light, paddingBottom: insets.bottom }]}> 
+    <View style={[styles.container, { backgroundColor: technician.light, paddingBottom: insets.bottom }]}>
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Back Button: solo mostrar si se puede volver atrás */}
+        {/* Back Button */}
         {navigation.canGoBack() && (
           <View style={styles.backButtonContainer}>
             <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -127,125 +263,29 @@ export default function TechnicianProfileScreen() {
 
         {/* Certification Banner */}
         {showBanner && (
-          <CertificationBanner
-            isOpen={showBanner}
-            onClose={handleBannerClose}
-          />
+          <CertificationBanner isOpen={showBanner} onClose={handleBannerClose} />
         )}
 
         {/* Profile Card */}
-  <View style={[styles.profileCard, { borderColor: technician.primary, backgroundColor: '#FFFFFF' }]}> 
-          <View style={styles.avatarSection}>
-            <View style={[styles.avatar, { backgroundColor: technician.dark }]}> 
-              <Text style={styles.avatarInitial}>C</Text>
-            </View>
-            {userData.isVerified && (
-              <View style={styles.verifiedBadge}>
-                <Text style={styles.verifiedIcon}>✓</Text>
-              </View>
-            )}
-          </View>
-
-          <View style={styles.nameSection}>
-            <View style={styles.nameRow}>
-              <Text style={styles.name}>{userData.name}</Text>
-              {userData.isVerified && (
-                <View style={[styles.certificationBadge, { backgroundColor: technician.dark }]}> 
-                  <Text style={styles.certificationBadgeText}>
-                    🛡️ Técnico Certificado
-                  </Text>
-                </View>
-              )}
-            </View>
-            <Text style={styles.email}>{userData.email}</Text>
-            <Text style={styles.joinDate}>
-              Miembro desde {userData.joinDate}
-            </Text>
-          </View>
-        </View>
+        <ProfileCard userData={userData} />
 
         {/* Stats */}
-  <View style={styles.statsGrid}>
-          <View style={[styles.statCard, { borderColor: technician.primary, backgroundColor: '#FFFFFF' }]}> 
-            <Text style={styles.statIcon}>⭐</Text>
-            <Text style={[styles.statValue, { color: technician.dark }]}>{userData.averageRating}</Text>
-            <Text style={styles.statLabel}>Rating</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statIcon}>✓</Text>
-            <Text style={[styles.statValue, { color: technician.dark }]}>{userData.completedServices}</Text>
-            <Text style={styles.statLabel}>Servicios</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statIcon}>⏱️</Text>
-            <Text style={[styles.statValue, { color: technician.dark }]}>{userData.responseTime}</Text>
-            <Text style={styles.statLabel}>Respuesta</Text>
-          </View>
-        </View>
+        <StatsSection userData={userData} />
 
         {/* Certifications */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: technician.dark }]}>Certificaciones</Text>
-          <FlatList
-            data={certifications}
-            renderItem={renderCertification}
-            keyExtractor={(item) => item.id}
-            scrollEnabled={false}
-            ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
-          />
-        </View>
+        <CertificationsSection certifications={certifications} />
 
         {/* Skills */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: technician.dark }]}>Habilidades</Text>
-          <FlatList
-            data={skills}
-            renderItem={renderSkill}
-            keyExtractor={(item) => item.id}
-            scrollEnabled={false}
-            ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
-          />
-        </View>
+        <SkillsSection skills={skills} />
 
         {/* Action Buttons */}
-        <View style={styles.actionButtons}>
-          <TouchableOpacity style={[styles.primaryButton, { backgroundColor: technician.dark }]}> 
-            <Text style={styles.primaryButtonText}>💬 Contactar</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.secondaryButton, { borderColor: technician.dark }]}> 
-            <Text style={styles.secondaryButtonText}>📋 Ver Solicitudes</Text>
-          </TouchableOpacity>
-        </View>
+        <ActionButtons
+          onContact={handleContact}
+          onViewRequests={handleViewRequests}
+        />
 
         {/* Logout Button */}
-        <TouchableOpacity 
-          style={styles.logoutButton}
-          onPress={() => {
-            Alert.alert(
-              "Cerrar Sesión",
-              "¿Estás seguro que deseas cerrar sesión?",
-              [
-                {
-                  text: "Cancelar",
-                  style: "cancel"
-                },
-                {
-                  text: "Cerrar Sesión",
-                  style: "destructive",
-                  onPress: async () => {
-                    try {
-                      await logout();
-                    } catch (error) {
-                      Alert.alert("Error", "No se pudo cerrar sesión");
-                    }
-                  }
-                }
-              ]
-            );
-          }}
-        >
-          <Text style={styles.logoutButtonText}>🚪 Cerrar Sesión</Text>
-        </TouchableOpacity>
+        <LogoutButton onLogout={handleLogout} />
 
         <View style={{ height: 20 }} />
       </ScrollView>
@@ -257,253 +297,3 @@ export default function TechnicianProfileScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 16
-  },
-  backButtonContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: 16,
-    marginBottom: 16
-  },
-  backButton: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: colors.primary
-  },
-  notificationIcon: {
-    fontSize: 20
-  },
-  profileCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: "center"
-  },
-  avatarSection: {
-    position: "relative",
-    marginBottom: 12
-  },
-  avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: colors.primary,
-    justifyContent: "center",
-    alignItems: "center"
-  },
-  avatarInitial: {
-    color: "#FFFFFF",
-    fontSize: 32,
-    fontWeight: "700"
-  },
-  verifiedBadge: {
-    position: "absolute",
-    bottom: 0,
-    right: 0,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: colors.status.success,
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 3,
-    borderColor: colors.background
-  },
-  verifiedIcon: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "700"
-  },
-  nameSection: {
-    alignItems: "center"
-  },
-  nameRow: {
-    alignItems: "center",
-    marginBottom: 4
-  },
-  name: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: colors.text.primary,
-    marginBottom: 4
-  },
-  certificationBadge: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8
-  },
-  certificationBadgeText: {
-    color: "#FFFFFF",
-    fontSize: 11,
-    fontWeight: "600"
-  },
-  email: {
-    fontSize: 12,
-    color: colors.text.secondary,
-    marginBottom: 4
-  },
-  joinDate: {
-    fontSize: 11,
-    color: colors.text.tertiary
-  },
-  statsGrid: {
-    flexDirection: "row",
-    gap: 12,
-    marginBottom: 24
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    padding: 12,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: colors.border
-  },
-  statIcon: {
-    fontSize: 24,
-    marginBottom: 4
-  },
-  statValue: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: colors.primary,
-    marginBottom: 2
-  },
-  statLabel: {
-    fontSize: 11,
-    color: colors.text.secondary
-  },
-  section: {
-    marginBottom: 24
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: colors.text.primary,
-    marginBottom: 12
-  },
-  certCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    padding: 12,
-    gap: 12,
-    borderWidth: 1,
-    borderColor: colors.border
-  },
-  certIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.borderLight,
-    justifyContent: "center",
-    alignItems: "center",
-    flexShrink: 0
-  },
-  certIconText: {
-    fontSize: 20
-  },
-  certContent: {
-    flex: 1
-  },
-  certName: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: colors.text.primary,
-    marginBottom: 2
-  },
-  certIssuer: {
-    fontSize: 11,
-    color: colors.text.secondary,
-    marginBottom: 2
-  },
-  certDate: {
-    fontSize: 10,
-    color: colors.text.tertiary
-  },
-  skillCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: colors.border
-  },
-  skillName: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: colors.text.primary,
-    marginBottom: 4
-  },
-  skillLevel: {
-    fontSize: 11,
-    color: colors.text.secondary,
-    marginBottom: 6
-  },
-  skillLevelBar: {
-    height: 6,
-    backgroundColor: colors.border,
-    borderRadius: 3,
-    overflow: "hidden"
-  },
-  skillLevelFill: {
-    height: "100%",
-    backgroundColor: colors.primary,
-    borderRadius: 3
-  },
-  actionButtons: {
-    gap: 12
-  },
-  primaryButton: {
-    backgroundColor: colors.primary,
-    borderRadius: 12,
-    paddingVertical: 12,
-    alignItems: "center"
-  },
-  primaryButtonText: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "600"
-  },
-  secondaryButton: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
-    paddingVertical: 12,
-    alignItems: "center"
-  },
-  secondaryButtonText: {
-    color: colors.text.primary,
-    fontSize: 14,
-    fontWeight: "600"
-  },
-  logoutButton: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.status.error,
-    borderRadius: 12,
-    paddingVertical: 12,
-    alignItems: "center",
-    marginTop: 24
-  },
-  logoutButtonText: {
-    color: colors.status.error,
-    fontSize: 14,
-    fontWeight: "600"
-  }
-});

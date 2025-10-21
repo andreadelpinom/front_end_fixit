@@ -1,13 +1,5 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-
-type User = { id: string; name: string } | null;
-
-type AuthContextType = {
-  user: User;
-  sessionChecked: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
-};
+import React, { createContext, useContext, useEffect, useState, useMemo } from 'react';
+import { AuthContextType, User } from '../types';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -27,8 +19,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = () => setUser(null);
 
+  // Memorizar value del contexto
+  const value = useMemo(
+    () => ({
+      user,
+      sessionChecked,
+      login,
+      logout
+    }),
+    [user, sessionChecked, login, logout]
+  );
+
   return (
-    <AuthContext.Provider value={{ user, sessionChecked, login, logout }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

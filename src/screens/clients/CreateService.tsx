@@ -2,7 +2,6 @@ import { useState, useCallback } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   ScrollView,
   TextInput,
   TouchableOpacity,
@@ -12,9 +11,99 @@ import {
   Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, client } from '../../theme/colors';
+import { CreateServiceStyles as styles } from "../../styles";
+import { colors } from '../../theme/colors';
 
-const SERVICE_CATEGORIES = [
+// Types
+interface ServiceCategory {
+  id: string;
+  label: string;
+  icon: string;
+  description: string;
+}
+
+interface DurationOption {
+  id: string;
+  label: string;
+  value: string;
+}
+
+interface AvailabilityOption {
+  id: string;
+  label: string;
+  value: string;
+}
+
+interface FormData {
+  category: string;
+  title: string;
+  description: string;
+  price: string;
+  duration: string;
+  availability: string;
+  location: string;
+  address: string;
+  notes: string;
+}
+
+interface CategoryItemProps {
+  readonly item: ServiceCategory;
+  readonly category: string;
+  readonly onPress: (id: string) => void;
+}
+
+interface DurationOptionProps {
+  readonly item: DurationOption;
+  readonly duration: string;
+  readonly onPress: (value: string) => void;
+}
+
+interface AvailabilityOptionProps {
+  readonly item: AvailabilityOption;
+  readonly availability: string;
+  readonly onPress: (value: string) => void;
+}
+
+interface StepOneProps {
+  readonly category: string;
+  readonly setCategory: (id: string) => void;
+}
+
+interface StepTwoProps {
+  readonly title: string;
+  readonly description: string;
+  readonly price: string;
+  readonly duration: string;
+  readonly setField: (field: keyof FormData, value: string) => void;
+  readonly setDuration: (value: string) => void;
+}
+
+interface StepThreeProps {
+  readonly location: string;
+  readonly address: string;
+  readonly availability: string;
+  readonly notes: string;
+  readonly setField: (field: keyof FormData, value: string) => void;
+  readonly setAvailability: (value: string) => void;
+}
+
+interface StepFourProps {
+  readonly category: string;
+  readonly title: string;
+  readonly description: string;
+  readonly price: string;
+  readonly duration: string;
+  readonly location: string;
+  readonly address: string;
+  readonly availability: string;
+  readonly notes: string;
+}
+
+interface CreateServiceProps {
+  readonly navigation: any;
+}
+
+const SERVICE_CATEGORIES: ServiceCategory[] = [
   { id: 'electricidad', label: 'Electricidad', icon: '⚡', description: 'Instalaciones y reparaciones eléctricas' },
   { id: 'plomeria', label: 'Plomería', icon: '🔧', description: 'Reparaciones de tuberías y grifería' },
   { id: 'carpinteria', label: 'Carpintería', icon: '🪚', description: 'Puertas, marcos y trabajos en madera' },
@@ -22,14 +111,16 @@ const SERVICE_CATEGORIES = [
   { id: 'limpieza', label: 'Limpieza', icon: '🧹', description: 'Servicios de limpieza profunda' },
   { id: 'pintura', label: 'Pintura', icon: '🎨', description: 'Pintura de interiores y exteriores' },
 ];
-const DURATION_OPTIONS = [
+
+const DURATION_OPTIONS: DurationOption[] = [
   { id: '1', label: 'Menos de 1 hora', value: '< 1h' },
   { id: '2', label: '1-2 horas', value: '1-2h' },
   { id: '3', label: '2-4 horas', value: '2-4h' },
   { id: '4', label: '4-8 horas', value: '4-8h' },
   { id: '5', label: 'Más de 8 horas', value: '> 8h' },
 ];
-const AVAILABILITY_OPTIONS = [
+
+const AVAILABILITY_OPTIONS: AvailabilityOption[] = [
   { id: '1', label: 'Hoy', value: 'today' },
   { id: '2', label: 'Mañana', value: 'tomorrow' },
   { id: '3', label: 'Esta semana', value: 'this_week' },
@@ -37,8 +128,71 @@ const AVAILABILITY_OPTIONS = [
   { id: '5', label: 'Por acordar', value: 'flexible' },
 ];
 
-// @ts-ignore
-export function StepOne(props) {
+function CategoryItem({ item, category, onPress }: CategoryItemProps) {
+  return (
+    <TouchableOpacity
+      style={[
+        styles.categoryCard,
+        category === item.id && styles.categoryCardSelected,
+      ]}
+      onPress={() => onPress(item.id)}
+    >
+      <Text style={styles.categoryIcon}>{item.icon}</Text>
+      <View style={styles.categoryInfo}>
+        <Text style={styles.categoryLabel}>{item.label}</Text>
+        <Text style={styles.categoryDescription}>{item.description}</Text>
+      </View>
+      {category === item.id && (
+        <Text style={styles.checkmark}>✓</Text>
+      )}
+    </TouchableOpacity>
+  );
+}
+
+function DurationOption({ item, duration, onPress }: DurationOptionProps) {
+  return (
+    <TouchableOpacity
+      style={[
+        styles.optionCard,
+        duration === item.value && styles.optionCardSelected,
+      ]}
+      onPress={() => onPress(item.value)}
+    >
+      <Text style={styles.optionLabel}>{item.label}</Text>
+      {duration === item.value && (
+        <Text style={styles.checkmark}>✓</Text>
+      )}
+    </TouchableOpacity>
+  );
+}
+
+function AvailabilityOption({ item, availability, onPress }: AvailabilityOptionProps) {
+  return (
+    <TouchableOpacity
+      style={[
+        styles.optionCard,
+        availability === item.value && styles.optionCardSelected,
+      ]}
+      onPress={() => onPress(item.value)}
+    >
+      <Text style={styles.optionLabel}>{item.label}</Text>
+      {availability === item.value && (
+        <Text style={styles.checkmark}>✓</Text>
+      )}
+    </TouchableOpacity>
+  );
+}
+
+// Separator Components
+function CategorySeparator() {
+  return <View style={{ height: 12 }} />;
+}
+
+function OptionSeparator() {
+  return <View style={{ height: 8 }} />;
+}
+
+export function StepOne(props: StepOneProps) {
   const { category, setCategory } = props;
   return (
     <View style={styles.stepContent}>
@@ -47,34 +201,24 @@ export function StepOne(props) {
       <FlatList
         data={SERVICE_CATEGORIES}
         renderItem={({ item }) => (
-          <TouchableOpacity
-            style={[
-              styles.categoryCard,
-              category === item.id && styles.categoryCardSelected,
-            ]}
-            onPress={() => setCategory(item.id)}
-          >
-            <Text style={styles.categoryIcon}>{item.icon}</Text>
-            <View style={styles.categoryInfo}>
-              <Text style={styles.categoryLabel}>{item.label}</Text>
-              <Text style={styles.categoryDescription}>{item.description}</Text>
-            </View>
-            {category === item.id && (
-              <Text style={styles.checkmark}>✓</Text>
-            )}
-          </TouchableOpacity>
+          <CategoryItem item={item} category={category} onPress={setCategory} />
         )}
         keyExtractor={item => item.id}
         scrollEnabled={false}
-        ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
+        ItemSeparatorComponent={CategorySeparator}
       />
     </View>
   );
 }
 
-// @ts-ignore
-export function StepTwo(props) {
+export function StepTwo(props: StepTwoProps) {
   const { title, description, price, duration, setField, setDuration } = props;
+
+  const handleDurationPress = useCallback((value: string) => {
+    setDuration(value);
+    setField('duration', value);
+  }, [setDuration, setField]);
+
   return (
     <View style={styles.stepContent}>
       <Text style={styles.stepTitle}>Detalles del servicio</Text>
@@ -128,34 +272,25 @@ export function StepTwo(props) {
         <FlatList
           data={DURATION_OPTIONS}
           renderItem={({ item }) => (
-            <TouchableOpacity
-              style={[
-                styles.optionCard,
-                duration === item.value && styles.optionCardSelected,
-              ]}
-              onPress={() => {
-                setDuration(item.value);
-                setField('duration', item.value);
-              }}
-            >
-              <Text style={styles.optionLabel}>{item.label}</Text>
-              {duration === item.value && (
-                <Text style={styles.checkmark}>✓</Text>
-              )}
-            </TouchableOpacity>
+            <DurationOption item={item} duration={duration} onPress={handleDurationPress} />
           )}
           keyExtractor={item => item.id}
           scrollEnabled={false}
-          ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
+          ItemSeparatorComponent={OptionSeparator}
         />
       </View>
     </View>
   );
 }
 
-// @ts-ignore
-export function StepThree(props) {
+export function StepThree(props: StepThreeProps) {
   const { location, address, availability, notes, setField, setAvailability } = props;
+
+  const handleAvailabilityPress = useCallback((value: string) => {
+    setAvailability(value);
+    setField('availability', value);
+  }, [setAvailability, setField]);
+
   return (
     <View style={styles.stepContent}>
       <Text style={styles.stepTitle}>Ubicación y disponibilidad</Text>
@@ -195,25 +330,15 @@ export function StepThree(props) {
         <FlatList
           data={AVAILABILITY_OPTIONS}
           renderItem={({ item }) => (
-            <TouchableOpacity
-              style={[
-                styles.optionCard,
-                availability === item.value && styles.optionCardSelected,
-              ]}
-              onPress={() => {
-                setAvailability(item.value);
-                setField('availability', item.value);
-              }}
-            >
-              <Text style={styles.optionLabel}>{item.label}</Text>
-              {availability === item.value && (
-                <Text style={styles.checkmark}>✓</Text>
-              )}
-            </TouchableOpacity>
+            <AvailabilityOption
+              item={item}
+              availability={availability}
+              onPress={handleAvailabilityPress}
+            />
           )}
           keyExtractor={item => item.id}
           scrollEnabled={false}
-          ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
+          ItemSeparatorComponent={OptionSeparator}
         />
       </View>
       <View style={styles.formGroup}>
@@ -236,8 +361,7 @@ export function StepThree(props) {
   );
 }
 
-// @ts-ignore
-export function StepFour(props) {
+export function StepFour(props: StepFourProps) {
   const { category, title, description, price, duration, location, address, availability, notes } = props;
   const selectedCategory = SERVICE_CATEGORIES.find(cat => cat.id === category);
   return (
@@ -295,12 +419,11 @@ export function StepFour(props) {
   );
 }
 
-// @ts-ignore
-export default function CreateService({ navigation }) {
+export default function CreateService({ navigation }: CreateServiceProps) {
   const insets = useSafeAreaInsets();
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 4;
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     category: '',
     title: '',
     description: '',
@@ -314,10 +437,60 @@ export default function CreateService({ navigation }) {
   const [selectedDuration, setSelectedDuration] = useState('');
   const [selectedAvailability, setSelectedAvailability] = useState('');
 
-  // @ts-ignore
-  const updateFormField = useCallback((field, value) => {
+  const updateFormField = useCallback((field: keyof FormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   }, []);
+
+  const validateStep1 = () => {
+    if (!formData.category) {
+      Alert.alert('Error', 'Por favor selecciona una categoría');
+      return false;
+    }
+    return true;
+  };
+
+  const validateStep2 = () => {
+    if (!formData.title.trim()) {
+      Alert.alert('Error', 'Por favor ingresa un título');
+      return false;
+    }
+    if (!formData.description.trim()) {
+      Alert.alert('Error', 'Por favor ingresa una descripción');
+      return false;
+    }
+    if (!formData.price.trim()) {
+      Alert.alert('Error', 'Por favor ingresa un precio');
+      return false;
+    }
+    if (!selectedDuration) {
+      Alert.alert('Error', 'Por favor selecciona una duración estimada');
+      return false;
+    }
+    return true;
+  };
+
+  const validateStep3 = () => {
+    if (!formData.location.trim()) {
+      Alert.alert('Error', 'Por favor ingresa tu ubicación');
+      return false;
+    }
+    if (!formData.address.trim()) {
+      Alert.alert('Error', 'Por favor ingresa la dirección');
+      return false;
+    }
+    if (!selectedAvailability) {
+      Alert.alert('Error', 'Por favor selecciona disponibilidad');
+      return false;
+    }
+    return true;
+  };
+
+  const validateCurrentStep = () => {
+    if (currentStep === 1) return validateStep1();
+    if (currentStep === 2) return validateStep2();
+    if (currentStep === 3) return validateStep3();
+    return true;
+  };
 
   const handleNext = () => {
     if (validateCurrentStep()) {
@@ -329,81 +502,40 @@ export default function CreateService({ navigation }) {
       setCurrentStep(currentStep - 1);
     }
   };
-  const validateCurrentStep = () => {
-    switch (currentStep) {
-      case 1:
-        if (!formData.category) {
-          Alert.alert('Error', 'Por favor selecciona una categoría');
-          return false;
-        }
-        return true;
-      case 2:
-        if (!formData.title.trim()) {
-          Alert.alert('Error', 'Por favor ingresa un título');
-          return false;
-        }
-        if (!formData.description.trim()) {
-          Alert.alert('Error', 'Por favor ingresa una descripción');
-          return false;
-        }
-        if (!formData.price.trim()) {
-          Alert.alert('Error', 'Por favor ingresa un precio');
-          return false;
-        }
-        if (!selectedDuration) {
-          Alert.alert('Error', 'Por favor selecciona una duración estimada');
-          return false;
-        }
-        return true;
-      case 3:
-        if (!formData.location.trim()) {
-          Alert.alert('Error', 'Por favor ingresa tu ubicación');
-          return false;
-        }
-        if (!formData.address.trim()) {
-          Alert.alert('Error', 'Por favor ingresa la dirección');
-          return false;
-        }
-        if (!selectedAvailability) {
-          Alert.alert('Error', 'Por favor selecciona disponibilidad');
-          return false;
-        }
-        return true;
-      case 4:
-        return true;
-      default:
-        return true;
+
+  const createService = async () => {
+    try {
+      console.log('Creating service:', {
+        ...formData,
+        duration: selectedDuration,
+        availability: selectedAvailability,
+      });
+      Alert.alert(
+        'Éxito',
+        'Servicio creado correctamente',
+        [
+          {
+            text: 'OK',
+            onPress: () => navigation.goBack(),
+          },
+        ],
+      );
+    } catch (error) {
+      console.error('Error creating service:', error);
+      Alert.alert('Error', 'No se pudo crear el servicio. Por favor intenta nuevamente.');
     }
   };
+
   const handleSubmit = () => {
     Alert.alert(
       'Confirmar',
       '¿Deseas crear este servicio?',
       [
-        { text: 'Cancelar', onPress: () => {} },
+        { text: 'Cancelar', style: 'cancel' },
         {
           text: 'Confirmar',
-          onPress: async () => {
-            try {
-              // Simulate API call
-              console.log('Creating service:', {
-                ...formData,
-                duration: selectedDuration,
-                availability: selectedAvailability,
-              });
-              Alert.alert(
-                'Éxito',
-                'Servicio creado correctamente',
-                [
-                  {
-                    text: 'OK',
-                    onPress: () => navigation.goBack(),
-                  },
-                ],
-              );
-            } catch (error) {
-              Alert.alert('Error', 'No se pudo crear el servicio');
-            }
+          onPress: () => {
+            void createService();
           },
         },
       ],
@@ -415,8 +547,7 @@ export default function CreateService({ navigation }) {
         return (
           <StepOne
             category={formData.category}
-            // @ts-ignore
-            setCategory={id => updateFormField('category', id)}
+            setCategory={(id: string) => updateFormField('category', id)}
           />
         );
       case 2:
@@ -456,16 +587,16 @@ export default function CreateService({ navigation }) {
           />
         );
       default:
-  // @ts-ignore
-  return <StepOne category={formData.category} setCategory={id => updateFormField('category', id)} />;
+        return <StepOne category={formData.category} setCategory={(id: string) => updateFormField('category', id)} />;
     }
   };
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
-      <View style={[styles.container, { paddingTop: insets.top }]}> 
+      <View style={[styles.container, { paddingTop: insets.top }]}>
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity
@@ -559,312 +690,3 @@ export default function CreateService({ navigation }) {
     </KeyboardAvoidingView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.surface,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: client.primary,
-    backgroundColor: colors.background,
-  },
-  backButton: {
-    paddingHorizontal: 8,
-    paddingVertical: 8,
-  },
-  backButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: client.primary,
-  },
-  headerTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.text.primary,
-  },
-  progressContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: colors.background,
-  },
-  progressBar: {
-    height: 4,
-    backgroundColor: colors.border,
-    borderRadius: 2,
-    overflow: 'hidden',
-    marginBottom: 8,
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: client.primary,
-  },
-  progressText: {
-    fontSize: 12,
-    color: colors.text.secondary,
-    textAlign: 'center',
-  },
-  stepIndicator: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    marginBottom: 16,
-    backgroundColor: colors.background,
-    paddingVertical: 12,
-  },
-  stepDot: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: colors.border,
-  },
-  stepDotActive: {
-    backgroundColor: client.light,
-    borderColor: client.primary,
-  },
-  stepDotCurrent: {
-    backgroundColor: client.primary,
-    borderColor: client.primary,
-  },
-  stepNumber: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.text.secondary,
-  },
-  checkmarkSmall: {
-    fontSize: 18,
-    color: '#FFFFFF',
-    fontWeight: '700',
-  },
-  content: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: 16,
-    paddingVertical: 20,
-  },
-  stepContent: {
-    marginBottom: 20,
-  },
-  stepTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.text.primary,
-    marginBottom: 6,
-  },
-  stepDescription: {
-    fontSize: 13,
-    color: colors.text.secondary,
-    marginBottom: 20,
-  },
-  categoryCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.background,
-    borderRadius: 12,
-    padding: 14,
-    borderWidth: 2,
-    borderColor: colors.border,
-  },
-  categoryCardSelected: {
-    backgroundColor: client.light,
-    borderColor: client.primary,
-  },
-  categoryIcon: {
-    fontSize: 32,
-    marginRight: 12,
-  },
-  categoryInfo: {
-    flex: 1,
-  },
-  categoryLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text.primary,
-    marginBottom: 4,
-  },
-  categoryDescription: {
-    fontSize: 12,
-    color: colors.text.tertiary,
-  },
-  checkmark: {
-    fontSize: 20,
-    color: client.primary,
-    fontWeight: '700',
-  },
-  formGroup: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.text.primary,
-    marginBottom: 8,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.background,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingHorizontal: 12,
-  },
-  inputIcon: {
-    fontSize: 18,
-    marginRight: 8,
-  },
-  currencySymbol: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.text.secondary,
-    marginRight: 4,
-  },
-  input: {
-    flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 0,
-    fontSize: 14,
-    color: colors.text.primary,
-  },
-  priceInput: {
-    textAlign: 'right',
-  },
-  textArea: {
-    paddingVertical: 10,
-    textAlignVertical: 'top',
-  },
-  optionCard: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: colors.background,
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  optionCardSelected: {
-    backgroundColor: client.light,
-    borderColor: client.primary,
-  },
-  optionLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.text.primary,
-  },
-  summaryCard: {
-    backgroundColor: colors.background,
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  summarySection: {
-    marginBottom: 16,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  summaryLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.text.secondary,
-    marginBottom: 6,
-    textTransform: 'uppercase',
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  summaryIcon: {
-    fontSize: 24,
-  },
-  summaryValue: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: colors.text.primary,
-    lineHeight: 20,
-  },
-  priceText: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: client.primary,
-  },
-  infoBox: {
-    flexDirection: 'row',
-    backgroundColor: colors.borderLight,
-    borderRadius: 10,
-    padding: 12,
-    gap: 10,
-    marginTop: 20,
-  },
-  infoIcon: {
-    fontSize: 20,
-  },
-  infoText: {
-    flex: 1,
-    fontSize: 12,
-    color: colors.text.secondary,
-    lineHeight: 18,
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    gap: 12,
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    backgroundColor: colors.background,
-  },
-  backNavigationButton: {
-    flex: 1,
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  backNavigationButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text.primary,
-  },
-  nextButton: {
-    flex: 1,
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: 'center',
-    backgroundColor: client.primary,
-  },
-  nextButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  submitButton: {
-    flex: 1,
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: 'center',
-    backgroundColor: client.dark,
-  },
-  submitButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-});

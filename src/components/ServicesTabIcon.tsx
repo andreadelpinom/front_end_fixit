@@ -1,12 +1,8 @@
 import Svg, { Path } from "react-native-svg";
-
-interface TabIconProps {
-  color?: string;
-  size?: number;
-}
+import { TabIconProps } from "../interface";
 
 // Llave inglesa (wrench) estilo outline
-export default function ServicesTabIcon({ color = "#000000", size = 24 }: TabIconProps) {
+export default function ServicesTabIcon({ color = "#000000", size = 24 }: Readonly<TabIconProps>) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       {/* Mango */}

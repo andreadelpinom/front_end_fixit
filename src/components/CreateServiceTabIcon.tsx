@@ -1,12 +1,8 @@
 import Svg, { Path, Rect } from "react-native-svg";
-
-interface TabIconProps {
-  color?: string;
-  size?: number;
-}
+import { TabIconProps } from "../interface";
 
 // Ícono "crear servicio": caja con símbolo "+" interior
-export default function CreateServiceTabIcon({ color = "#000000", size = 24 }: TabIconProps) {
+export default function CreateServiceTabIcon({ color = "#000000", size = 24 }: Readonly<TabIconProps>) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Rect x={3} y={4} width={18} height={16} rx={3} stroke={color} strokeWidth={1.8} />

@@ -6,8 +6,10 @@ export const API_URL = (Constants?.expoConfig?.extra as any)?.API_URL || DEFAULT
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
-    headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) },
-    ...init,
+    headers: {
+      'Content-Type': 'application/json',
+      ...init?.headers,
+    },
   });
   if (!res.ok) {
     const text = await res.text();

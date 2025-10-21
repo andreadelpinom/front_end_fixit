@@ -1,8 +1,7 @@
-import { useState } from "react";
+
 import {
   View,
   Text,
-  StyleSheet,
   Modal,
   TouchableOpacity,
   TextInput,
@@ -31,12 +30,19 @@ interface AcceptRequestFlowProps {
 }
 
 type StepType = 1 | 2 | 3 | 4;
+import { AcceptRequestFlowStyles as styles } from "../styles";
+import { AcceptRequestFlowProps } from "../interface";
+import { useState, useEffect, useRef } from "react";
+import { colors } from "../theme/colors";
+import { StepType } from "../types";
 
 export default function AcceptRequestFlow({
   isOpen,
   onClose,
   request
-}: AcceptRequestFlowProps) {
+
+}: Readonly<AcceptRequestFlowProps>) {
+
   const insets = useSafeAreaInsets();
   const [currentStep, setCurrentStep] = useState<StepType>(1);
   const [formData, setFormData] = useState({
@@ -46,20 +52,30 @@ export default function AcceptRequestFlow({
     code: ""
   });
 
+  // Refs para TextInput
+  const priceRef = useRef<TextInput>(null);
+  const dateRef = useRef<TextInput>(null);
+  const timeRef = useRef<TextInput>(null);
+  const codeRef = useRef<TextInput>(null);
+
+  useEffect(() => {
+    setFormData({
+      price: request?.suggestedPrice.toString() || "",
+      date: request?.suggestedDate || "",
+      time: request?.suggestedTime || "",
+      code: ""
+    });
+  }, [request]);
+
   const handleNext = () => {
-    if (currentStep < 4) {
-      setCurrentStep((currentStep + 1) as StepType);
-    }
+    setCurrentStep(prev => (prev < 4 ? (prev + 1) as StepType : prev));
   };
 
   const handlePrevious = () => {
-    if (currentStep > 1) {
-      setCurrentStep((currentStep - 1) as StepType);
-    }
+    setCurrentStep(prev => (prev > 1 ? (prev - 1) as StepType : prev));
   };
 
   const handleComplete = () => {
-    // Handle completion of the request
     console.log("Request accepted:", formData);
     resetFlow();
     onClose();
@@ -126,6 +142,7 @@ export default function AcceptRequestFlow({
             <View style={styles.formGroup}>
               <Text style={styles.inputLabel}>Precio Final ($)</Text>
               <TextInput
+                ref={priceRef}
                 style={styles.input}
                 placeholder="Ingresa el precio"
                 placeholderTextColor={colors.text.tertiary}
@@ -135,12 +152,13 @@ export default function AcceptRequestFlow({
                 }
                 keyboardType="decimal-pad"
                 returnKeyType="done"
-                blurOnSubmit={true}
+                onSubmitEditing={() => priceRef.current?.blur()}
               />
             </View>
             <View style={styles.formGroup}>
               <Text style={styles.inputLabel}>Fecha</Text>
               <TextInput
+                ref={dateRef}
                 style={styles.input}
                 placeholder="YYYY-MM-DD (ej: 2024-03-15)"
                 placeholderTextColor={colors.text.tertiary}
@@ -149,13 +167,14 @@ export default function AcceptRequestFlow({
                   setFormData({ ...formData, date: text })
                 }
                 returnKeyType="next"
-                blurOnSubmit={false}
+                onSubmitEditing={() => dateRef.current?.blur()}
               />
               <Text style={styles.inputHint}>💡 Usa formato: YYYY-MM-DD</Text>
             </View>
             <View style={styles.formGroup}>
               <Text style={styles.inputLabel}>Hora</Text>
               <TextInput
+                ref={timeRef}
                 style={styles.input}
                 placeholder="HH:MM (ej: 14:30)"
                 placeholderTextColor={colors.text.tertiary}
@@ -164,7 +183,7 @@ export default function AcceptRequestFlow({
                   setFormData({ ...formData, time: text })
                 }
                 returnKeyType="done"
-                blurOnSubmit={true}
+                onSubmitEditing={() => timeRef.current?.blur()}
               />
               <Text style={styles.inputHint}>💡 Formato de 24 horas</Text>
             </View>
@@ -181,6 +200,7 @@ export default function AcceptRequestFlow({
             <View style={styles.formGroup}>
               <Text style={styles.inputLabel}>Código de Validación</Text>
               <TextInput
+                ref={codeRef}
                 style={styles.input}
                 placeholder="Ingresa el código"
                 placeholderTextColor={colors.text.tertiary}
@@ -191,7 +211,7 @@ export default function AcceptRequestFlow({
                 maxLength={6}
                 keyboardType="number-pad"
                 returnKeyType="done"
-                blurOnSubmit={true}
+                onSubmitEditing={() => codeRef.current?.blur()}
               />
             </View>
             <Text style={styles.codeHint}>
@@ -254,8 +274,8 @@ export default function AcceptRequestFlow({
       transparent={true}
       onRequestClose={onClose}
     >
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={styles.overlay}
         keyboardVerticalOffset={0}
       >
@@ -284,11 +304,12 @@ export default function AcceptRequestFlow({
             ))}
           </View>
 
-          {/* Content - ScrollView with explicit height */}
+          {/* Content */}
           <ScrollView
             style={styles.content}
             contentContainerStyle={styles.contentContainer}
             showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
           >
             {renderStep()}
           </ScrollView>
@@ -307,7 +328,7 @@ export default function AcceptRequestFlow({
             {currentStep < 4 ? (
               <TouchableOpacity
                 onPress={handleNext}
-                style={[styles.primaryButton, !currentStep && styles.primaryButtonDisabled]}
+                style={styles.primaryButton}
               >
                 <Text style={styles.primaryButtonText}>Siguiente →</Text>
               </TouchableOpacity>
@@ -325,201 +346,3 @@ export default function AcceptRequestFlow({
     </Modal>
   );
 }
-
-const windowHeight = Dimensions.get("window").height;
-
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20
-  },
-  modalContent: {
-    backgroundColor: colors.background,
-    borderRadius: 16,
-    width: "100%",
-    height: windowHeight * 0.75,
-    display: "flex",
-    flexDirection: "column"
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border
-  },
-  closeButton: {
-    fontSize: 20,
-    color: colors.text.tertiary,
-    fontWeight: "600"
-  },
-  headerTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: colors.text.secondary
-  },
-  progressContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 16
-  },
-  progressDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: colors.border
-  },
-  progressDotActive: {
-    backgroundColor: colors.primary
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 16
-  },
-  contentContainer: {
-    flexGrow: 1,
-    paddingBottom: 20
-  },
-  stepContent: {
-    marginBottom: 16
-  },
-  stepTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: colors.text.primary,
-    marginBottom: 12
-  },
-  stepDescription: {
-    fontSize: 13,
-    color: colors.text.secondary,
-    lineHeight: 18,
-    marginBottom: 12
-  },
-  requestDetailLabel: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: colors.text.primary,
-    marginBottom: 8
-  },
-  detailRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 6,
-    paddingVertical: 2
-  },
-  detailLabel: {
-    fontSize: 12,
-    color: colors.text.secondary,
-    fontWeight: "500"
-  },
-  detailValue: {
-    fontSize: 12,
-    color: colors.text.primary,
-    fontWeight: "600"
-  },
-  detailValueHighlight: {
-    fontSize: 14,
-    color: colors.primary,
-    fontWeight: "700"
-  },
-  formGroup: {
-    marginBottom: 16
-  },
-  inputLabel: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: colors.text.primary,
-    marginBottom: 6
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: colors.text.primary
-  },
-  inputHint: {
-    fontSize: 11,
-    color: colors.text.secondary,
-    marginTop: 4,
-    fontStyle: "italic"
-  },
-  codeHint: {
-    fontSize: 11,
-    color: colors.text.tertiary,
-    textAlign: "center",
-    marginTop: 12
-  },
-  successIcon: {
-    fontSize: 48,
-    textAlign: "center",
-    marginBottom: 12
-  },
-  footer: {
-    flexDirection: "row",
-    gap: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    backgroundColor: colors.background
-  },
-  primaryButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
-    backgroundColor: colors.primary,
-    alignItems: "center",
-    justifyContent: "center"
-  },
-  primaryButtonDisabled: {
-    backgroundColor: colors.border,
-    opacity: 0.5
-  },
-  primaryButtonText: {
-    color: "#FFFFFF",
-    fontSize: 13,
-    fontWeight: "600"
-  },
-  secondaryButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: "center",
-    justifyContent: "center"
-  },
-  secondaryButtonText: {
-    color: colors.text.primary,
-    fontSize: 13,
-    fontWeight: "600"
-  },
-  completeButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
-    backgroundColor: colors.status.success,
-    alignItems: "center",
-    justifyContent: "center"
-  },
-  completeButtonText: {
-    color: "#FFFFFF",
-    fontSize: 13,
-    fontWeight: "600"
-  }
-});

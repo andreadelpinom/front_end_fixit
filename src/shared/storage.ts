@@ -1,20 +1,22 @@
-// Cross-platform storage utility for React Native (AsyncStorage) and Web (localStorage)
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const isWeb = typeof window !== 'undefined' && typeof document !== 'undefined';
+const isWeb =
+  typeof globalThis !== 'undefined' &&
+  typeof globalThis.window !== 'undefined' &&
+  typeof globalThis.document !== 'undefined';
 
 export async function saveData<T>(key: string, value: T): Promise<void> {
   const serialized = JSON.stringify(value);
-  if (isWeb && window.localStorage) {
-    window.localStorage.setItem(key, serialized);
+  if (isWeb && typeof globalThis.localStorage !== 'undefined') {
+    globalThis.localStorage.setItem(key, serialized);
     return;
   }
   await AsyncStorage.setItem(key, serialized);
 }
 
 export async function getData<T>(key: string): Promise<T | null> {
-  if (isWeb && window.localStorage) {
-    const raw = window.localStorage.getItem(key);
+  if (isWeb && typeof globalThis.localStorage !== 'undefined') {
+    const raw = globalThis.localStorage.getItem(key);
     return raw ? (JSON.parse(raw) as T) : null;
   }
   const raw = await AsyncStorage.getItem(key);
@@ -22,8 +24,8 @@ export async function getData<T>(key: string): Promise<T | null> {
 }
 
 export async function removeData(key: string): Promise<void> {
-  if (isWeb && window.localStorage) {
-    window.localStorage.removeItem(key);
+  if (isWeb && typeof globalThis.localStorage !== 'undefined') {
+    globalThis.localStorage.removeItem(key);
     return;
   }
   await AsyncStorage.removeItem(key);
@@ -57,6 +59,6 @@ export const StorageKeys = {
     Profile: 'client:profile',
   },
   Auth: {
-    Session: 'auth:session', // { isSignedIn, user }
+    Session: 'auth:session',
   },
 } as const;

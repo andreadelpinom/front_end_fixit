@@ -1,4 +1,3 @@
-//import React from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useAuth } from "../context/AuthContext";
@@ -25,33 +24,31 @@ const AuthStack = createNativeStackNavigator();
 export function RootNavigator() {
   const { isSignedIn, user } = useAuth();
 
-  return (
-    <NavigationContainer>
-      {isSignedIn && user ? (
-        user.role === "cliente" ? (
-          <ClientNavigator />
-        ) : (
-          <TecnicoNavigator />
-        )
-      ) : (
-        <AuthStack.Navigator
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: "#FFFFFF" }
-          }}
-        >
-          <AuthStack.Screen
-            name="Login"
-            component={LoginScreen}
-            options={{ animationTypeForReplace: "pop" }}
-          />
-          <AuthStack.Screen
-            name="Register"
-            component={RegisterScreen}
-            options={{ animationTypeForReplace: "pop" }}
-          />
-        </AuthStack.Navigator>
-      )}
-    </NavigationContainer>
-  );
+  // Extraer la lógica fuera del JSX para evitar ternarios anidados
+  let content;
+  if (isSignedIn && user) {
+    content = user.role === "cliente" ? <ClientNavigator /> : <TecnicoNavigator />;
+  } else {
+    content = (
+      <AuthStack.Navigator
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: "#FFFFFF" }
+        }}
+      >
+        <AuthStack.Screen
+          name="Login"
+          component={LoginScreen}
+          options={{ animationTypeForReplace: "pop" }}
+        />
+        <AuthStack.Screen
+          name="Register"
+          component={RegisterScreen}
+          options={{ animationTypeForReplace: "pop" }}
+        />
+      </AuthStack.Navigator>
+    );
+  }
+
+  return <NavigationContainer>{content}</NavigationContainer>;
 }

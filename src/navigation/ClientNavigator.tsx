@@ -1,23 +1,36 @@
-//import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { Platform } from "react-native";
-
 import Home from "../screens/clients/Home";
 import ServicesScreen from "../screens/clients/ServicesScreen";
 import ProfileScreen from "../screens/clients/Profile";
 import RequestDetailScreen from "../screens/clients/RequestDetail";
 import CreateService from "../screens/clients/CreateService";
-
 import HomeTabIcon from "../components/HomeTabIcon";
 import ServicesTabIcon from "../components/ServicesTabIcon";
 import CreateServiceTabIcon from "../components/CreateServiceTabIcon";
 import ProfileTabIcon from "../components/ProfileTabIcon";
-
 import { client } from "../theme/colors";
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
+
+// Definir los componentes de iconos fuera del componente principal
+const renderHomeIcon = (props: { color: string; size: number }) => (
+  <HomeTabIcon color={props.color} size={props.size} />
+);
+
+const renderServicesIcon = (props: { color: string; size: number }) => (
+  <ServicesTabIcon color={props.color} size={props.size} />
+);
+
+const renderCreateServiceIcon = (props: { color: string; size: number }) => (
+  <CreateServiceTabIcon color={props.color} size={props.size} />
+);
+
+const renderProfileIcon = (props: { color: string; size: number }) => (
+  <ProfileTabIcon color={props.color} size={props.size} />
+);
 
 function ClientTabs() {
   return (
@@ -45,7 +58,7 @@ function ClientTabs() {
         component={Home}
         options={{
           tabBarLabel: "Inicio",
-          tabBarIcon: ({ color, size }) => <HomeTabIcon color={color} size={size} />
+          tabBarIcon: renderHomeIcon
         }}
       />
       <Tab.Screen
@@ -53,7 +66,7 @@ function ClientTabs() {
         component={ServicesScreen}
         options={{
           tabBarLabel: "Servicios",
-          tabBarIcon: ({ color, size }) => <ServicesTabIcon color={color} size={size} />
+          tabBarIcon: renderServicesIcon
         }}
       />
       <Tab.Screen
@@ -61,16 +74,16 @@ function ClientTabs() {
         component={CreateService}
         options={{
           tabBarLabel: "Crear Servicio",
-          tabBarIcon: ({ color, size }) => <CreateServiceTabIcon color={color} size={size} />
+          tabBarIcon: renderCreateServiceIcon
         }}
       />
-      
+
       <Tab.Screen
         name="Profile"
         component={ProfileScreen}
         options={{
           tabBarLabel: "Perfil",
-          tabBarIcon: ({ color, size }) => <ProfileTabIcon color={color} size={size} />
+          tabBarIcon: renderProfileIcon
         }}
       />
     </Tab.Navigator>
