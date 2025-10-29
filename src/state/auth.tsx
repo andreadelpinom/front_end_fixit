@@ -1,40 +1,38 @@
-import React, { createContext, useContext, useEffect, useState, useMemo } from 'react';
+/* import React, { createContext, useContext, useEffect, useState, useMemo } from 'react';
 import { AuthContextType, User } from '../types';
+import { authService } from '../services/AuthService';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [sessionChecked, setSessionChecked] = useState(false);
 
   useEffect(() => {
-    // TODO: load session from secure storage
-    setSessionChecked(true);
+    const loadSession = async () => {
+      const currentUser = await authService.getCurrentUser();
+      setUser(currentUser);
+      setSessionChecked(true);
+    };
+    loadSession();
   }, []);
 
-  const login = async (email: string, _password: string) => {
-    // TODO: call backend and store token
-    setUser({ id: '1', name: email });
+  const login = async (email: string, password: string) => {
+    const loggedUser = await authService.login(email, password);
+    setUser(loggedUser);
   };
 
-  const logout = () => setUser(null);
+  const logout = async () => {
+    await authService.logout();
+    setUser(null);
+  };
 
-  // Memorizar value del contexto
   const value = useMemo(
-    () => ({
-      user,
-      sessionChecked,
-      login,
-      logout
-    }),
-    [user, sessionChecked, login, logout]
+    () => ({ user, sessionChecked, login, logout }),
+    [user, sessionChecked]
   );
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {
@@ -42,3 +40,4 @@ export const useAuth = () => {
   if (!ctx) throw new Error('useAuth must be used within AuthProvider');
   return ctx;
 };
+ */

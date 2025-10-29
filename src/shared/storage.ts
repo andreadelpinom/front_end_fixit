@@ -4,12 +4,16 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const isWeb = Platform.OS === 'web';
 
 export async function saveData<T>(key: string, value: T): Promise<void> {
-  const serialized = JSON.stringify(value);
-  if (isWeb && typeof localStorage !== 'undefined') {
-    localStorage.setItem(key, serialized);
-    return;
+  try {
+    const serialized = JSON.stringify(value);
+    if (isWeb && typeof localStorage !== 'undefined') {
+      localStorage.setItem(key, serialized);
+      return;
+    }
+    await AsyncStorage.setItem(key, serialized);
+  } catch (err) {
+    console.error('Failed to save data', err);
   }
-  await AsyncStorage.setItem(key, serialized);
 }
 
 export async function getData<T>(key: string): Promise<T | null> {
@@ -28,3 +32,18 @@ export async function removeData(key: string): Promise<void> {
   }
   await AsyncStorage.removeItem(key);
 }
+
+export const StorageKeys = {
+  Client: {
+    SearchQuery: 'client_search_query'
+  },
+  Technician: {
+    MyServices: 'technician_my_services',
+    Requests: 'technician_requests',
+    CertBannerSeen: 'technician_cert_banner_seen'
+  },
+  Auth: {
+    Session: 'auth_session'
+  }
+};
+

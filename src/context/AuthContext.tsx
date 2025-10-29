@@ -16,50 +16,56 @@ export function AuthProvider({ children }: Readonly<AuthProviderProps>) {
     })();
   }, []);
 
-  // MOCK USERS DATABASE (se define fuera de render)
-  const mockUsersDB: User[] = useMemo(() => [
-    {
-      id: "1",
-      email: "cliente@fixit.com",
-      name: "Cliente Demo",
-      role: "cliente",
-      isVerified: true,
-      completedServices: 5,
-      averageRating: 4.5,
-      joinDate: new Date().toISOString()
-    },
-    {
-      id: "2",
-      email: "tecnico@fixit.com",
-      name: "Técnico Demo",
-      role: "tecnico",
-      isVerified: true,
-      completedServices: 10,
-      averageRating: 4.8,
-      joinDate: new Date().toISOString(),
-      certificates: []
-    }
-  ], []);
+  // MOCK USERS DATABASE
+  const mockUsersDB: User[] = useMemo(
+    () => [
+      {
+        id: "1",
+        email: "cliente@fixit.com",
+        name: "Cliente Demo",
+        role: "cliente",
+        isVerified: true,
+        completedServices: 5,
+        averageRating: 4.5,
+        joinDate: new Date().toISOString()
+      },
+      {
+        id: "2",
+        email: "tecnico@fixit.com",
+        name: "Técnico Demo",
+        role: "tecnico",
+        isVerified: true,
+        completedServices: 10,
+        averageRating: 4.8,
+        joinDate: new Date().toISOString(),
+        certificates: []
+      }
+    ],
+    []
+  );
 
   // LOGIN
-  const login = useCallback(async (email: string, password: string) => {
-    setIsLoading(true);
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1000)); // simulate API call
+  const login = useCallback(
+    async (email: string, password: string) => {
+      setIsLoading(true);
+      try {
+        await new Promise(resolve => setTimeout(resolve, 1000));
 
-      if (!email.includes("@") || password.length < 6) {
-        throw new Error("Credenciales inválidas");
+        if (!email.includes("@") || password.length < 6) {
+          throw new Error("Credenciales inválidas");
+        }
+
+        const existingUser = mockUsersDB.find(u => u.email === email);
+        if (!existingUser) throw new Error("Usuario no encontrado");
+
+        setUser(existingUser);
+        await saveData(StorageKeys.Auth.Session, existingUser);
+      } finally {
+        setIsLoading(false);
       }
-
-      const existingUser = mockUsersDB.find(u => u.email === email);
-      if (!existingUser) throw new Error("Usuario no encontrado");
-
-      setUser(existingUser);
-      await saveData(StorageKeys.Auth.Session, existingUser);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [mockUsersDB]);
+    },
+    [mockUsersDB]
+  );
 
   // REGISTER
   const register = useCallback(
@@ -79,7 +85,7 @@ export function AuthProvider({ children }: Readonly<AuthProviderProps>) {
         }
 
         const newUser: User = {
-          id: "user_" + Math.random().toString(36).slice(2, 11), // ✅ slice en lugar de substr
+          id: "user_" + Math.random().toString(36).slice(2, 11),
           email,
           name: fullName,
           phone,
@@ -92,6 +98,7 @@ export function AuthProvider({ children }: Readonly<AuthProviderProps>) {
         };
 
         setUser(newUser);
+        await saveData(StorageKeys.Auth.Session, newUser);
       } finally {
         setIsLoading(false);
       }
@@ -136,24 +143,27 @@ export function AuthProvider({ children }: Readonly<AuthProviderProps>) {
     });
   }, []);
 
-  // Memoizar value del contexto
-  const value = useMemo<AuthContextType>(() => ({
-    user,
-    isLoading,
-    isSignedIn: user !== null,
-    login,
-    register,
-    logout,
-    updateUser,
-    requestTechnician
-  }), [user, isLoading, login, register, logout, updateUser, requestTechnician]);
+  // Memoized context value
+  const value = useMemo<AuthContextType>(
+    () => ({
+      user,
+      isLoading,
+      isSignedIn: !!user,
+      login,
+      register,
+      logout,
+      updateUser,
+      requestTechnician
+    }),
+    [user, isLoading, login, register, logout, updateUser, requestTechnician]
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-// Hook para usar AuthContext
+// Hook to use AuthContext
 export function useAuth() {
   const context = React.useContext(AuthContext);
-  if (!context) throw new Error("useAuth debe usarse dentro de AuthProvider");
+  if (!context) throw new Error("useAuth must be used within AuthProvider");
   return context;
 }

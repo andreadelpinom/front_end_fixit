@@ -3,10 +3,11 @@ import { View, Text, ScrollView, TouchableOpacity, Image } from 'react-native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { TechnicianHomeScreenStyles as styles } from "../../styles";
-import NotificationsModal from '../../components/NotificationModal';
+
 import { useNavigation } from '@react-navigation/native';
 import HeaderNav from '../../components/HeaderNav';
 import { TecnicoStackParamList, TecnicoTabParamList } from '../../types';
+import { GenericModal } from '../../components/GenericModal';
 
 // TODO: Replace with API data when backend is ready
 const demoCourses = [
@@ -150,9 +151,11 @@ export const TechnicianHomeScreen = () => {
         </View>
       </ScrollView>
 
-      <NotificationsModal
+      <GenericModal
         isOpen={showNotifications}
         onClose={() => setShowNotifications(false)}
+        title="Notifications"
+        content={<Text>You have new notifications!</Text>}
       />
     </View>
   );

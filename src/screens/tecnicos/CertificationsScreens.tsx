@@ -7,10 +7,11 @@ import {
   FlatList
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import NotificationsModal from "../../components/NotificationModal";
+
 import { CertificationsScreensStyles as styles } from "../../styles";
 import HeaderNav from "../../components/HeaderNav";
 import { colors } from "../../theme/colors";
+import { GenericModal } from "../../components/GenericModal";
 
 const certificationData = [
   {
@@ -251,9 +252,11 @@ export default function CertificationsScreen() {
         <View style={{ height: 20 }} />
       </ScrollView>
 
-      <NotificationsModal
+      <GenericModal
         isOpen={showNotifications}
         onClose={() => setShowNotifications(false)}
+        title="Notifications"
+        content={<Text>You have new notifications!</Text>}
       />
     </View>
   );

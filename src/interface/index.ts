@@ -1,14 +1,49 @@
 import { ReactNode } from "react";
-import { Status } from "../types";
+import { IconType, Status } from "../types";
 
-interface Request {
-    id: string;
-    title: string;
+export interface Request {
+    idTipoServicio: number;
+    codigoParroquia: string;
+    tituloProblema: string;
+    descripcionProblema: string;
+    costoEstimado?: number;
+    costoPromocion?: number;
+    promocion?: boolean;
+    fechaProgramada?: string;
+    duracionEstimadaMin?: number;
+}
+
+export interface RequestDetail extends Request {
+    id: string; // internal frontend ID
     client: string;
+    clientPhone: string;
+    clientRating: number;
+    clientReviews: number;
     location: string;
-    suggestedPrice: number;
-    suggestedDate: string;
-    suggestedTime: string;
+    address: string;
+    status: "Publicado" | "Finalizado" | "Cancelado" | "En progreso";
+    isNew: boolean;
+    category: string;
+    details: string[];
+    requirements: string[];
+    time: string;
+}
+
+export interface ClientCardProps {
+    name: string;
+    phone: string;
+    rating: number;
+    reviews: number;
+    onChat?: () => void;
+}
+
+export interface GenericModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    title?: string;
+    content: React.ReactNode;
+    footer?: React.ReactNode;
+    animationType?: 'slide' | 'fade';
 }
 
 export interface AcceptRequestFlowProps {
@@ -188,3 +223,150 @@ export interface ActionButtonsProps {
 export interface LogoutButtonProps {
     onLogout: () => void;
 }
+
+export interface Props extends TabIconProps {
+    type: IconType;
+    filled?: boolean;
+}
+
+// Types
+export interface ServiceCategory {
+    id: string;
+    label: string;
+    icon: string;
+    description: string;
+}
+
+export interface DurationOption {
+    id: string;
+    label: string;
+    value: string;
+}
+
+export interface AvailabilityOption {
+    id: string;
+    label: string;
+    value: string;
+}
+
+export interface FormData {
+    category: string;
+    title: string;
+    description: string;
+    price: string;
+    duration: string;
+    availability: string;
+    location: string;
+    address: string;
+    notes: string;
+}
+
+export interface CategoryItemProps {
+    readonly item: ServiceCategory;
+    readonly category: string;
+    readonly onPress: (id: string) => void;
+}
+
+export interface DurationOptionProps {
+    readonly item: DurationOption;
+    readonly duration: string;
+    readonly onPress: (value: string) => void;
+}
+
+export interface AvailabilityOptionProps {
+    readonly item: AvailabilityOption;
+    readonly availability: string;
+    readonly onPress: (value: string) => void;
+}
+
+export interface StepOneProps {
+    readonly category: string;
+    readonly setCategory: (id: string) => void;
+}
+
+export interface StepTwoProps {
+    readonly title: string;
+    readonly description: string;
+    readonly price: string;
+    readonly duration: string;
+    readonly setField: (field: keyof FormData, value: string) => void;
+    readonly setDuration: (value: string) => void;
+}
+
+export interface StepThreeProps {
+    readonly location: string;
+    readonly address: string;
+    readonly availability: string;
+    readonly notes: string;
+    readonly setField: (field: keyof FormData, value: string) => void;
+    readonly setAvailability: (value: string) => void;
+}
+
+export interface StepFourProps {
+    readonly category: string;
+    readonly title: string;
+    readonly description: string;
+    readonly price: string;
+    readonly duration: string;
+    readonly location: string;
+    readonly address: string;
+    readonly availability: string;
+    readonly notes: string;
+}
+
+export interface CreateServiceProps {
+    readonly navigation: any;
+}
+
+export interface UserData {
+    name: string;
+    email: string;
+    completedServices: number;
+    averageRating: number;
+    responseTime: string;
+    joinDate: string;
+    isVerified: boolean;
+    isTechnicianRequested?: boolean;
+    role?: "cliente" | "tecnico";
+}
+
+export interface QuickAccessItem {
+    id: string;
+    title: string;
+    subtitle: string;
+    icon: string;
+    count?: number | null;
+}
+
+export interface SettingItem {
+    id: string;
+    title: string;
+    icon: string;
+}
+
+export interface Props {
+    navigation: any;
+    route: { params?: { requestId?: string } };
+}
+
+export interface FavoriteTechCardProps {
+    tech: FavoriteTechnician;
+    onPress: () => void;
+}
+
+export interface FrequentServiceCardProps {
+    service: FrequentService;
+    onPress: () => void;
+}
+
+export interface HistoryItemCardProps {
+    item: ServiceHistoryItem;
+    onPress: () => void;
+}
+
+export type IconOnlyProps = {
+    type: 'home' | 'services' | 'createService' | 'profile' | 'clipboard';
+    color?: string;
+    size?: number;
+    filled?: boolean;
+};

@@ -10,13 +10,14 @@ import {
 } from "react-native";
 import { TechnicianProfileScreenStyles as styles } from "../../styles";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import NotificationsModal from "../../components/NotificationModal";
+
 import CertificationBanner from "../../components/CertificationBanner";
 import { getData, saveData, StorageKeys } from "../../shared/storage";
 import { useAuth } from "../../context/AuthContext";
 import { technician } from "../../theme/colors";
 import { CertificationItemProps, SkillItemProps } from "../../types";
 import { ActionButtonsProps, CertificationsSectionProps, LogoutButtonProps, ProfileCardProps, SkillsSectionProps, StatsSectionProps } from "../../interface";
+import { GenericModal } from "../../components/GenericModal";
 
 // ----------------------------
 // Componentes externos para FlatList
@@ -290,9 +291,11 @@ export default function TechnicianProfileScreen() {
         <View style={{ height: 20 }} />
       </ScrollView>
 
-      <NotificationsModal
+      <GenericModal
         isOpen={showNotifications}
         onClose={() => setShowNotifications(false)}
+        title="Notifications"
+        content={<Text>You have new notifications!</Text>}
       />
     </View>
   );

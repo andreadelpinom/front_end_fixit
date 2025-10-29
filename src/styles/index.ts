@@ -1,5 +1,6 @@
 export { default as AcceptRequestFlowStyles } from "./AcceptRequestFlow.styles";
 export { default as CertificationBannerStyles } from "./CertificationBanner.styles";
+export { default as ClientCardStyles } from "./ClientCard.styles";
 export { default as HeaderNavStyles } from "./HeaderNav.styles";
 export { default as HomeTabIconStyles } from "./HomeTabIcon.styles";
 export { default as NotificationsModalStyles } from "./NotificationsModal.styles";

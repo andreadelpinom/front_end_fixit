@@ -9,10 +9,11 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MyServicesScreenStyles as styles } from "../../styles";
-import NotificationsModal from "../../components/NotificationModal";
+
 import { getData, saveData, StorageKeys } from "../../shared/storage";
 import HeaderNav from "../../components/HeaderNav";
 import { colors } from "../../theme/colors";
+import { GenericModal } from "../../components/GenericModal";
 
 const myServices = [
   {
@@ -200,9 +201,11 @@ export default function MyServicesScreen() {
         <View style={{ height: 20 }} />
       </ScrollView>
 
-      <NotificationsModal
+      <GenericModal
         isOpen={showNotifications}
         onClose={() => setShowNotifications(false)}
+        title="Notifications"
+        content={<Text>You have new notifications!</Text>}
       />
     </View>
   );

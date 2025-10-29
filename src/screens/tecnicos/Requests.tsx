@@ -8,11 +8,12 @@ import {
   TextInput
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import NotificationsModal from "../../components/NotificationModal";
+
 import { getData, saveData, StorageKeys } from "../../shared/storage";
 import { RequestsStyles as styles } from "../../styles";
 import HeaderNav from "../../components/HeaderNav";
 import { colors } from "../../theme/colors";
+import { GenericModal } from "../../components/GenericModal";
 
 const requestsData = [
   {
@@ -280,9 +281,11 @@ export default function Requests() {
         <View style={{ height: 20 }} />
       </ScrollView>
 
-      <NotificationsModal
+      <GenericModal
         isOpen={showNotifications}
         onClose={() => setShowNotifications(false)}
+        title="Notifications"
+        content={<Text>You have new notifications!</Text>}
       />
     </View>
   );

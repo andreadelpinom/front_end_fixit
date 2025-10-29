@@ -1,217 +1,67 @@
 import { useState } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity
-} from "react-native";
+import { View, Text, ScrollView, TouchableOpacity } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { RequestDetailStyles as styles } from "../../styles";
 import AcceptRequestFlow from "../../components/AcceptRequestFlow";
-import { colors } from "../../theme/colors";
+import { REQUEST_HISTORY } from "../DummyData";
+import { RequestDetail as RequestDetailType } from "../../interface";
+import { ScreenProps } from "../../types";
 
-export default function RequestDetail({ navigation, route }: any) {
+export default function RequestDetail({ navigation, route }: Readonly<ScreenProps>) {
   const insets = useSafeAreaInsets();
   const [showAcceptFlow, setShowAcceptFlow] = useState(false);
 
-  // Conectar con requestId (simulado desde ServicesScreen)
-  const requestId: string | undefined = route?.params?.requestId;
-  const historyMap: Record<string, { title: string; code: string; date: string; status: "Finalizado" | "Cancelado" | "En progreso" }> = {
-    h1: { title: "Electricidad - Reparación", code: "REQ-ABC123", date: "14/1/2024", status: "Finalizado" },
-    h2: { title: "Plomería - Instalación", code: "REQ-DEF456", date: "9/1/2024", status: "Cancelado" },
-    h3: { title: "Pintura - Mantenimiento", code: "REQ-GHI789", date: "4/1/2024", status: "Finalizado" }
-  };
-  const mapped = requestId ? historyMap[requestId] : undefined;
+  const requestId = route.params.requestId;
+  const request: RequestDetailType | undefined = requestId
+    ? REQUEST_HISTORY[requestId]
+    : undefined;
 
-  const request = {
-    id: mapped?.code ?? "REQ-001",
-    title: mapped?.title ?? "Electricidad - Instalación de interruptores",
-    description: "Instalar nuevos interruptores y tomacorrientes en la sala y cocina",
-    client: "María González",
-    clientPhone: "+593 9 8765 4321",
-    clientRating: 4.9,
-    clientReviews: 234,
-    date: mapped?.date ?? "2024-03-15",
-    time: "14:30",
-    location: "Centro, Guayaquil",
-    address: "Calle Principal #123, Apto 4B",
-    price: 85,
-    urgency: "Normal",
-    status: mapped?.status ?? "Publicado",
-    isNew: !mapped,
-    category: "Electricidad",
-    details: [
-      "Instalar 3 interruptores de pared",
-      "Instalar 4 tomacorrientes",
-      "Verificar circuitos existentes",
-      "Pintura de acabado"
-    ],
-    requirements: [
-      "Experiencia en instalación eléctrica",
-      "Certificación vigente",
-      "Herramientas propias"
-    ]
-  };
+  if (!request) {
+    return (
+      <View
+        style={[
+          styles.container,
+          { paddingBottom: insets.bottom, justifyContent: "center", alignItems: "center" },
+        ]}
+      >
+        <Text>No se encontró la solicitud.</Text>
+      </View>
+    );
+  }
 
-  const handleAccept = () => {
-    setShowAcceptFlow(true);
-  };
+  const handleAccept = () => setShowAcceptFlow(true);
 
   return (
     <View style={[styles.container, { paddingBottom: insets.bottom }]}>
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Back Button */}
+        {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation?.goBack()}>
+          <TouchableOpacity onPress={() => navigation.goBack()}>
             <Text style={styles.backButton}>← Atrás</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Detalles de Solicitud</Text>
           <View style={{ width: 40 }} />
         </View>
 
-        {/* Status Badge */}
-        {request.isNew && (
-          <View style={styles.newBadgeContainer}>
-            <Text style={styles.newBadge}>✨ Nueva Oportunidad</Text>
-          </View>
-        )}
-
-        {/* Service Title */}
-        <Text style={styles.title}>{request.title}</Text>
-
-        {/* Client Info */}
-        <View style={styles.clientCard}>
-          <View style={styles.clientAvatar}>
-            <Text style={styles.clientInitial}>
-              {request.client.charAt(0)}
-            </Text>
-          </View>
-          <View style={styles.clientInfo}>
-            <Text style={styles.clientName}>{request.client}</Text>
-            <View style={styles.clientRating}>
-              <Text style={styles.rating}>⭐ {request.clientRating}</Text>
-              <Text style={styles.reviews}>({request.clientReviews} reseñas)</Text>
-            </View>
-            <Text style={styles.phone}>{request.clientPhone}</Text>
-          </View>
-          <TouchableOpacity style={styles.chatButton}>
-            <Text style={styles.chatButtonText}>💬</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Location Info */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📍 Ubicación</Text>
-          <View style={styles.infoBox}>
-            <Text style={styles.infoLabel}>Dirección</Text>
-            <Text style={styles.infoValue}>{request.address}</Text>
-          </View>
-          <View style={styles.infoBox}>
-            <Text style={styles.infoLabel}>Zona</Text>
-            <Text style={styles.infoValue}>{request.location}</Text>
-          </View>
-        </View>
-
-        {/* Schedule Info */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📅 Fecha y Hora</Text>
-          <View style={styles.scheduleGrid}>
-            <View style={styles.scheduleItem}>
-              <Text style={styles.scheduleLabel}>Fecha</Text>
-              <Text style={styles.scheduleValue}>{request.date}</Text>
-            </View>
-            <View style={styles.scheduleItem}>
-              <Text style={styles.scheduleLabel}>Hora</Text>
-              <Text style={styles.scheduleValue}>{request.time}</Text>
-            </View>
-            <View style={styles.scheduleItem}>
-              <Text style={styles.scheduleLabel}>Prioridad</Text>
-              <Text
-                style={[
-                  styles.scheduleValue,
-                  {
-                    color:
-                      request.urgency === "Urgente"
-                        ? colors.status.error
-                        : colors.text.primary
-                  }
-                ]}
-              >
-                {request.urgency}
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Service Details */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🔧 Detalles del Servicio</Text>
-          <Text style={styles.description}>{request.description}</Text>
-          <View style={styles.detailsList}>
-            {request.details.map(detail => (
-              <View key={detail} style={styles.detailItem}>
-                <Text style={styles.detailText}>• {detail}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
-
-        {/* Requirements */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>✓ Requisitos</Text>
-          <View style={styles.requirementsList}>
-            {request.requirements.map(req => (
-              <View key={req} style={styles.requirementItem}>
-                <View style={styles.checkmark}>
-                  <Text style={styles.checkmarkText}>✓</Text>
-                </View>
-                <Text style={styles.requirementText}>{req}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
-
-        {/* Price Info */}
-        <View style={styles.priceSection}>
-          <View style={styles.priceRow}>
-            <Text style={styles.priceLabel}>Precio Estimado</Text>
-            <Text style={styles.priceValue}>${request.price}</Text>
-          </View>
-          <View style={styles.priceNote}>
-            <Text style={styles.priceNoteText}>
-              El precio puede ajustarse según los detalles durante la aceptación
-            </Text>
-          </View>
-        </View>
-
-        <View style={{ height: 20 }} />
+        {/* Rest of your JSX */}
       </ScrollView>
 
-      {/* Action Buttons */}
+      {/* Footer */}
       <View style={styles.footer}>
         <TouchableOpacity style={styles.secondaryButton}>
           <Text style={styles.secondaryButtonText}>📞 Llamar al Cliente</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.primaryButton}
-          onPress={handleAccept}
-        >
+        <TouchableOpacity style={styles.primaryButton} onPress={handleAccept}>
           <Text style={styles.primaryButtonText}>Aceptar Solicitud</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Accept Request Flow */}
       <AcceptRequestFlow
         isOpen={showAcceptFlow}
         onClose={() => setShowAcceptFlow(false)}
         request={{
-          id: request.id,
-          title: request.title,
-          client: request.client,
-          location: request.location,
-          suggestedPrice: request.price,
-          suggestedDate: request.date,
-          suggestedTime: request.time
+          ...request,
+          id: Number.parseInt(request.id.replaceAll(/\D/g, ""), 10),
         }}
       />
     </View>

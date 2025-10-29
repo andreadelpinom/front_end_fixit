@@ -11,8 +11,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors } from "../../theme/colors";
 import HeaderNav from "../../components/HeaderNav";
 import { TechnicianRequestScreenStyles as styles } from "../../styles";
-import NotificationsModal from "../../components/NotificationModal";
+
 import AcceptRequestFlow from "../../components/AcceptRequestFlow";
+import { GenericModal } from "../../components/GenericModal";
 
 const sampleRequests = [
   {
@@ -244,9 +245,11 @@ export default function TechnicianRequestsScreen({ navigation }: any) {
         <View style={{ height: 20 }} />
       </ScrollView>
 
-      <NotificationsModal
+      <GenericModal
         isOpen={showNotifications}
         onClose={() => setShowNotifications(false)}
+        title="Notifications"
+        content={<Text>You have new notifications!</Text>}
       />
 
       {selectedRequest && (

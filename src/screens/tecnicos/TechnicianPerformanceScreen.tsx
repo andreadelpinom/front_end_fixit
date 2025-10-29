@@ -10,7 +10,8 @@ import { TechnicianPerformanceScreenStyles as styles } from "../../styles";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors } from "../../theme/colors";
 import HeaderNav from "../../components/HeaderNav";
-import NotificationsModal from "../../components/NotificationModal";
+import { GenericModal } from "../../components/GenericModal";
+
 
 const performanceMetrics = [
   { id: "1", label: "Servicios Completados", value: "156", icon: "✓" },
@@ -248,9 +249,11 @@ export default function TechnicianPerformanceScreen() {
         <View style={{ height: 20 }} />
       </ScrollView>
 
-      <NotificationsModal
+      <GenericModal
         isOpen={showNotifications}
         onClose={() => setShowNotifications(false)}
+        title="Notifications"
+        content={<Text>You have new notifications!</Text>}
       />
     </View>
   );

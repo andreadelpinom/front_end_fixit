@@ -1,99 +1,51 @@
+import { createNativeStackNavigator, NativeStackScreenProps } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { Platform } from "react-native";
 import Home from "../screens/clients/Home";
 import ServicesScreen from "../screens/clients/ServicesScreen";
 import ProfileScreen from "../screens/clients/Profile";
 import RequestDetailScreen from "../screens/clients/RequestDetail";
 import CreateService from "../screens/clients/CreateService";
-import HomeTabIcon from "../components/HomeTabIcon";
-import ServicesTabIcon from "../components/ServicesTabIcon";
-import CreateServiceTabIcon from "../components/CreateServiceTabIcon";
-import ProfileTabIcon from "../components/ProfileTabIcon";
+import { TabIcons } from "./tabIcons";
+import { defaultTabOptions } from "./tabOptions";
 import { client } from "../theme/colors";
+import { ClientStackParamList, ClientTabParamList } from "../types";
 
-const Tab = createBottomTabNavigator();
-const Stack = createNativeStackNavigator();
-
-// Definir los componentes de iconos fuera del componente principal
-const renderHomeIcon = (props: { color: string; size: number }) => (
-  <HomeTabIcon color={props.color} size={props.size} />
-);
-
-const renderServicesIcon = (props: { color: string; size: number }) => (
-  <ServicesTabIcon color={props.color} size={props.size} />
-);
-
-const renderCreateServiceIcon = (props: { color: string; size: number }) => (
-  <CreateServiceTabIcon color={props.color} size={props.size} />
-);
-
-const renderProfileIcon = (props: { color: string; size: number }) => (
-  <ProfileTabIcon color={props.color} size={props.size} />
-);
+const Stack = createNativeStackNavigator<ClientStackParamList>();
+const Tab = createBottomTabNavigator<ClientTabParamList>();
 
 function ClientTabs() {
   return (
-    <Tab.Navigator
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: client.primary,
-        tabBarInactiveTintColor: client.dark,
-        tabBarStyle: {
-          backgroundColor: client.light,
-          borderTopColor: client.primary,
-          borderTopWidth: 1,
-          paddingBottom: Platform.OS === "ios" ? 20 : 10,
-          paddingTop: 10
-        },
-        tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: "600",
-          marginTop: 5
-        }
-      }}
-    >
+    <Tab.Navigator screenOptions={defaultTabOptions(client.primary, client.dark)}>
       <Tab.Screen
         name="Home"
         component={Home}
-        options={{
-          tabBarLabel: "Inicio",
-          tabBarIcon: renderHomeIcon
-        }}
+        options={{ tabBarLabel: "Inicio", tabBarIcon: TabIcons.Home }}
       />
       <Tab.Screen
         name="Services"
         component={ServicesScreen}
-        options={{
-          tabBarLabel: "Servicios",
-          tabBarIcon: renderServicesIcon
-        }}
+        options={{ tabBarLabel: "Servicios", tabBarIcon: TabIcons.Services }}
       />
       <Tab.Screen
         name="CreateService"
         component={CreateService}
-        options={{
-          tabBarLabel: "Crear Servicio",
-          tabBarIcon: renderCreateServiceIcon
-        }}
+        options={{ tabBarLabel: "Crear Servicio", tabBarIcon: TabIcons.CreateService }}
       />
-
       <Tab.Screen
         name="Profile"
         component={ProfileScreen}
-        options={{
-          tabBarLabel: "Perfil",
-          tabBarIcon: renderProfileIcon
-        }}
+        options={{ tabBarLabel: "Perfil", tabBarIcon: TabIcons.Profile }}
       />
     </Tab.Navigator>
   );
 }
 
-/**
- * ClientNavigator
- * Stack principal del cliente para poder navegar a detalles de requests
- */
+// Type props for RequestDetailScreen
+export type RequestDetailProps = NativeStackScreenProps<ClientStackParamList, "RequestDetail">;
+
+// Type props for CreateServiceScreen
+export type CreateServiceProps = NativeStackScreenProps<ClientStackParamList, "CreateService">;
+
 export default function ClientNavigator() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
