@@ -1,182 +1,277 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
   FlatList,
-  TextInput
+  TextInput,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { getData, saveData, StorageKeys } from "../../shared/storage";
 import { RequestsStyles as styles } from "../../styles";
 import HeaderNav from "../../components/HeaderNav";
-import { colors } from "../../theme/colors";
 import { GenericModal } from "../../components/GenericModal";
+import Separator from "../../helpers";
+import { colors } from "../../theme/colors";
+import { getData, saveData, StorageKeys } from "../../shared/storage";
+import { REQUESTS } from "../DummyData";
+import { RequestDetail } from "../../interface";
 
-const requestsData = [
-  {
-    id: "1",
-    title: "Reparación de lavadora",
-    client: "María González",
-    status: "En progreso",
-    date: "Hoy, 14:30",
-    location: "Centro",
-    price: "$95",
-    progress: 75,
-    image: "🧺"
-  },
-  {
-    id: "2",
-    title: "Instalación aire acondicionado",
-    client: "Juan Pérez",
-    status: "Completada",
-    date: "Ayer",
-    location: "Norte",
-    price: "$220",
-    progress: 100,
-    image: "❄️"
-  },
-  {
-    id: "3",
-    title: "Reparación de tubería",
-    client: "Ana López",
-    status: "En progreso",
-    date: "Hoy, 10:00",
-    location: "Sur",
-    price: "$75",
-    progress: 40,
-    image: "🔧"
-  },
-  {
-    id: "4",
-    title: "Cambio de grifo",
-    client: "Carlos Mendoza",
-    status: "Completada",
-    date: "Hace 3 días",
-    location: "Centro",
-    price: "$45",
-    progress: 100,
-    image: "💧"
-  },
-  {
-    id: "5",
-    title: "Reparación electricidad",
-    client: "Rosa García",
-    status: "Cancelada",
-    date: "Hace 5 días",
-    location: "Este",
-    price: "$85",
-    progress: 0,
-    image: "⚡"
-  }
-];
+// ===== CONSTANTS =====
+const STATUSES = ["Todos", "En progreso", "Finalizado", "Cancelado"];
 
-function RequestSeparator() {
-  return <View style={{ height: 12 }} />;
-}
+const STATUS_COLORS: Record<string, string> = {
+  "En progreso": colors.primary,
+  Finalizado: colors.status.success,
+  Cancelado: colors.status.error,
+};
 
-export default function Requests() {
-  const insets = useSafeAreaInsets();
-  const [showNotifications, setShowNotifications] = useState(false);
-  const [filterStatus, setFilterStatus] = useState("Todos");
-  const [searchQuery, setSearchQuery] = useState("");
+// ===== UTILITIES =====
+const getStatusColor = (status: string): string =>
+  STATUS_COLORS[status] || colors.text.secondary;
 
-  // Hydrate filters/search from storage
-  useEffect(() => {
-    (async () => {
-      const savedFilter = await getData<string>(StorageKeys.Technician.Requests + ":filter");
-      const savedSearch = await getData<string>(StorageKeys.Technician.Requests + ":search");
-      if (savedFilter) setFilterStatus(savedFilter);
-      if (savedSearch) setSearchQuery(savedSearch);
-    })();
-  }, []);
+const filterRequests = (
+  requests: RequestDetail[],
+  filterStatus: string,
+  searchQuery: string
+): RequestDetail[] => {
+  const query = searchQuery.toLowerCase();
 
-  const statuses = ["Todos", "En progreso", "Completadas", "Canceladas"];
+  return requests.filter((request) => {
+    const matchesStatus =
+      filterStatus === "Todos" || request.status === filterStatus;
+    const matchesSearch =
+      request.tituloProblema.toLowerCase().includes(query) ||
+      request.client.toLowerCase().includes(query) ||
+      request.location.toLowerCase().includes(query);
 
-  const filteredRequests = requestsData.filter(request => {
-    const matchesStatus = filterStatus === "Todos" || request.status === filterStatus;
-    const matchesSearch = request.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      request.client.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      request.location.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesStatus && matchesSearch;
   });
+};
 
-  const handleChangeFilter = (value: string) => {
-    setFilterStatus(value);
-    saveData(StorageKeys.Technician.Requests + ":filter", value);
+const countByStatus = (requests: RequestDetail[], status: string): number =>
+  requests.filter((r) => r.status === status).length;
+
+// ===== HOOKS =====
+const usePersistedState = <T,>(key: string, initialValue: T) => {
+  const [value, setValue] = useState<T>(initialValue);
+
+  useEffect(() => {
+    (async () => {
+      const saved = await getData<T>(key);
+      if (saved !== null) setValue(saved);
+    })();
+  }, [key]);
+
+  const updateValue = (newValue: T) => {
+    setValue(newValue);
+    saveData(key, newValue);
   };
 
-  const handleChangeSearch = (value: string) => {
-    setSearchQuery(value);
-    saveData(StorageKeys.Technician.Requests + ":search", value);
-  };
+  return [value, updateValue] as const;
+};
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "En progreso":
-        return colors.primary;
-      case "Completada":
-        return colors.status.success;
-      case "Cancelada":
-        return colors.status.error;
-      default:
-        return colors.text.secondary;
-    }
-  };
+// ===== COMPONENTS =====
+interface TitleSectionProps {
+  title: string;
+  subtitle: string;
+}
 
-  const renderRequestCard = ({ item }: any) => (
-    <TouchableOpacity
-      style={styles.requestCard}
-      onPress={() => console.log("Navigate to request detail")}
+const TitleSection = ({ title, subtitle }: TitleSectionProps) => (
+  <View style={styles.titleSection}>
+    <Text style={styles.title}>{title}</Text>
+    <Text style={styles.subtitle}>{subtitle}</Text>
+  </View>
+);
+
+interface SearchBarProps {
+  value: string;
+  onChangeText: (text: string) => void;
+}
+
+const SearchBar = ({ value, onChangeText }: SearchBarProps) => (
+  <View style={styles.searchContainer}>
+    <TextInput
+      style={styles.searchInput}
+      placeholder="Buscar solicitudes..."
+      placeholderTextColor={colors.text.tertiary}
+      value={value}
+      onChangeText={onChangeText}
+    />
+    <Text style={styles.searchIcon}>🔍</Text>
+  </View>
+);
+
+interface FilterButtonProps {
+  status: string;
+  isActive: boolean;
+  onPress: () => void;
+}
+
+const FilterButton = ({ status, isActive, onPress }: FilterButtonProps) => (
+  <TouchableOpacity
+    onPress={onPress}
+    style={[styles.filterButton, isActive && styles.filterButtonActive]}
+  >
+    <Text
+      style={[
+        styles.filterButtonText,
+        isActive && styles.filterButtonTextActive,
+      ]}
     >
-      <View style={styles.requestImageContainer}>
-        <Text style={styles.requestImage}>{item.image}</Text>
-      </View>
+      {status}
+    </Text>
+  </TouchableOpacity>
+);
 
-      <View style={styles.requestInfo}>
-        <Text style={styles.requestTitle} numberOfLines={1}>
-          {item.title}
+interface StatusFiltersProps {
+  activeFilter: string;
+  onFilterChange: (status: string) => void;
+}
+
+const StatusFilters = ({ activeFilter, onFilterChange }: StatusFiltersProps) => (
+  <View style={styles.filterContainer}>
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.filtersList}
+    >
+      {STATUSES.map((status) => (
+        <FilterButton
+          key={status}
+          status={status}
+          isActive={activeFilter === status}
+          onPress={() => onFilterChange(status)}
+        />
+      ))}
+    </ScrollView>
+  </View>
+);
+
+interface RequestCardProps {
+  item: RequestDetail;
+  statusColor: string;
+}
+
+const RequestCard = ({ item, statusColor }: RequestCardProps) => (
+  <TouchableOpacity
+    style={styles.requestCard}
+    onPress={() => console.log("Navigate to request detail")}
+  >
+    <View style={styles.requestImageContainer}>
+      <Text style={styles.requestImage}>
+        {item.category === "Electricidad" ? "⚡" : "🔧"}
+      </Text>
+    </View>
+
+    <View style={styles.requestInfo}>
+      <Text style={styles.requestTitle} numberOfLines={1}>
+        {item.tituloProblema}
+      </Text>
+      <View style={styles.clientRow}>
+        <Text style={styles.clientName}>{item.client}</Text>
+        <Text style={styles.requestDate}>
+          {item.fechaProgramada || "Sin fecha"}
         </Text>
-        <View style={styles.clientRow}>
-          <Text style={styles.clientName}>{item.client}</Text>
-          <Text style={styles.requestDate}>{item.date}</Text>
-        </View>
-        <View style={styles.progressContainer}>
-          <View style={styles.progressBar}>
-            <View
-              style={[
-                styles.progressFill,
-                { width: `${item.progress}%`, backgroundColor: getStatusColor(item.status) }
-              ]}
-            />
-          </View>
-          <Text style={[styles.progressText, { color: getStatusColor(item.status) }]}>
-            {item.progress}%
-          </Text>
-        </View>
       </View>
 
-      <View style={styles.requestRight}>
-        <Text style={styles.requestPrice}>{item.price}</Text>
+      <View style={styles.progressContainer}>
         <View
           style={[
             styles.statusBadge,
-            { backgroundColor: `${getStatusColor(item.status)}20` }
+            { backgroundColor: `${statusColor}20` },
           ]}
         >
-          <Text
-            style={[
-              styles.statusBadgeText,
-              { color: getStatusColor(item.status) }
-            ]}
-          >
-            {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
+          <Text style={[styles.statusBadgeText, { color: statusColor }]}>
+            {item.status}
           </Text>
         </View>
       </View>
-    </TouchableOpacity>
+    </View>
+
+    <View style={styles.requestRight}>
+      <Text style={styles.requestPrice}>
+        {item.duracionEstimadaMin ? `${item.duracionEstimadaMin} min` : "--"}
+      </Text>
+      <Text style={{ color: statusColor, fontSize: 12 }}>
+        {item.location}
+      </Text>
+    </View>
+  </TouchableOpacity>
+);
+
+interface EmptyStateProps {
+  message?: string;
+  submessage?: string;
+}
+
+const EmptyState = ({
+  message = "No hay solicitudes",
+  submessage = "Aún no tienes solicitudes con este estado",
+}: EmptyStateProps) => (
+  <View style={styles.emptyState}>
+    <Text style={styles.emptyIcon}>📋</Text>
+    <Text style={styles.emptyText}>{message}</Text>
+    <Text style={styles.emptySubtext}>{submessage}</Text>
+  </View>
+);
+
+interface StatItemProps {
+  label: string;
+  value: number;
+}
+
+const StatItem = ({ label, value }: StatItemProps) => (
+  <View style={styles.statItem}>
+    <Text style={styles.statLabel}>{label}</Text>
+    <Text style={styles.statValue}>{value}</Text>
+  </View>
+);
+
+interface StatsSectionProps {
+  requests: RequestDetail[];
+}
+
+const StatsSection = ({ requests }: StatsSectionProps) => (
+  <View style={styles.statsSection}>
+    <StatItem
+      label="Finalizados"
+      value={countByStatus(requests, "Finalizado")}
+    />
+    <StatItem
+      label="En Progreso"
+      value={countByStatus(requests, "En progreso")}
+    />
+    <StatItem
+      label="Cancelados"
+      value={countByStatus(requests, "Cancelado")}
+    />
+  </View>
+);
+
+// ===== MAIN COMPONENT =====
+export default function Requests() {
+  const insets = useSafeAreaInsets();
+  const [showNotifications, setShowNotifications] = useState(false);
+
+  const [filterStatus, setFilterStatus] = usePersistedState(
+    StorageKeys.Technician.Requests + ":filter",
+    "Todos"
+  );
+
+  const [searchQuery, setSearchQuery] = usePersistedState(
+    StorageKeys.Technician.Requests + ":search",
+    ""
+  );
+
+  const filteredRequests = useMemo(
+    () => filterRequests(REQUESTS, filterStatus, searchQuery),
+    [filterStatus, searchQuery]
+  );
+
+  const renderRequestCard = ({ item }: { item: RequestDetail }) => (
+    <RequestCard item={item} statusColor={getStatusColor(item.status)} />
   );
 
   return (
@@ -189,94 +284,32 @@ export default function Requests() {
       />
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Title */}
-        <View style={styles.titleSection}>
-          <Text style={styles.title}>Mis Solicitudes</Text>
-          <Text style={styles.subtitle}>
-            Historial de trabajos y servicios realizados
-          </Text>
-        </View>
+        <TitleSection
+          title="Mis Solicitudes"
+          subtitle="Historial de trabajos y servicios realizados"
+        />
 
-        {/* Search Bar */}
-        <View style={styles.searchContainer}>
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Buscar solicitudes..."
-            placeholderTextColor={colors.text.tertiary}
-            value={searchQuery}
-            onChangeText={handleChangeSearch}
-          />
-          <Text style={styles.searchIcon}>🔍</Text>
-        </View>
+        <SearchBar value={searchQuery} onChangeText={setSearchQuery} />
 
-        {/* Status Filters */}
-        <View style={styles.filterContainer}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.filtersList}
-          >
-            {statuses.map(status => (
-              <TouchableOpacity
-                key={status}
-                onPress={() => handleChangeFilter(status)}
-                style={[
-                  styles.filterButton,
-                  filterStatus === status && styles.filterButtonActive
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.filterButtonText,
-                    filterStatus === status && styles.filterButtonTextActive
-                  ]}
-                >
-                  {status}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
+        <StatusFilters
+          activeFilter={filterStatus}
+          onFilterChange={setFilterStatus}
+        />
 
-        {/* Requests List */}
         {filteredRequests.length > 0 ? (
           <FlatList
             data={filteredRequests}
             renderItem={renderRequestCard}
             keyExtractor={(item) => item.id}
             scrollEnabled={false}
-            ItemSeparatorComponent={RequestSeparator}
+            ItemSeparatorComponent={Separator}
             contentContainerStyle={styles.requestsList}
           />
         ) : (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>📋</Text>
-            <Text style={styles.emptyText}>No hay solicitudes</Text>
-            <Text style={styles.emptySubtext}>
-              Aún no tienes solicitudes con este estado
-            </Text>
-          </View>
+          <EmptyState />
         )}
 
-        {/* Stats Section */}
-        <View style={styles.statsSection}>
-          <View style={styles.statItem}>
-            <Text style={styles.statLabel}>Completadas</Text>
-            <Text style={styles.statValue}>
-              {requestsData.filter(r => r.status === "Completada").length}
-            </Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={styles.statLabel}>En Progreso</Text>
-            <Text style={styles.statValue}>
-              {requestsData.filter(r => r.status === "En progreso").length}
-            </Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={styles.statLabel}>Total Ingreso</Text>
-            <Text style={styles.statValue}>$720</Text>
-          </View>
-        </View>
+        <StatsSection requests={REQUESTS} />
 
         <View style={{ height: 20 }} />
       </ScrollView>

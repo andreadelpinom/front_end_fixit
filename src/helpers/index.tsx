@@ -13,14 +13,28 @@ export default function Separator({ height = 12, style }: Readonly<SeparatorProp
   return <View style={[{ height }, style]} />;
 }
 
+// 🔹 Separadores reutilizables
 export const DefaultSeparator = () => <Separator />;
 export const LargeSeparator = () => <Separator height={12} />;
 export const renderSeparator = () => <View style={{ height: 12 }} />;
-
 export const renderSettingSeparator = () => (
   <View style={{ height: 1, backgroundColor: colors.border }} />
 );
 
+// 🔹 NUEVOS: Separadores específicos usados en TechnicianPerformanceScreen
+export const MetricSeparator = () => <Separator height={12} />;
+
+export const RecentServiceSeparator = ({ color = colors.border }: { color?: string }) => (
+  <View
+    style={{
+      height: 1,
+      backgroundColor: color,
+      marginVertical: 8,
+    }}
+  />
+);
+
+// 🔹 Funciones de estilo (sin cambios)
 export function statusStyle(status: Status) {
   switch (status) {
     case "Finalizado":

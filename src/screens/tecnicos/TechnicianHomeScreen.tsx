@@ -1,87 +1,128 @@
-import { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image } from 'react-native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import { useState } from "react";
+import { View, Text, ScrollView, TouchableOpacity } from "react-native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
+import { useNavigation } from "@react-navigation/native";
+
 import { TechnicianHomeScreenStyles as styles } from "../../styles";
+import HeaderNav from "../../components/HeaderNav";
+import { GenericModal } from "../../components/GenericModal";
+import { TecnicoStackParamList, TecnicoTabParamList } from "../../types";
+import {
+  CERTIFICATIONS,
+  OFFERS,
+  SERVICE_CATEGORIES,
+  REQUESTS,
+} from "../DummyData";
 
-import { useNavigation } from '@react-navigation/native';
-import HeaderNav from '../../components/HeaderNav';
-import { TecnicoStackParamList, TecnicoTabParamList } from '../../types';
-import { GenericModal } from '../../components/GenericModal';
+// ===== TYPES =====
+type NavigationType = NativeStackNavigationProp<TecnicoStackParamList> &
+  BottomTabNavigationProp<TecnicoTabParamList>;
 
-// TODO: Replace with API data when backend is ready
-const demoCourses = [
-  {
-    id: '1',
-    title: 'Curso de Electricidad Básica',
-    image: 'https://images.unsplash.com/photo-1519125323398-675f0ddb6308',
-    description: 'Aprende los fundamentos de electricidad para técnicos.'
-  },
-  {
-    id: '2',
-    title: 'Certificación en Aires Acondicionados',
-    image: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb',
-    description: 'Obtén tu certificación oficial en mantenimiento de aires.'
-  }
-];
+type RoleType = "tecnico" | "client";
 
-const demoPromos = [
-  {
-    id: '1',
-    title: 'Beca 50% en Certificaciones',
-    description: 'Solicita tu beca para cursos seleccionados.'
-  },
-  {
-    id: '2',
-    title: 'Descuento en Herramientas',
-    description: 'Obtén hasta 30% de descuento en herramientas para técnicos.'
-  }
-];
-
-const demoServices = [
-  {
-    id: '1',
-    name: 'Instalación de Paneles Solares',
-    image: 'https://images.unsplash.com/photo-1464983953574-0892a716854b',
-    price: 'Desde $1,200'
-  },
-  {
-    id: '2',
-    name: 'Reparación de Lavadoras',
-    image: 'https://images.unsplash.com/photo-1516979187457-637abb4f9353',
-    price: 'Desde $500'
-  }
-];
-
-const demoRequests = [
-  {
-    id: '1',
-    client: 'Juan Pérez',
-    service: 'Reparación de aire acondicionado',
-    status: 'Pendiente'
-  },
-  {
-    id: '2',
-    client: 'María López',
-    service: 'Instalación de panel solar',
-    status: 'En progreso'
-  }
-];
-
-export const TechnicianHomeScreen = () => {
-  const navigation = useNavigation<NativeStackNavigationProp<TecnicoStackParamList> & BottomTabNavigationProp<TecnicoTabParamList>>();
-  const [showNotifications, setShowNotifications] = useState(false);
-  const [courses] = useState(demoCourses);
-  const [promos] = useState(demoPromos);
-  const [services] = useState(demoServices);
-  const [requests] = useState(demoRequests);
-  // Estado para el rol
-  const [role, setRole] = useState<'tecnico' | 'client'>('tecnico');
-
-  // Alternar rol al hacer click en el avatar
-  const handleProfileClick = () => {
-    setRole(prev => (prev === 'tecnico' ? 'client' : 'tecnico'));
+// ===== UTILITIES =====
+const getStatusColor = (status: string): string => {
+  const statusColors: Record<string, string> = {
+    Finalizado: "#2ecc71",
+    "En progreso": "#3498db",
+    Cancelado: "#e74c3c",
   };
+  return statusColors[status] || "#999";
+};
+
+// ===== COMPONENTS =====
+interface SectionProps {
+  title: string;
+  children: React.ReactNode;
+}
+
+const Section = ({ title, children }: SectionProps) => (
+  <>
+    <Text style={styles.sectionTitle}>{title}</Text>
+    {children}
+  </>
+);
+
+interface CourseCardProps {
+  course: typeof CERTIFICATIONS[0];
+  onPress: () => void;
+}
+
+const CourseCard = ({ course, onPress }: CourseCardProps) => (
+  <TouchableOpacity style={styles.card} onPress={onPress}>
+    <Text style={styles.cardTitle}>
+      {course.icon} {course.name}
+    </Text>
+    <Text style={styles.cardDesc}>Emitido por: {course.issuer}</Text>
+    <Text style={styles.cardDesc}>Estado: {course.status}</Text>
+  </TouchableOpacity>
+);
+
+interface PromoCardProps {
+  promo: typeof OFFERS[0];
+}
+
+const PromoCard = ({ promo }: PromoCardProps) => (
+  <View style={styles.promoCard}>
+    <Text style={styles.promoTitle}>
+      {promo.title} {promo.urgent ? "🔥" : ""}
+    </Text>
+    <Text style={styles.promoDesc}>{promo.description}</Text>
+    <Text style={styles.promoDesc}>
+      Desde {promo.fromPrice} — {promo.validUntil}
+    </Text>
+  </View>
+);
+
+interface ServiceCardProps {
+  service: typeof SERVICE_CATEGORIES[0];
+  onPress: () => void;
+}
+
+const ServiceCard = ({ service, onPress }: ServiceCardProps) => (
+  <TouchableOpacity style={styles.card} onPress={onPress}>
+    <Text style={styles.cardTitle}>
+      {service.icon} {service.label}
+    </Text>
+    <Text style={styles.cardDesc}>{service.description}</Text>
+  </TouchableOpacity>
+);
+
+interface RequestCardProps {
+  request: typeof REQUESTS[0];
+  statusColor: string;
+}
+
+const RequestCard = ({ request, statusColor }: RequestCardProps) => (
+  <View style={styles.requestCard}>
+    <Text style={styles.requestClient}>{request.client}</Text>
+    <Text style={styles.requestService}>{request.tituloProblema}</Text>
+    <Text style={[styles.requestStatus, { color: statusColor }]}>
+      {request.status}
+    </Text>
+  </View>
+);
+
+// ===== MAIN COMPONENT =====
+export const TechnicianHomeScreen = () => {
+  const navigation = useNavigation<NavigationType>();
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [role, setRole] = useState<RoleType>("tecnico");
+
+  const handleProfileClick = () => {
+    setRole((prev) => (prev === "tecnico" ? "client" : "tecnico"));
+  };
+
+  const handleNavigateToCertifications = () => {
+    navigation.navigate("Certifications");
+  };
+
+  const handleNavigateToPerformance = () => {
+    navigation.navigate("Performance");
+  };
+
+  const recentRequests = REQUESTS.slice(0, 3);
 
   return (
     <View style={styles.container}>
@@ -94,68 +135,66 @@ export const TechnicianHomeScreen = () => {
         onProfileClick={handleProfileClick}
         role={role}
       />
+
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Cursos y Certificaciones */}
-        <Text style={styles.sectionTitle}>Cursos y Certificaciones</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
-          {courses.map(course => (
-            <TouchableOpacity
-              key={course.id}
-              style={styles.card}
-              onPress={() => navigation.navigate('Certifications')}
-            >
-              <Image source={{ uri: course.image }} style={styles.cardImage} />
-              <Text style={styles.cardTitle}>{course.title}</Text>
-              <Text style={styles.cardDesc}>{course.description}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+        <Section title="Cursos y Certificaciones">
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.horizontalScroll}
+          >
+            {CERTIFICATIONS.map((course) => (
+              <CourseCard
+                key={course.id}
+                course={course}
+                onPress={handleNavigateToCertifications}
+              />
+            ))}
+          </ScrollView>
+        </Section>
 
-        {/* Promociones y Becas */}
-        <Text style={styles.sectionTitle}>Promociones y Becas</Text>
-        <View style={styles.promosContainer}>
-          {promos.map(promo => (
-            <View key={promo.id} style={styles.promoCard}>
-              <Text style={styles.promoTitle}>{promo.title}</Text>
-              <Text style={styles.promoDesc}>{promo.description}</Text>
-            </View>
-          ))}
-        </View>
+        <Section title="Promociones y Ofertas">
+          <View style={styles.promosContainer}>
+            {OFFERS.map((promo) => (
+              <PromoCard key={promo.id} promo={promo} />
+            ))}
+          </View>
+        </Section>
 
-        {/* Servicios Destacados */}
-        <Text style={styles.sectionTitle}>Servicios Destacados</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
-          {services.map(service => (
-            <TouchableOpacity
-              key={service.id}
-              style={styles.card}
-              onPress={() => navigation.navigate('Performance')}
-            >
-              <Image source={{ uri: service.image }} style={styles.cardImage} />
-              <Text style={styles.cardTitle}>{service.name}</Text>
-              <Text style={styles.cardDesc}>{service.price}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+        <Section title="Servicios Destacados">
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.horizontalScroll}
+          >
+            {SERVICE_CATEGORIES.map((service) => (
+              <ServiceCard
+                key={service.id}
+                service={service}
+                onPress={handleNavigateToPerformance}
+              />
+            ))}
+          </ScrollView>
+        </Section>
 
-        {/* Solicitudes Recientes */}
-        <Text style={styles.sectionTitle}>Solicitudes Recientes</Text>
-        <View style={styles.requestsContainer}>
-          {requests.map(request => (
-            <View key={request.id} style={styles.requestCard}>
-              <Text style={styles.requestClient}>{request.client}</Text>
-              <Text style={styles.requestService}>{request.service}</Text>
-              <Text style={styles.requestStatus}>{request.status}</Text>
-            </View>
-          ))}
-        </View>
+        <Section title="Solicitudes Recientes">
+          <View style={styles.requestsContainer}>
+            {recentRequests.map((req) => (
+              <RequestCard
+                key={req.id}
+                request={req}
+                statusColor={getStatusColor(req.status)}
+              />
+            ))}
+          </View>
+        </Section>
       </ScrollView>
 
       <GenericModal
         isOpen={showNotifications}
         onClose={() => setShowNotifications(false)}
-        title="Notifications"
-        content={<Text>You have new notifications!</Text>}
+        title="Notificaciones"
+        content={<Text>Tienes nuevas notificaciones 📬</Text>}
       />
     </View>
   );

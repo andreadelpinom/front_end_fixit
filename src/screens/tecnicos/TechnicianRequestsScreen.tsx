@@ -1,155 +1,251 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   View,
   Text,
   ScrollView,
   TextInput,
   TouchableOpacity,
-  FlatList
+  FlatList,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import { TechnicianRequestScreenStyles as styles } from "../../styles";
 import { colors } from "../../theme/colors";
 import HeaderNav from "../../components/HeaderNav";
-import { TechnicianRequestScreenStyles as styles } from "../../styles";
-
 import AcceptRequestFlow from "../../components/AcceptRequestFlow";
 import { GenericModal } from "../../components/GenericModal";
+import Separator from "../../helpers";
+import { RequestDetail } from "../../interface";
+import { REQUESTS } from "../DummyData";
 
-const sampleRequests = [
-  {
-    id: "REQ-001",
-    title: "Electricidad - Instalación",
-    description: "Instalar nuevos interruptores y tomacorrientes",
-    client: "María González",
-    date: "2024-03-15",
-    time: "14:30",
-    location: "Centro",
-    price: 85,
-    urgency: "Normal",
-    status: "Publicado",
-    isNew: true,
-    image: "⚡"
-  },
-  {
-    id: "REQ-002",
-    title: "Plomería - Reparación",
-    description: "Reparar fuga de agua en grifería de cocina",
-    client: "Carlos Mendoza",
-    date: "2024-03-15",
-    time: "09:00",
-    location: "Norte",
-    price: 65,
-    urgency: "Urgente",
-    status: "Publicado",
-    isNew: false,
-    image: "🔧"
-  },
-  {
-    id: "REQ-003",
-    title: "Aire acondicionado - Mantenimiento",
-    description: "Limpieza profunda y revisión de filtros",
-    client: "Ana López",
-    date: "2024-03-16",
-    time: "10:00",
-    location: "Sur",
-    price: 45,
-    urgency: "Normal",
-    status: "Publicado",
-    isNew: false,
-    image: "❄️"
-  }
-];
-
-function RequestSeparator() {
-  return <View style={{ height: 12 }} />;
+// ===== TYPES =====
+interface Tab {
+  id: string;
+  label: string;
+  count: number;
 }
 
+// ===== CONSTANTS =====
+const TABS: Tab[] = [
+  { id: "disponibles", label: "Disponibles", count: 3 },
+  { id: "enProgreso", label: "En Progreso", count: 2 },
+  { id: "finalizadas", label: "Finalizadas", count: 2 },
+];
+
+// ===== UTILITIES =====
+const filterRequests = (
+  requests: RequestDetail[],
+  searchQuery: string
+): RequestDetail[] => {
+  const query = searchQuery.toLowerCase();
+  return requests.filter(
+    (request) =>
+      request.tituloProblema.toLowerCase().includes(query) ||
+      request.location.toLowerCase().includes(query) ||
+      request.client.toLowerCase().includes(query)
+  );
+};
+
+// ===== COMPONENTS =====
+interface TitleSectionProps {
+  title: string;
+  subtitle: string;
+}
+
+const TitleSection = ({ title, subtitle }: TitleSectionProps) => (
+  <View style={styles.titleSection}>
+    <Text style={styles.title}>{title}</Text>
+    <Text style={styles.subtitle}>{subtitle}</Text>
+  </View>
+);
+
+interface SearchBarProps {
+  value: string;
+  onChangeText: (text: string) => void;
+}
+
+const SearchBar = ({ value, onChangeText }: SearchBarProps) => (
+  <View style={styles.searchContainer}>
+    <TextInput
+      style={styles.searchInput}
+      placeholder="Buscar solicitudes..."
+      placeholderTextColor={colors.text.tertiary}
+      value={value}
+      onChangeText={onChangeText}
+    />
+    <Text style={styles.searchIcon}>🔍</Text>
+  </View>
+);
+
+interface TabButtonProps {
+  tab: Tab;
+  isActive: boolean;
+  onPress: () => void;
+}
+
+const TabButton = ({ tab, isActive, onPress }: TabButtonProps) => (
+  <TouchableOpacity
+    onPress={onPress}
+    style={[styles.tab, isActive && styles.tabActive]}
+  >
+    <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
+      {tab.label}
+    </Text>
+    <View style={[styles.tabBadge, isActive && styles.tabBadgeActive]}>
+      <Text
+        style={[styles.tabBadgeText, isActive && styles.tabBadgeTextActive]}
+      >
+        {tab.count}
+      </Text>
+    </View>
+  </TouchableOpacity>
+);
+
+interface TabsProps {
+  activeTab: string;
+  onTabChange: (tabId: string) => void;
+}
+
+const Tabs = ({ activeTab, onTabChange }: TabsProps) => (
+  <View style={styles.tabsContainer}>
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.tabsList}
+    >
+      {TABS.map((tab) => (
+        <TabButton
+          key={tab.id}
+          tab={tab}
+          isActive={activeTab === tab.id}
+          onPress={() => onTabChange(tab.id)}
+        />
+      ))}
+    </ScrollView>
+  </View>
+);
+
+interface RequestMetaProps {
+  icon: string;
+  text: string;
+}
+
+const RequestMeta = ({ icon, text }: RequestMetaProps) => (
+  <Text style={styles.metaText}>
+    {icon} {text}
+  </Text>
+);
+
+interface RequestCardProps {
+  item: RequestDetail;
+  onViewDetails: () => void;
+  onAccept: () => void;
+}
+
+const RequestCard = ({ item, onViewDetails, onAccept }: RequestCardProps) => (
+  <View style={styles.requestCard}>
+    {item.isNew && <View style={styles.newBadge} />}
+    <View style={styles.requestHeader}>
+      <View style={styles.requestIcon}>
+        <Text style={styles.iconText}>{item.category || "🛠️"}</Text>
+      </View>
+      <View style={styles.requestInfo}>
+        <View style={styles.titleRow}>
+          <Text style={styles.requestTitle} numberOfLines={1}>
+            {item.tituloProblema}
+          </Text>
+          {item.status === "Publicado" && (
+            <View style={styles.urgentBadge}>
+              <Text style={styles.urgentText}>Nuevo</Text>
+            </View>
+          )}
+        </View>
+        <Text style={styles.requestDescription} numberOfLines={1}>
+          {item.descripcionProblema}
+        </Text>
+        <View style={styles.metaInfo}>
+          <RequestMeta icon="👤" text={item.client} />
+          <RequestMeta icon="📍" text={item.location} />
+        </View>
+        <View style={styles.dateTimeRow}>
+          <RequestMeta icon="📅" text={item.fechaProgramada ?? "Por definir"} />
+          <RequestMeta icon="🕐" text={item.time} />
+        </View>
+      </View>
+    </View>
+
+    <View style={styles.requestFooter}>
+      <View style={styles.priceContainer}>
+        <Text style={styles.priceLabel}>Precio estimado:</Text>
+        <Text style={styles.priceAmount}>${item.costoEstimado ?? 0}</Text>
+      </View>
+      <View style={styles.actionButtons}>
+        <TouchableOpacity style={styles.detailButton} onPress={onViewDetails}>
+          <Text style={styles.detailButtonText}>Ver detalles</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.acceptButton} onPress={onAccept}>
+          <Text style={styles.acceptButtonText}>Aceptar</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  </View>
+);
+
+interface EmptyStateProps {
+  message?: string;
+}
+
+const EmptyState = ({
+  message = "No hay solicitudes disponibles",
+}: EmptyStateProps) => (
+  <View style={styles.emptyState}>
+    <Text style={styles.emptyIcon}>🔍</Text>
+    <Text style={styles.emptyText}>{message}</Text>
+  </View>
+);
+
+// ===== MAIN COMPONENT =====
 export default function TechnicianRequestsScreen({ navigation }: any) {
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState("disponibles");
   const [searchQuery, setSearchQuery] = useState("");
   const [showNotifications, setShowNotifications] = useState(false);
   const [showAcceptFlow, setShowAcceptFlow] = useState(false);
-  const [selectedRequest, setSelectedRequest] = useState<any>(null);
+  const [selectedRequest, setSelectedRequest] = useState<RequestDetail | null>(
+    null
+  );
 
-  const tabs = [
-    { id: "disponibles", label: "Disponibles", count: 3 },
-    { id: "enProgreso", label: "En Progreso", count: 2 },
-    { id: "finalizadas", label: "Finalizadas", count: 2 }
-  ];
+  const filteredRequests = useMemo(
+    () => filterRequests(REQUESTS, searchQuery),
+    [searchQuery]
+  );
 
-  const handleAcceptRequest = (request: any) => {
+  const handleAcceptRequest = (request: RequestDetail) => {
     setSelectedRequest({
+      ...request,
       id: request.id,
-      title: request.title,
-      client: request.client,
-      location: request.location,
-      suggestedPrice: request.price,
-      suggestedDate: request.date,
-      suggestedTime: request.time
+      tituloProblema: request.tituloProblema,
+      descripcionProblema: request.descripcionProblema,
+      costoEstimado: request.costoEstimado,
+      fechaProgramada: request.fechaProgramada,
+      duracionEstimadaMin: request.duracionEstimadaMin,
     });
     setShowAcceptFlow(true);
   };
 
-  const filteredRequests = sampleRequests.filter(request =>
-    request.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    request.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    request.client.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const handleCloseAcceptFlow = () => {
+    setShowAcceptFlow(false);
+    setSelectedRequest(null);
+  };
 
-  const renderRequestCard = ({ item }: any) => (
-    <View style={styles.requestCard}>
-      {item.isNew && <View style={styles.newBadge} />}
-      <View style={styles.requestHeader}>
-        <View style={styles.requestIcon}>
-          <Text style={styles.iconText}>{item.image}</Text>
-        </View>
-        <View style={styles.requestInfo}>
-          <View style={styles.titleRow}>
-            <Text style={styles.requestTitle} numberOfLines={1}>
-              {item.title}
-            </Text>
-            {item.urgency === "Urgente" && (
-              <View style={styles.urgentBadge}>
-                <Text style={styles.urgentText}>Urgente</Text>
-              </View>
-            )}
-          </View>
-          <Text style={styles.requestDescription} numberOfLines={1}>
-            {item.description}
-          </Text>
-          <View style={styles.metaInfo}>
-            <Text style={styles.metaText}>👤 {item.client}</Text>
-            <Text style={styles.metaText}>📍 {item.location}</Text>
-          </View>
-          <View style={styles.dateTimeRow}>
-            <Text style={styles.metaText}>📅 {item.date}</Text>
-            <Text style={styles.metaText}>🕐 {item.time}</Text>
-          </View>
-        </View>
-      </View>
-
-      <View style={styles.requestFooter}>
-        <View style={styles.priceContainer}>
-          <Text style={styles.priceLabel}>Precio estimado:</Text>
-          <Text style={styles.priceAmount}>${item.price}</Text>
-        </View>
-        <View style={styles.actionButtons}>
-          <TouchableOpacity
-            style={styles.detailButton}
-            onPress={() => navigation.navigate("TechnicianRequestDetail", { requestId: item.id })}
-          >
-            <Text style={styles.detailButtonText}>Ver detalles</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.acceptButton}
-            onPress={() => handleAcceptRequest(item)}
-          >
-            <Text style={styles.acceptButtonText}>Aceptar</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </View>
+  const renderRequestCard = ({ item }: { item: RequestDetail }) => (
+    <RequestCard
+      item={item}
+      onViewDetails={() =>
+        navigation.navigate("TechnicianRequestDetail", { requestId: item.id })
+      }
+      onAccept={() => handleAcceptRequest(item)}
+    />
   );
 
   return (
@@ -162,85 +258,27 @@ export default function TechnicianRequestsScreen({ navigation }: any) {
       />
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Title */}
-        <View style={styles.titleSection}>
-          <Text style={styles.title}>Solicitudes de Servicios</Text>
-          <Text style={styles.subtitle}>Encuentra nuevas oportunidades</Text>
-        </View>
+        <TitleSection
+          title="Solicitudes de Servicios"
+          subtitle="Encuentra nuevas oportunidades"
+        />
 
-        {/* Search Bar */}
-        <View style={styles.searchContainer}>
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Buscar solicitudes..."
-            placeholderTextColor={colors.text.tertiary}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-          <Text style={styles.searchIcon}>🔍</Text>
-        </View>
+        <SearchBar value={searchQuery} onChangeText={setSearchQuery} />
 
-        {/* Tabs */}
-        <View style={styles.tabsContainer}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.tabsList}
-          >
-            {tabs.map(tab => (
-              <TouchableOpacity
-                key={tab.id}
-                onPress={() => setActiveTab(tab.id)}
-                style={[
-                  styles.tab,
-                  activeTab === tab.id && styles.tabActive
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.tabText,
-                    activeTab === tab.id && styles.tabTextActive
-                  ]}
-                >
-                  {tab.label}
-                </Text>
-                <View
-                  style={[
-                    styles.tabBadge,
-                    activeTab === tab.id && styles.tabBadgeActive
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.tabBadgeText,
-                      activeTab === tab.id && styles.tabBadgeTextActive
-                    ]}
-                  >
-                    {tab.count}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
+        <Tabs activeTab={activeTab} onTabChange={setActiveTab} />
 
-        {/* Requests List */}
         {filteredRequests.length > 0 ? (
           <FlatList
             data={filteredRequests}
             renderItem={renderRequestCard}
             keyExtractor={(item) => item.id}
             scrollEnabled={false}
-            ItemSeparatorComponent={RequestSeparator}
+            ItemSeparatorComponent={Separator}
             contentContainerStyle={styles.requestsList}
           />
         ) : (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>🔍</Text>
-            <Text style={styles.emptyText}>No hay solicitudes disponibles</Text>
-          </View>
+          <EmptyState />
         )}
-
 
         <View style={{ height: 20 }} />
       </ScrollView>
@@ -248,18 +286,18 @@ export default function TechnicianRequestsScreen({ navigation }: any) {
       <GenericModal
         isOpen={showNotifications}
         onClose={() => setShowNotifications(false)}
-        title="Notifications"
-        content={<Text>You have new notifications!</Text>}
+        title="Notificaciones"
+        content={<Text>Tienes nuevas notificaciones</Text>}
       />
 
       {selectedRequest && (
         <AcceptRequestFlow
           isOpen={showAcceptFlow}
-          onClose={() => {
-            setShowAcceptFlow(false);
-            setSelectedRequest(null);
+          onClose={handleCloseAcceptFlow}
+          request={{
+            ...selectedRequest,
+            id: Number(selectedRequest.id),
           }}
-          request={selectedRequest}
         />
       )}
     </View>
