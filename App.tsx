@@ -1,27 +1,63 @@
-// C:\front_end_fixit\front_end_fixit\App.tsx
+import React, { useState } from 'react';
+import { StyleSheet, StatusBar } from 'react-native';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { AuthProvider, useAuth } from './src/context/AuthContext';
+import { LoginScreen } from './src/screens/LoginScreen';
+import { RegisterScreen } from './src/screens/RegisterScreen';
 
-import { SafeAreaProvider } from "react-native-safe-area-context";
+function AppContent() {
+  const { isAuthenticated, isLoading } = useAuth();
+  const [isRegistering, setIsRegistering] = useState(false);
 
-// CORRECCIÓN: Añadir la extensión .tsx para asegurar la resolución
-import { RootNavigator } from "./src/navigation/RootNavigator"; 
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="dark-content" />
+      </SafeAreaView>
+    );
+  }
 
-// CORRECCIÓN: Añadir la extensión .tsx para asegurar la resolución
-import { AuthProvider } from "./src/context/AuthContext.tsx"; 
+  // --- Usuario no autenticado ---
+  if (!isAuthenticated) {
+    if (isRegistering) {
+      return (
+        <SafeAreaView style={styles.container}>
+          <StatusBar barStyle="dark-content" />
+          <RegisterScreen onBack={() => setIsRegistering(false)} />
+        </SafeAreaView>
+      );
+    }
 
-/**
- * Root App Component
- * * Architecture:
- * - SafeAreaProvider: Handles notches and safe areas on mobile devices
- * - AuthProvider: Manages authentication state and provides auth context
- * - RootNavigator: Conditional navigation based on auth state
- */
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="dark-content" />
+        <LoginScreen onRegister={() => setIsRegistering(true)} />
+      </SafeAreaView>
+    );
+  }
+
+  // --- Usuario autenticado ---
+  return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" />
+      {/* Aqui van pantallas autenticadas */}
+    </SafeAreaView>
+  );
+}
+
 export default function App() {
   return (
     <SafeAreaProvider>
-      {/* AuthProvider debe envolver a RootNavigator para que useAuth funcione */}
       <AuthProvider>
-        <RootNavigator />
+        <AppContent />
       </AuthProvider>
     </SafeAreaProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+  },
+});

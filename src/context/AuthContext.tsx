@@ -1,169 +1,161 @@
-import React, { createContext, useState, useCallback, useEffect, useMemo } from "react";
-import { getData, saveData, removeData, StorageKeys } from "../shared/storage";
-import { AuthContextType, AuthProviderProps, User } from "../interface";
+import React, {
+  createContext,
+  useContext,
+  useReducer,
+  useEffect,
+  useMemo,
+} from 'react';
+import { authService } from '../services/auth.service';
+import { AuthState, LoginDto, User } from '../types/auth.types';
 
-export const AuthContext = createContext<AuthContextType | undefined>(undefined);
+interface AuthContextType extends AuthState {
+  login: (credentials: LoginDto, rememberMe: boolean) => Promise<void>;
+  logout: () => Promise<void>;
+  refreshAuth: () => Promise<void>;
+  clearError: () => void;
+}
 
-export function AuthProvider({ children }: Readonly<AuthProviderProps>) {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-  // Rehydrate session on mount
-  useEffect(() => {
-    (async () => {
-      const session = await getData<User | null>(StorageKeys.Auth.Session);
-      if (session) setUser(session);
-    })();
-  }, []);
+type AuthAction =
+  | { type: 'LOGIN_START' }
+  | { type: 'LOGIN_SUCCESS'; payload: { user: User } }
+  | { type: 'LOGIN_FAILURE'; payload: string }
+  | { type: 'LOGOUT' }
+  | { type: 'RESTORE_SESSION'; payload: { user: User } }
+  | { type: 'CLEAR_ERROR' }
+  | { type: 'SET_LOADING'; payload: boolean };
 
-  // MOCK USERS DATABASE
-  const mockUsersDB: User[] = useMemo(
-    () => [
-      {
-        id: "1",
-        email: "cliente@fixit.com",
-        name: "Cliente Demo",
-        role: "cliente",
-        isVerified: true,
-        completedServices: 5,
-        averageRating: 4.5,
-        joinDate: new Date().toISOString()
-      },
-      {
-        id: "2",
-        email: "tecnico@fixit.com",
-        name: "Técnico Demo",
-        role: "tecnico",
-        isVerified: true,
-        completedServices: 10,
-        averageRating: 4.8,
-        joinDate: new Date().toISOString(),
-        certificates: []
-      }
-    ],
-    []
-  );
+const initialState: AuthState = {
+  user: null,
+  tokens: null,
+  isAuthenticated: false,
+  isLoading: true,
+  error: null,
+};
 
-  // LOGIN
-  const login = useCallback(
-    async (email: string, password: string) => {
-      setIsLoading(true);
-      try {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+function authReducer(state: AuthState, action: AuthAction): AuthState {
+  switch (action.type) {
+    case 'LOGIN_START':
+      return { ...state, isLoading: true, error: null };
 
-        if (!email.includes("@") || password.length < 6) {
-          throw new Error("Credenciales inválidas");
-        }
-
-        const existingUser = mockUsersDB.find(u => u.email === email);
-        if (!existingUser) throw new Error("Usuario no encontrado");
-
-        setUser(existingUser);
-        await saveData(StorageKeys.Auth.Session, existingUser);
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [mockUsersDB]
-  );
-
-  // REGISTER
-  const register = useCallback(
-    async (
-      fullName: string,
-      email: string,
-      password: string,
-      phone: string,
-      role: "cliente" | "tecnico"
-    ) => {
-      setIsLoading(true);
-      try {
-        await new Promise(resolve => setTimeout(resolve, 1500));
-
-        if (!fullName.trim() || !email.includes("@") || password.length < 6) {
-          throw new Error("Datos de registro inválidos");
-        }
-
-        const newUser: User = {
-          id: "user_" + Math.random().toString(36).slice(2, 11),
-          email,
-          name: fullName,
-          phone,
-          role,
-          isVerified: false,
-          completedServices: 0,
-          averageRating: 0,
-          joinDate: new Date().toISOString(),
-          certificates: role === "tecnico" ? [] : undefined
-        };
-
-        setUser(newUser);
-        await saveData(StorageKeys.Auth.Session, newUser);
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    []
-  );
-
-  // LOGOUT
-  const logout = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setUser(null);
-      await removeData(StorageKeys.Auth.Session);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  // UPDATE USER
-  const updateUser = useCallback((userData: Partial<User>) => {
-    setUser(prevUser => {
-      if (!prevUser) return null;
-      const next = { ...prevUser, ...userData };
-      saveData(StorageKeys.Auth.Session, next);
-      return next;
-    });
-  }, []);
-
-  // REQUEST TECHNICIAN
-  const requestTechnician = useCallback(() => {
-    setUser(prevUser => {
-      if (!prevUser) return null;
-      const next: User = {
-        ...prevUser,
-        isTechnicianRequested: true,
-        isTechnicianVerified: true,
-        role: "tecnico"
+    case 'LOGIN_SUCCESS':
+      return {
+        ...state,
+        user: action.payload.user,
+        isAuthenticated: true,
+        isLoading: false,
+        error: null,
       };
-      saveData(StorageKeys.Auth.Session, next);
-      return next;
-    });
+
+    case 'LOGIN_FAILURE':
+      return {
+        ...state,
+        user: null,
+        isAuthenticated: false,
+        isLoading: false,
+        error: action.payload,
+      };
+
+    case 'LOGOUT':
+      return { ...initialState, isLoading: false };
+
+    case 'RESTORE_SESSION':
+      return {
+        ...state,
+        user: action.payload.user,
+        isAuthenticated: true,
+        isLoading: false,
+      };
+
+    case 'CLEAR_ERROR':
+      return { ...state, error: null };
+
+    case 'SET_LOADING':
+      return { ...state, isLoading: action.payload };
+
+    default:
+      return state;
+  }
+}
+
+export function AuthProvider({
+  children,
+}: Readonly<{ children: React.ReactNode }>) {
+  const [state, dispatch] = useReducer(authReducer, initialState);
+
+  useEffect(() => {
+    checkStoredAuth();
   }, []);
 
-  // Memoized context value
-  const value = useMemo<AuthContextType>(
+  const checkStoredAuth = async () => {
+    try {
+      const { isAuthenticated, user } = await authService.checkAuthStatus();
+
+      if (isAuthenticated && user) {
+        dispatch({ type: 'RESTORE_SESSION', payload: { user } });
+      } else {
+        dispatch({ type: 'SET_LOADING', payload: false });
+      }
+    } catch (err) {
+      console.error('Error checking auth status:', err);
+      dispatch({ type: 'SET_LOADING', payload: false });
+    }
+  };
+
+  const login = async (credentials: LoginDto, rememberMe: boolean) => {
+    dispatch({ type: 'LOGIN_START' });
+
+    try {
+      const response = await authService.login(credentials, rememberMe);
+      dispatch({ type: 'LOGIN_SUCCESS', payload: { user: response.user } });
+    } catch (error: any) {
+      const errorMessage =
+        typeof error?.message === 'string' ? error.message : 'Login failed';
+
+      dispatch({ type: 'LOGIN_FAILURE', payload: errorMessage });
+      throw error;
+    }
+  };
+
+  const logout = async () => {
+    try {
+      await authService.logout();
+    } finally {
+      dispatch({ type: 'LOGOUT' });
+    }
+  };
+
+  const refreshAuth = async () => {
+    try {
+      await authService.refreshToken();
+    } catch (error) {
+      console.error('Error refreshing token:', error);
+      dispatch({ type: 'LOGOUT' });
+    }
+  };
+
+  const clearError = () => dispatch({ type: 'CLEAR_ERROR' });
+
+  // ------------------------------
+  // FIX: Memoize context value
+  // ------------------------------
+  const value = useMemo(
     () => ({
-      user,
-      isLoading,
-      isSignedIn: !!user,
+      ...state,
       login,
-      register,
       logout,
-      updateUser,
-      requestTechnician
+      refreshAuth,
+      clearError,
     }),
-    [user, isLoading, login, register, logout, updateUser, requestTechnician]
+    [state], // Recalcula solo cuando el estado cambia
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-// Hook to use AuthContext
 export function useAuth() {
-  const context = React.useContext(AuthContext);
-  if (!context) throw new Error("useAuth must be used within AuthProvider");
-  return context;
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth must be used within an AuthProvider');
+  return ctx;
 }

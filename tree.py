@@ -1,6 +1,6 @@
 import os
 
-IGNORAR = {"node_modules", ".git", "__pycache__"}  # carpetas a ignorar
+IGNORAR = {"node_modules", ".git", "__pycache__", ".expo", ".husky"}  # carpetas a ignorar
 NO_EXPANDIR = {"generated"}  # carpetas que se muestran pero no se expanden
 
 def listar_directorio(raiz, prefijo=""):
