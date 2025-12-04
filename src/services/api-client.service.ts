@@ -56,7 +56,9 @@ class ApiClient {
         error: errorData.error || errorData.message || 'An error occurred',
         statusCode: error.response.status,
       };
+      
     }
+    
 
     if (error.request) {
       return {
@@ -73,33 +75,41 @@ class ApiClient {
     };
   }
 
+  private unwrap<T>(response: any): T {
+  const payload = response?.data;
+
+  // Caso 1: Envelope válido
+  if (payload && typeof payload === 'object' && 'success' in payload) {
+    if (payload.success === true) {
+      return payload.data as T;
+    }
+    throw new Error(payload.error || payload.message || 'API Error');
+  }
+
+  // Caso 2: Respuesta directa (sin envelope)
+  return payload as T;
+}
+
+
   async get<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
-    const response = await this.client.get<T>(url, config);
-    return response.data;
+    const response = await this.client.get(url, config);
+    return this.unwrap<T>(response);
   }
 
-  async post<T>(
-    url: string,
-    data?: any,
-    config?: AxiosRequestConfig,
-  ): Promise<T> {
-    const response = await this.client.post<T>(url, data, config);
-    return response.data;
+  async post<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
+    const response = await this.client.post(url, data, config);
+    return this.unwrap<T>(response);
   }
 
-  async put<T>(
-    url: string,
-    data?: any,
-    config?: AxiosRequestConfig,
-  ): Promise<T> {
-    const response = await this.client.put<T>(url, data, config);
-    return response.data;
+  async put<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
+    const response = await this.client.put(url, data, config);
+    return this.unwrap<T>(response);
   }
 
   async delete<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
-    const response = await this.client.delete<T>(url, config);
-    return response.data;
+    const response = await this.client.delete(url, config);
+    return this.unwrap<T>(response);
   }
 }
-
 export const apiClient = new ApiClient();
+
