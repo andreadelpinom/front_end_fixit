@@ -105,8 +105,9 @@ class HomeService {
 
   async getTopRatedTechs(limit = 10): Promise<TechPreview[]> {
     try {
-      const q = encodeURIComponent(String(limit));
-      const url = `${getApiUrl('/technician/tecnicos/top-rated')}?limit=${q}`;
+      // Ensure limit is a valid positive integer (1-100 per DTO validation)
+      const validLimit = Math.max(1, Math.min(100, Math.floor(Number(limit) || 10)));
+      const url = `${getApiUrl('/technician/tecnicos/top-rated')}?limit=${validLimit}`;
       const resp = await apiClient.get<unknown>(url);
       const data = this.unwrapArrayResponse<TechPreview>(resp);
       return data;
