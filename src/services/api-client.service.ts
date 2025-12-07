@@ -45,8 +45,20 @@ class ApiClient {
       response => response,
       async (error: AxiosError) => {
         if (error.response?.status === 401) {
-          console.log('🔐 [ApiClient] 401 Unauthorized - clearing storage');
-          await storageService.clearAll();
+          console.log('⚠️ [ApiClient] 401 Unauthorized - Session expired. Clearing auth tokens only.');
+          // OPTION C: Only clear auth tokens, preserve user preferences and drafts
+          await storageService.clearTokens();
+          // TODO: Future - Implement refresh token flow here before clearing tokens
+          // const refreshToken = await storageService.getRefreshToken();
+          // if (refreshToken) {
+          //   try {
+          //     const newTokens = await authService.refreshToken(refreshToken);
+          //     // Retry original request with new token
+          //     return this.client(error.config as InternalAxiosRequestConfig);
+          //   } catch {
+          //     await storageService.clearTokens();
+          //   }
+          // }
         }
         throw this.handleError(error);
       },
