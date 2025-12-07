@@ -15,6 +15,10 @@ export const WIZARD_COLORS = {
   border: '#E0E0E0',
   error: '#F44336',
   success: '#4CAF50',
+  profileTechBg: '#F0F8FF',
+  logoutBg: '#FFE5E5',
+  logoutBorder: '#FFB3B3',
+  logoutText: '#D32F2F',
 };
 
 // ============================================================================

@@ -13,6 +13,7 @@ interface AuthContextType extends AuthState {
   logout: () => Promise<void>;
   refreshAuth: () => Promise<void>;
   clearError: () => void;
+  setUser: (user: User) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -24,7 +25,8 @@ type AuthAction =
   | { type: 'LOGOUT' }
   | { type: 'RESTORE_SESSION'; payload: { user: User } }
   | { type: 'CLEAR_ERROR' }
-  | { type: 'SET_LOADING'; payload: boolean };
+  | { type: 'SET_LOADING'; payload: boolean }
+  | { type: 'SET_USER'; payload: { user: User } };
 
 const initialState: AuthState = {
   user: null,
@@ -73,6 +75,9 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
 
     case 'SET_LOADING':
       return { ...state, isLoading: action.payload };
+
+    case 'SET_USER':
+      return { ...state, user: action.payload.user };
 
     default:
       return state;
@@ -137,6 +142,10 @@ export function AuthProvider({
 
   const clearError = () => dispatch({ type: 'CLEAR_ERROR' });
 
+  const setUser = (user: User) => {
+    dispatch({ type: 'SET_USER', payload: { user } });
+  };
+
   // ------------------------------
   // FIX: Memoize context value
   // ------------------------------
@@ -147,6 +156,7 @@ export function AuthProvider({
       logout,
       refreshAuth,
       clearError,
+      setUser,
     }),
     [state], // Recalcula solo cuando el estado cambia
   );

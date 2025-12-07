@@ -91,10 +91,13 @@ class AuthService {
 
     try {
       await apiClient.post(url);
-    } catch (error) {
-      ErrorUtils.logError(error, 'Logout');
+    } catch (err: any) {
+      const status = err?.response?.status ?? err?.statusCode;
+      if (status !== 401) {
+        console.error('[Logout]', err);
+      }
     } finally {
-      await storageService.clearAll();
+      await storageService.clearTokens();
     }
   }
 

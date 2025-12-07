@@ -11,6 +11,7 @@ export interface User {
   apellidos: string;
   email: string;
   rol: RolUsuario;
+  createdAt: string;
 }
 
 export type RegisterDto = RegisterPayload;

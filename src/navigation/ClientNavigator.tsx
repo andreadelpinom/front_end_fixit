@@ -5,6 +5,12 @@ import HomeScreen from '../screens/client/HomeScreen';
 import ClientRequestsScreen from '../screens/client/ClientRequestsScreen';
 import RequestDetailsScreen from '../screens/client/RequestDetailsScreen';
 import ClientProfileScreen from '../screens/client/ClientProfileScreen';
+import EditProfileScreen from '../screens/client/EditProfileScreen';
+import RequestsHistoryScreen from '../screens/client/RequestsHistoryScreen';
+import ActiveServicesScreen from '../screens/client/ActiveServicesScreen';
+import NotificationsScreen from '../screens/client/NotificationsScreen';
+import SupportScreen from '../screens/client/SupportScreen';
+import RegisterTechnicianScreen from '../screens/client/RegisterTechnicianScreen';
 import RequestStepServiceScreen from '../screens/client/request-wizard/RequestStepServiceScreen';
 import RequestStepProblemScreen from '../screens/client/request-wizard/RequestStepProblemScreen';
 import RequestStepScheduleScreen from '../screens/client/request-wizard/RequestStepScheduleScreen';
@@ -38,12 +44,26 @@ function RequestsStack() {
   );
 }
 
+function ProfileStack() {
+  return (
+    <Stack.Navigator initialRouteName="Profile">
+      <Stack.Screen name="Profile" component={ClientProfileScreen} options={{ title: 'Perfil' }} />
+      <Stack.Screen name="EditProfile" component={EditProfileScreen} options={{ title: 'Editar Perfil' }} />
+      <Stack.Screen name="RequestsHistory" component={RequestsHistoryScreen} options={{ title: 'Historial de Solicitudes' }} />
+      <Stack.Screen name="ActiveServices" component={ActiveServicesScreen} options={{ title: 'Servicios Activos' }} />
+      <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ title: 'Notificaciones' }} />
+      <Stack.Screen name="Support" component={SupportScreen} options={{ title: 'Soporte Técnico' }} />
+      <Stack.Screen name="RegisterTechnician" component={RegisterTechnicianScreen} options={{ title: 'Registrarse como Técnico' }} />
+    </Stack.Navigator>
+  );
+}
+
 export default function ClientNavigator(){
   return (
     <Tab.Navigator>
       <Tab.Screen name="HomeTab" component={HomeScreen} options={{ title: 'Home' }} />
       <Tab.Screen name="RequestsTab" component={RequestsStack} options={{ title: 'Solicitudes' }} />
-      <Tab.Screen name="ProfileTab" component={ClientProfileScreen} options={{ title: 'Perfil' }} />
+      <Tab.Screen name="ProfileTab" component={ProfileStack} options={{ headerShown: false, title: 'Perfil' }} />
     </Tab.Navigator>
   );
 }
