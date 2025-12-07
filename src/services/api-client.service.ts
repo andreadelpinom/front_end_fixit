@@ -30,6 +30,10 @@ class ApiClient {
         const token = await storageService.getAccessToken();
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
+          const tokenPreview = token.substring(0, 20) + '...' + token.substring(token.length - 20);
+          console.log(`🔐 [ApiClient] Token set for ${config.method?.toUpperCase()} ${config.url}: ${tokenPreview}`);
+        } else {
+          console.log(`⚠️ [ApiClient] No token found for ${config.method?.toUpperCase()} ${config.url}`);
         }
         return config;
       },
@@ -41,6 +45,7 @@ class ApiClient {
       response => response,
       async (error: AxiosError) => {
         if (error.response?.status === 401) {
+          console.log('🔐 [ApiClient] 401 Unauthorized - clearing storage');
           await storageService.clearAll();
         }
         throw this.handleError(error);

@@ -4,10 +4,10 @@ import TechnicianHomeScreen from '../screens/technician/TechnicianHomeScreen';
 
 const Stack = createNativeStackNavigator();
 
-export default function TechnicianNavigator(){
+export default function TechnicianNavigator() {
   return (
     <Stack.Navigator initialRouteName="TechnicianHome">
       <Stack.Screen name="TechnicianHome" component={TechnicianHomeScreen} options={{ title: 'Technician' }} />
-    </Stack.Navigator>
+    </Stack.Navigator> 
   );
 }

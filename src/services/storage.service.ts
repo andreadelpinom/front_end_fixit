@@ -70,15 +70,22 @@ class StorageService {
   // TOKENS
   // -------------------------
   async saveTokens(tokens: AuthTokens): Promise<void> {
+    console.log('[StorageService] Saving tokens...', { 
+      hasAccessToken: !!tokens.access_token,
+      hasRefreshToken: !!tokens.refresh_token 
+    });
     await this.tokenStorage.set(STORAGE_KEYS.ACCESS_TOKEN, tokens.access_token);
     await this.tokenStorage.set(
       STORAGE_KEYS.REFRESH_TOKEN,
       tokens.refresh_token,
     );
+    console.log('[StorageService] Tokens saved successfully');
   }
 
   async getAccessToken() {
-    return this.tokenStorage.get(STORAGE_KEYS.ACCESS_TOKEN);
+    const token = await this.tokenStorage.get(STORAGE_KEYS.ACCESS_TOKEN);
+    console.log('[StorageService] getAccessToken called:', { hasToken: !!token });
+    return token;
   }
 
   async getRefreshToken() {
@@ -86,8 +93,10 @@ class StorageService {
   }
 
   async clearTokens() {
+    console.log('[StorageService] Clearing tokens...');
     await this.tokenStorage.remove(STORAGE_KEYS.ACCESS_TOKEN);
     await this.tokenStorage.remove(STORAGE_KEYS.REFRESH_TOKEN);
+    console.log('[StorageService] Tokens cleared');
   }
 
   // -------------------------

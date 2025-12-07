@@ -12,21 +12,36 @@ class AuthService {
     const url = getApiUrl(API_CONFIG.ENDPOINTS.AUTH.LOGIN);
 
     try {
+      console.log('[AuthService] Login attempt with:', { email: credentials.email || credentials.cedula });
       const response = await apiClient.post<AuthResponse>(url, credentials);
+      
+      console.log('[AuthService] Login response received:', {
+        hasAccessToken: !!response.access_token,
+        hasRefreshToken: !!response.refresh_token,
+        hasUser: !!response.user,
+      });
+
+      if (!response.access_token) {
+        throw new Error('No access token received from server');
+      }
 
       await storageService.saveTokens({
         access_token: response.access_token,
         refresh_token: response.refresh_token,
       });
+      console.log('[AuthService] Tokens saved successfully');
 
       if (response.user) {
         await storageService.saveUserData(response.user);
+        console.log('[AuthService] User data saved');
       }
 
       await storageService.setRememberMe(rememberMe);
+      console.log('[AuthService] Login completed successfully');
 
       return response;
     } catch (error) {
+      console.error('[AuthService] Login failed:', error);
       ErrorUtils.logError(error, 'Login');
       throw new Error(ErrorUtils.getErrorMessage(error));
     }
