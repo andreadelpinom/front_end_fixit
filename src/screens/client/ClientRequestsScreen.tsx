@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, FlatList, TouchableOpacity, Pressable, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, FlatList, TouchableOpacity, Pressable, RefreshControl, SafeAreaView } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { homeService, RequestPreview } from '../../services/home.service';
 import { useFocusEffect } from '@react-navigation/native';
@@ -64,25 +64,6 @@ export default function ClientRequestsScreen({ navigation }: Props) {
       const dateB = new Date(b.createdAt || 0).getTime();
       return dateB - dateA;
     });
-
-  const renderTab = (label: string, value: TabState) => (
-    <TouchableOpacity
-      style={[
-        styles.tab,
-        activeTab === value && styles.tabActive,
-      ]}
-      onPress={() => setActiveTab(value)}
-    >
-      <Text
-        style={[
-          styles.tabLabel,
-          activeTab === value && styles.tabLabelActive,
-        ]}
-      >
-        {label}
-      </Text>
-    </TouchableOpacity>
-  );
 
   const renderRequestCard = (item: RequestPreview) => (
     <TouchableOpacity
@@ -196,18 +177,18 @@ export default function ClientRequestsScreen({ navigation }: Props) {
 
   if (loading) {
     return (
-      <View style={styles.container}>
+      <SafeAreaView style={styles.container}>
         {renderHeader()}
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color="#007AFF" />
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 
   if (filteredRequests.length === 0) {
     return (
-      <View style={styles.container}>
+      <SafeAreaView style={styles.container}>
         {renderHeader()}
         <View style={styles.centerContainer}>
           <Text style={styles.emptyText}>
@@ -221,12 +202,12 @@ export default function ClientRequestsScreen({ navigation }: Props) {
             Crea una nueva solicitud para comenzar
           </Text>
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <FlatList
         ListHeaderComponent={renderHeader}
         data={filteredRequests}
@@ -242,7 +223,7 @@ export default function ClientRequestsScreen({ navigation }: Props) {
         }
         contentContainerStyle={styles.listContent}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -320,7 +301,7 @@ const styles = StyleSheet.create({
   listContent: {
     paddingHorizontal: 16,
     paddingTop: 0,
-    paddingBottom: 16,
+    paddingBottom: 100,
   },
   requestCard: {
     backgroundColor: '#fff',
