@@ -99,7 +99,7 @@ export default function RequestStepScheduleScreen({ navigation }: any): React.Re
 
     // Update draft with ISO string
     updateDraft({ fechaProgramada: isoString });
-    navigation.navigate('RequestStepAddress');
+    navigation.navigate('RequestStepPhotos');
   }, [selectedDate, selectedTime, buildISOString, updateDraft, navigation]);
 
   // Cancel with confirmation

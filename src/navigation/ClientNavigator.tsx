@@ -7,6 +7,7 @@ import ClientProfileScreen from '../screens/client/ClientProfileScreen';
 import RequestStepServiceScreen from '../screens/client/request-wizard/RequestStepServiceScreen';
 import RequestStepProblemScreen from '../screens/client/request-wizard/RequestStepProblemScreen';
 import RequestStepScheduleScreen from '../screens/client/request-wizard/RequestStepScheduleScreen';
+import RequestStepPhotosScreen from '../screens/client/request-wizard/RequestStepPhotosScreen';
 import RequestStepAddressScreen from '../screens/client/request-wizard/RequestStepAddressScreen';
 import RequestStepReviewScreen from '../screens/client/request-wizard/RequestStepReviewScreen';
 
@@ -16,11 +17,12 @@ const Stack = createNativeStackNavigator();
 function CreateRequestStack() {
   return (
     <Stack.Navigator initialRouteName="RequestStepService">
-      <Stack.Screen name="RequestStepService" component={RequestStepServiceScreen} options={{ title: 'Paso 1' }} />
-      <Stack.Screen name="RequestStepProblem" component={RequestStepProblemScreen} options={{ title: 'Paso 2' }} />
+      <Stack.Screen name="RequestStepService" component={RequestStepServiceScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="RequestStepProblem" component={RequestStepProblemScreen} options={{ headerShown: false }} />
       <Stack.Screen name="RequestStepSchedule" component={RequestStepScheduleScreen} options={{ headerShown: false }} />
-      <Stack.Screen name="RequestStepAddress" component={RequestStepAddressScreen} options={{ title: 'Paso 4' }} />
-      <Stack.Screen name="RequestStepReview" component={RequestStepReviewScreen} options={{ title: 'Revisar' }} />
+      <Stack.Screen name="RequestStepPhotos" component={RequestStepPhotosScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="RequestStepAddress" component={RequestStepAddressScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="RequestStepReview" component={RequestStepReviewScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }
