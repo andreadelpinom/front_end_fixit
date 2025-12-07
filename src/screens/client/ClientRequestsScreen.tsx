@@ -25,15 +25,25 @@ export default function ClientRequestsScreen({ navigation }: Props) {
   const [refreshing, setRefreshing] = useState(false);
   const [allRequests, setAllRequests] = useState<RequestPreview[]>([]);
   const [activeTab, setActiveTab] = useState<TabState>('PENDIENTE');
+  const [error, setError] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
+    setError(null);
     try {
       const solicitudes = await homeService.getMySolicitudes();
       console.log('[ClientRequestsScreen] Loaded:', solicitudes.length);
       setAllRequests(solicitudes);
-    } catch (e) {
+    } catch (e: any) {
       console.error('[ClientRequestsScreen] Error:', e);
+      const errorMsg = e?.error || e?.message || 'Error al cargar solicitudes';
+      const statusCode = e?.statusCode;
+      
+      if (statusCode === 401) {
+        setError('Sesión expirada. Por favor, inicia sesión de nuevo.');
+      } else {
+        setError(errorMsg);
+      }
       setAllRequests([]);
     } finally {
       setLoading(false);
@@ -42,11 +52,20 @@ export default function ClientRequestsScreen({ navigation }: Props) {
 
   const onRefresh = async () => {
     setRefreshing(true);
+    setError(null);
     try {
       const solicitudes = await homeService.getMySolicitudes();
       setAllRequests(solicitudes);
-    } catch (e) {
+    } catch (e: any) {
       console.error('[ClientRequestsScreen] Refresh error:', e);
+      const errorMsg = e?.error || e?.message || 'Error al actualizar';
+      const statusCode = e?.statusCode;
+      
+      if (statusCode === 401) {
+        setError('Sesión expirada. Por favor, inicia sesión de nuevo.');
+      } else {
+        setError(errorMsg);
+      }
     } finally {
       setRefreshing(false);
     }
@@ -187,6 +206,23 @@ export default function ClientRequestsScreen({ navigation }: Props) {
         {renderHeader()}
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color="#007AFF" />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={styles.container}>
+        {renderHeader()}
+        <View style={styles.centerContainer}>
+          <Text style={styles.errorText}>⚠️ {error}</Text>
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={load}
+          >
+            <Text style={styles.retryButtonText}>Reintentar</Text>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
@@ -379,5 +415,23 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#aaa',
     marginTop: 4,
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#d32f2f',
+    textAlign: 'center',
+    marginBottom: 20,
+    fontWeight: '500',
+  },
+  retryButton: {
+    backgroundColor: '#007AFF',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
   },
 });
