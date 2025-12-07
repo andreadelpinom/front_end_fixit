@@ -6,7 +6,7 @@ import { useFocusEffect } from '@react-navigation/native';
 
 type Props = NativeStackScreenProps<any>;
 
-type TabState = 'PENDIENTE' | 'ACEPTADA' | 'FINALIZADA';
+type TabState = 'PENDIENTE' | 'ACEPTADA' | 'COMPLETADA';
 
 const formatDate = (dateString: string): string => {
   try {
@@ -58,7 +58,13 @@ export default function ClientRequestsScreen({ navigation }: Props) {
 
   // Sort by creation date DESC and filter by active tab
   const filteredRequests = allRequests
-    .filter((req) => req.estado === activeTab)
+    .filter((req) => {
+      // CANCELADA should not appear in PENDIENTE or ACEPTADA tabs
+      if ((activeTab === 'PENDIENTE' || activeTab === 'ACEPTADA') && req.estado === 'CANCELADA') {
+        return false;
+      }
+      return req.estado === activeTab;
+    })
     .sort((a, b) => {
       const dateA = new Date(a.createdAt || 0).getTime();
       const dateB = new Date(b.createdAt || 0).getTime();
@@ -69,7 +75,7 @@ export default function ClientRequestsScreen({ navigation }: Props) {
     <TouchableOpacity
       style={styles.requestCard}
       onPress={() => {
-        /* Puede agregar detalle de solicitud aquí */
+        navigation.navigate('RequestDetails', { idSolicitud: item.idSolicitud });
       }}
       activeOpacity={0.7}
     >
@@ -82,7 +88,7 @@ export default function ClientRequestsScreen({ navigation }: Props) {
             styles.cardStatusBadge,
             activeTab === 'PENDIENTE' && styles.badgePendiente,
             activeTab === 'ACEPTADA' && styles.badgeAceptada,
-            activeTab === 'FINALIZADA' && styles.badgeFinalizada,
+            activeTab === 'COMPLETADA' && styles.badgeCompletada,
           ]}
         >
           <Text style={styles.badgeText}>{item.estado}</Text>
@@ -158,17 +164,17 @@ export default function ClientRequestsScreen({ navigation }: Props) {
         <TouchableOpacity
           style={[
             styles.tab,
-            activeTab === 'FINALIZADA' && styles.tabActive,
+            activeTab === 'COMPLETADA' && styles.tabActive,
           ]}
-          onPress={() => setActiveTab('FINALIZADA')}
+          onPress={() => setActiveTab('COMPLETADA')}
         >
           <Text
             style={[
               styles.tabLabel,
-              activeTab === 'FINALIZADA' && styles.tabLabelActive,
+              activeTab === 'COMPLETADA' && styles.tabLabelActive,
             ]}
           >
-            Finalizadas
+            Completadas
           </Text>
         </TouchableOpacity>
       </View>
@@ -196,7 +202,7 @@ export default function ClientRequestsScreen({ navigation }: Props) {
               ? 'No tienes solicitudes publicadas'
               : activeTab === 'ACEPTADA'
               ? 'No tienes solicitudes en progreso'
-              : 'No tienes solicitudes finalizadas'}
+              : 'No tienes solicitudes completadas'}
           </Text>
           <Text style={styles.emptySubText}>
             Crea una nueva solicitud para comenzar
@@ -344,7 +350,7 @@ const styles = StyleSheet.create({
   badgeAceptada: {
     backgroundColor: '#D1ECF1',
   },
-  badgeFinalizada: {
+  badgeCompletada: {
     backgroundColor: '#D4EDDA',
   },
   badgeText: {

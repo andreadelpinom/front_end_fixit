@@ -3,6 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import HomeScreen from '../screens/client/HomeScreen';
 import ClientRequestsScreen from '../screens/client/ClientRequestsScreen';
+import RequestDetailsScreen from '../screens/client/RequestDetailsScreen';
 import ClientProfileScreen from '../screens/client/ClientProfileScreen';
 import RequestStepServiceScreen from '../screens/client/request-wizard/RequestStepServiceScreen';
 import RequestStepProblemScreen from '../screens/client/request-wizard/RequestStepProblemScreen';
@@ -31,6 +32,7 @@ function RequestsStack() {
   return (
     <Stack.Navigator initialRouteName="ClientRequests">
       <Stack.Screen name="ClientRequests" component={ClientRequestsScreen} options={{ title: 'Solicitudes' }} />
+      <Stack.Screen name="RequestDetails" component={RequestDetailsScreen} options={{ headerShown: false }} />
       <Stack.Screen name="CreateRequestStack" component={CreateRequestStack as any} options={{ headerShown: false }} />
     </Stack.Navigator>
   );

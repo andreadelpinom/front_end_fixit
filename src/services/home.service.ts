@@ -41,6 +41,18 @@ export interface RequestPreview {
   codigoParroquia?: string;
 }
 
+export interface RequestDetails {
+  idSolicitud: number;
+  tituloProblema: string;
+  descripcionProblema: string;
+  estadoSolicitud: string;
+  idTipoServicio: number;
+  codigoParroquia: string;
+  fechaProgramada?: string;
+  createdAt?: string;
+  idUser?: number;
+}
+
 export interface ServiceType {
   idTipoServicio: number;
   nombre: string;
@@ -269,6 +281,57 @@ class HomeService {
     ];
 
     return Promise.resolve(mocks);
+  }
+
+  // Get request details by ID
+  async getRequestDetails(idSolicitud: number): Promise<RequestDetails> {
+    try {
+      const url = getApiUrl(`/request/solicitudes/${idSolicitud}`);
+      const resp = await apiClient.get<unknown>(url);
+
+      // Extract details from response
+      const respAny = resp as any;
+      const details =
+        respAny?.solicitud ||
+        respAny?.data?.solicitud ||
+        respAny?.data ||
+        respAny;
+
+      if (details && details.idSolicitud) {
+        const mapped: RequestDetails = {
+          idSolicitud: details.idSolicitud,
+          tituloProblema: details.tituloProblema || details.titulo || '',
+          descripcionProblema: details.descripcionProblema || details.descripcion || '',
+          estadoSolicitud: details.estadoSolicitud || details.estado || 'PENDIENTE',
+          idTipoServicio: details.idTipoServicio || 0,
+          codigoParroquia: details.codigoParroquia || '',
+          fechaProgramada: details.fechaProgramada,
+          createdAt: details.createdAt,
+          idUser: details.idUser,
+        };
+        console.log('[getRequestDetails] Mapped:', JSON.stringify(mapped, null, 2));
+        return mapped;
+      }
+
+      throw new Error('Invalid request details structure');
+    } catch (err) {
+      console.error('[getRequestDetails] Error:', err);
+      ErrorUtils.logError(err, 'HomeService.getRequestDetails');
+      throw err;
+    }
+  }
+
+  // Cancel a request (PUT to mark as CANCELADA, not DELETE)
+  async cancelRequest(idSolicitud: number): Promise<void> {
+    try {
+      const url = getApiUrl(`/request/solicitudes/${idSolicitud}`);
+      await apiClient.put(url, { estadoSolicitud: 'CANCELADA' });
+      console.log('[cancelRequest] Success:', idSolicitud);
+    } catch (err) {
+      console.error('[cancelRequest] Error:', err);
+      ErrorUtils.logError(err, 'HomeService.cancelRequest');
+      throw err;
+    }
   }
 }
 
