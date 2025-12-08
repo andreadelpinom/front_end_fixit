@@ -50,7 +50,7 @@ class ApiClient {
 
   private handleError(error: AxiosError): AuthError {
     if (error.response?.data) {
-      const errorData = error.response.data as any;
+      const errorData = error.response.data as { error?: string; message?: string };
       return {
         success: false,
         error: errorData.error || errorData.message || 'An error occurred',
@@ -110,6 +110,13 @@ class ApiClient {
     const response = await this.client.delete(url, config);
     return this.unwrap<T>(response);
   }
+
+  async patch<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
+  const response = await this.client.patch(url, data, config);
+  return this.unwrap<T>(response);
 }
+}
+
+
 export const apiClient = new ApiClient();
 

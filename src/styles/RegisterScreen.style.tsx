@@ -79,4 +79,54 @@ export const RegisterStyle = StyleSheet.create({
     color: '#007bff',
     fontWeight: 'bold',
   },
+
+  // Agregar al final del StyleSheet.create({ ... })
+
+  roleContainer: {
+    marginBottom: 20,
+    width: '100%',
+  },
+  roleLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000000',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  roleButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    justifyContent: 'center',
+  },
+  roleButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#E5E5EA',
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+  },
+  roleButtonActive: {
+    borderColor: '#007AFF',
+    backgroundColor: '#007AFF',
+  },
+  roleButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#8E8E93',
+  },
+  roleButtonTextActive: {
+    color: '#FFFFFF',
+  },
+  buttonDisabled: {
+    backgroundColor: '#C7C7CC',
+    opacity: 0.6,
+  },
+  errorText: {
+    color: '#ff3b30',
+    fontSize: 12,
+    marginTop: 4,
+  },
 });
