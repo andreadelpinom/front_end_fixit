@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { ScrollView, SafeAreaView, StyleSheet } from 'react-native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { WIZARD_COLORS } from './request-wizard/WizardShared';
 
 // Components
@@ -9,8 +10,20 @@ import PopularServices from '../../components/home/PopularServices';
 import TopTechnicians from '../../components/home/TopTechnicians';
 import UrgentBanner from '../../components/home/UrgentBanner';
 import RecentActivity from '../../components/home/RecentActivity';
+import { NotificationBell } from '../../components/NotificationBell';
 
-export default function HomeScreen(): React.ReactElement {
+type HomeScreenProps = {
+  navigation: NativeStackNavigationProp<any>;
+};
+
+export default function HomeScreen({ navigation }: HomeScreenProps): React.ReactElement {
+  // Configurar el header con el NotificationBell
+  useEffect(() => {
+    navigation.setOptions({
+      headerRight: () => <NotificationBell navigation={navigation} />,
+    });
+  }, [navigation]);
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView

@@ -276,7 +276,7 @@ export default function RequestDetailsScreen({ navigation, route }: Props) {
         {/* Back Button */}
         <TouchableOpacity
           style={styles.backToListButton}
-          onPress={() => navigation.navigate('ClientRequests')}
+          onPress={() => navigation.goBack()}
         >
           <Text style={styles.backToListButtonText}>← Volver a mis solicitudes</Text>
         </TouchableOpacity>

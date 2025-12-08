@@ -8,7 +8,7 @@ import ClientProfileScreen from '../screens/client/ClientProfileScreen';
 import EditProfileScreen from '../screens/client/EditProfileScreen';
 import RequestsHistoryScreen from '../screens/client/RequestsHistoryScreen';
 import ActiveServicesScreen from '../screens/client/ActiveServicesScreen';
-import NotificationsScreen from '../screens/client/NotificationsScreen';
+import { NotificationsScreen } from '../screens/client/Notifications/NotificationsScreen';
 import SupportScreen from '../screens/client/SupportScreen';
 import RegisterTechnicianScreen from '../screens/client/RegisterTechnicianScreen';
 import RequestStepServiceScreen from '../screens/client/request-wizard/RequestStepServiceScreen';
