@@ -9,6 +9,7 @@ export const API_CONFIG = {
     },
     USERS: {
       CREATE: '/usuarios',
+      SWITCH_ROLE: '/usuarios/switch-role',
     },
     TECHNICIAN: {
       CREATE: '/technician/tecnicos',

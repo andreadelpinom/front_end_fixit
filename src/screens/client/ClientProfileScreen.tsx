@@ -20,7 +20,7 @@ interface Props {
 }
 
 const ClientProfileScreen: React.FC<Props> = ({ navigation }) => {
-  const { user, logout, isLoading } = useAuth();
+  const { user, logout, isLoading, switchRole } = useAuth();
 
   const handleLogout = async () => {
     Alert.alert('Cerrar sesión', '¿Estás seguro de que deseas cerrar sesión?', [
@@ -60,8 +60,29 @@ const ClientProfileScreen: React.FC<Props> = ({ navigation }) => {
     navigation.navigate('Support');
   };
 
-  const handleRegisterAsTechnician = () => {
-    navigation.navigate('RegisterTechnician');
+  const handleSwitchToTechnician = async () => {
+    Alert.alert(
+      '¿Cambiar a Técnico?',
+      'Esto te permitirá ofertar tus servicios en la plataforma. ¿Estás seguro?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Sí, cambiar a Técnico',
+          style: 'default',
+          onPress: async () => {
+            try {
+              await switchRole('TECNICO');
+              // AppNavigator detectará el nuevo rol automáticamente
+            } catch (error) {
+              Alert.alert(
+                'Error',
+                'No se pudo cambiar de rol. Intenta de nuevo.',
+              );
+            }
+          },
+        },
+      ],
+    );
   };
 
   if (isLoading) {
@@ -161,11 +182,11 @@ const ClientProfileScreen: React.FC<Props> = ({ navigation }) => {
           </Text>
           <TouchableOpacity
             style={styles.technicianButton}
-            onPress={handleRegisterAsTechnician}
+            onPress={handleSwitchToTechnician}
             activeOpacity={0.7}
           >
             <Text style={styles.technicianButtonText}>
-              Registrarse como Técnico
+              Cambiar a Técnico
             </Text>
           </TouchableOpacity>
         </View>

@@ -67,13 +67,24 @@ class StorageService {
   }
 
   // -------------------------
-  // TOKENS
+  // TOKENS (CON VALIDACIÓN)
   // -------------------------
   async saveTokens(tokens: AuthTokens): Promise<void> {
+    // Validar que ambos tokens sean strings válidos
+    if (typeof tokens.access_token !== 'string' || !tokens.access_token.trim()) {
+      throw new Error('[StorageService] Invalid access_token: must be a non-empty string');
+    }
+    if (typeof tokens.refresh_token !== 'string' || !tokens.refresh_token.trim()) {
+      throw new Error('[StorageService] Invalid refresh_token: must be a non-empty string');
+    }
+
     console.log('[StorageService] Saving tokens...', { 
       hasAccessToken: !!tokens.access_token,
-      hasRefreshToken: !!tokens.refresh_token 
+      hasRefreshToken: !!tokens.refresh_token,
+      accessTokenLength: tokens.access_token.length,
+      refreshTokenLength: tokens.refresh_token.length,
     });
+
     await this.tokenStorage.set(STORAGE_KEYS.ACCESS_TOKEN, tokens.access_token);
     await this.tokenStorage.set(
       STORAGE_KEYS.REFRESH_TOKEN,

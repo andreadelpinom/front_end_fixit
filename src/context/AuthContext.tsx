@@ -11,6 +11,7 @@ import { AuthState, LoginDto, User } from '../types/auth.types';
 interface AuthContextType extends AuthState {
   login: (credentials: LoginDto, rememberMe: boolean) => Promise<void>;
   logout: () => Promise<void>;
+  switchRole: (nuevoRol: string) => Promise<void>;
   refreshAuth: () => Promise<void>;
   clearError: () => void;
   setUser: (user: User) => void;
@@ -26,6 +27,7 @@ type AuthAction =
   | { type: 'RESTORE_SESSION'; payload: { user: User } }
   | { type: 'CLEAR_ERROR' }
   | { type: 'SET_LOADING'; payload: boolean }
+  | { type: 'SWITCH_ROLE'; payload: { user: User } }
   | { type: 'SET_USER'; payload: { user: User } };
 
 const initialState: AuthState = {
@@ -75,6 +77,14 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
 
     case 'SET_LOADING':
       return { ...state, isLoading: action.payload };
+
+    case 'SWITCH_ROLE':
+      return {
+        ...state,
+        user: action.payload.user,
+        isLoading: false,
+        error: null,
+      };
 
     case 'SET_USER':
       return { ...state, user: action.payload.user };
@@ -131,6 +141,30 @@ export function AuthProvider({
     }
   };
 
+  const switchRole = async (nuevoRol: string) => {
+    dispatch({ type: 'SET_LOADING', payload: true });
+
+    try {
+      const response = await authService.switchRole(nuevoRol);
+      dispatch({
+        type: 'SWITCH_ROLE',
+        payload: { user: response.user },
+      });
+      console.log('[AuthContext] Role switched successfully');
+    } catch (error: any) {
+      const errorMessage =
+        typeof error?.message === 'string'
+          ? error.message
+          : 'Error al cambiar de rol';
+
+      dispatch({
+        type: 'LOGIN_FAILURE',
+        payload: errorMessage,
+      });
+      throw error;
+    }
+  };
+
   const refreshAuth = async () => {
     try {
       await authService.refreshToken();
@@ -154,6 +188,7 @@ export function AuthProvider({
       ...state,
       login,
       logout,
+      switchRole,
       refreshAuth,
       clearError,
       setUser,

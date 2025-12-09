@@ -101,6 +101,56 @@ class AuthService {
     }
   }
 
+  async switchRole(nuevoRol: string): Promise<AuthResponse> {
+    const url = getApiUrl(API_CONFIG.ENDPOINTS.USERS.SWITCH_ROLE);
+
+    try {
+      console.log('[AuthService] Switching role to:', nuevoRol);
+      const response = await apiClient.put<AuthResponse>(url, { nuevoRol });
+
+      // ✅ VALIDACIÓN: Verificar que backend devolvió los tokens requeridos
+      if (!response.access_token || !response.refresh_token) {
+        throw new Error(
+          '[AuthService] Server error: Missing access_token or refresh_token in response',
+        );
+      }
+
+      if (!response.user || !response.user.rol) {
+        throw new Error(
+          '[AuthService] Server error: Missing user data or role in response',
+        );
+      }
+
+      console.log('[AuthService] Role switch response validated:', {
+        hasAccessToken: !!response.access_token,
+        hasRefreshToken: !!response.refresh_token,
+        newRole: response.user.rol,
+        accessTokenLength: response.access_token.length,
+      });
+
+      // Guardar nuevo token con nuevo rol (con validación interna en saveTokens)
+      await storageService.saveTokens({
+        access_token: response.access_token,
+        refresh_token: response.refresh_token,
+      });
+
+      // Guardar datos de usuario actualizado
+      if (response.user) {
+        await storageService.saveUserData(response.user);
+        console.log('[AuthService] User data updated with new role:', {
+          newRole: response.user.rol,
+          userId: response.user.idUser,
+        });
+      }
+
+      return response;
+    } catch (error) {
+      console.error('[AuthService] Switch role failed:', error);
+      ErrorUtils.logError(error, 'Switch Role');
+      throw new Error(ErrorUtils.getErrorMessage(error));
+    }
+  }
+
   async checkAuthStatus() {
     const rememberMe = await storageService.getRememberMe();
     if (!rememberMe) {
