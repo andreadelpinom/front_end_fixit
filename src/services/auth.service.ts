@@ -102,11 +102,11 @@ class AuthService {
   }
 
   async switchRole(nuevoRol: string): Promise<AuthResponse> {
-    const url = getApiUrl(API_CONFIG.ENDPOINTS.USERS.SWITCH_ROLE);
+    const url = getApiUrl(API_CONFIG.ENDPOINTS.AUTH.SWITCH_ROLE);
 
     try {
       console.log('[AuthService] Switching role to:', nuevoRol);
-      const response = await apiClient.put<AuthResponse>(url, { nuevoRol });
+      const response = await apiClient.post<AuthResponse>(url, { nuevoRol });
 
       // ✅ VALIDACIÓN: Verificar que backend devolvió los tokens requeridos
       if (!response.access_token || !response.refresh_token) {
@@ -115,16 +115,16 @@ class AuthService {
         );
       }
 
-      if (!response.user || !response.user.rol) {
+      if (!response.user || !response.user.roles || response.user.roles.length === 0) {
         throw new Error(
-          '[AuthService] Server error: Missing user data or role in response',
+          '[AuthService] Server error: Missing user data or roles in response',
         );
       }
 
       console.log('[AuthService] Role switch response validated:', {
         hasAccessToken: !!response.access_token,
         hasRefreshToken: !!response.refresh_token,
-        newRole: response.user.rol,
+        newRoles: response.user.roles,
         accessTokenLength: response.access_token.length,
       });
 
@@ -137,8 +137,8 @@ class AuthService {
       // Guardar datos de usuario actualizado
       if (response.user) {
         await storageService.saveUserData(response.user);
-        console.log('[AuthService] User data updated with new role:', {
-          newRole: response.user.rol,
+        console.log('[AuthService] User data updated with new roles:', {
+          newRoles: response.user.roles,
           userId: response.user.idUser,
         });
       }
@@ -173,3 +173,11 @@ class AuthService {
 }
 
 export const authService = new AuthService();
+
+/**
+ * Función helper para cambiar de rol directamente
+ * Usada en BecomeTechnicianScreen para cambiar a TECNICO
+ */
+export async function switchRole(nuevoRol: string): Promise<AuthResponse> {
+  return authService.switchRole(nuevoRol);
+}

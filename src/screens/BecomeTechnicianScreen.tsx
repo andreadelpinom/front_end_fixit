@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { createTechnician } from '../services/technician.service';
+import { switchRole } from '../services/auth.service';
 import { RegisterStyle } from '../styles/RegisterScreen.style';
 
 interface BecomeTechnicianScreenProps {
@@ -29,7 +30,16 @@ export default function BecomeTechnicianScreen({
   const handleCreateTechnician = async () => {
     try {
       setLoading(true);
+
+      // PASO 1: Cambiar el rol del usuario a TECNICO
+      console.log('[BecomeTechnicianScreen] PASO 1: Cambiando rol a TECNICO...');
+      await switchRole('TECNICO');
+      console.log('[BecomeTechnicianScreen] PASO 1: ✅ Rol cambiado exitosamente');
+
+      // PASO 2: Crear el registro de técnico
+      console.log('[BecomeTechnicianScreen] PASO 2: Creando perfil técnico...');
       await createTechnician(currentUser.idUser);
+      console.log('[BecomeTechnicianScreen] PASO 2: ✅ Perfil técnico creado');
 
       Alert.alert(
         '✔ Perfil técnico creado',
@@ -37,6 +47,7 @@ export default function BecomeTechnicianScreen({
         [{ text: 'OK', onPress: onSuccess }],
       );
     } catch (error: any) {
+      console.error('[BecomeTechnicianScreen] Error:', error);
       Alert.alert(
         'Error',
         error?.message ?? 'No se pudo crear el perfil técnico.',

@@ -6,10 +6,10 @@ export const API_CONFIG = {
       LOGIN: '/auth/login',
       REFRESH: '/auth/refresh',
       LOGOUT: '/auth/logout',
+      SWITCH_ROLE: '/auth/switch-role',
     },
     USERS: {
       CREATE: '/usuarios',
-      SWITCH_ROLE: '/usuarios/switch-role',
     },
     TECHNICIAN: {
       CREATE: '/technician/tecnicos',

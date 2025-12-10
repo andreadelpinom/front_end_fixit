@@ -12,9 +12,10 @@ export default function AppNavigator() {
     return <AuthNavigator />;
   }
 
-  const role = user?.rol;
+  // Verificar si el usuario tiene el rol TECNICO en su array de roles
+  const hasTechnicianRole = user?.roles?.includes('TECNICO');
 
-  if (role === 'TECNICO') {
+  if (hasTechnicianRole) {
     return <TechnicianNavigator />;
   }
 
