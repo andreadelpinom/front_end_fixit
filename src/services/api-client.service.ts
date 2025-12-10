@@ -74,7 +74,7 @@ class ApiClient {
         statusCode: error.response.status,
       };
     }
-    }
+    
     
 
     if (error.request) {
