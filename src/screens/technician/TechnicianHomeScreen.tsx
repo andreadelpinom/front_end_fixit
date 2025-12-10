@@ -73,6 +73,9 @@ export default function TechnicianHomeScreen() {
     );
   }
 
+  // Verificar si el técnico no está verificado
+  const isNotVerified = technician && technician.status !== 'VERIFICADO';
+
   return (
     <ScrollView
       style={styles.container}
@@ -80,6 +83,19 @@ export default function TechnicianHomeScreen() {
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
       }
     >
+      {/* Banner de no verificado */}
+      {isNotVerified && (
+        <View style={styles.warningBanner}>
+          <Text style={styles.warningIcon}>⚠️</Text>
+          <View style={styles.warningContent}>
+            <Text style={styles.warningTitle}>Cuenta no verificada</Text>
+            <Text style={styles.warningText}>
+              Completa tu verificación para mejorar tu visibilidad
+            </Text>
+          </View>
+        </View>
+      )}
+
       {/* Header con bienvenida */}
       <View style={styles.header}>
         <Text style={styles.greeting}>¡Hola, {user?.nombres}!</Text>
@@ -124,6 +140,10 @@ export default function TechnicianHomeScreen() {
             value={`${technician?.promedioCalificaciones?.toFixed(1) || 'N/A'} ⭐`}
           />
           <InfoRow
+            label="Estado Cuenta"
+            value={getStatusDisplay(technician?.status || 'REGISTRADO')}
+          />
+          <InfoRow
             label="Estado"
             value={technician?.isActive ? '✅ Activo' : '❌ Inactivo'}
           />
@@ -155,6 +175,22 @@ function InfoRow({ label, value }: { label: string; value: string }) {
       <Text style={styles.infoValue}>{value}</Text>
     </View>
   );
+}
+
+// Función para mostrar el estado de forma legible
+function getStatusDisplay(status: string): string {
+  switch (status) {
+    case 'REGISTRADO':
+      return '🟡 No Verificado';
+    case 'VERIFICACION_PENDIENTE':
+      return '🟠 En Revisión';
+    case 'VERIFICADO':
+      return '✅ Verificado';
+    case 'BLOQUEADO':
+      return '🔴 Bloqueado';
+    default:
+      return '🟡 No Verificado';
+  }
 }
 
 const styles = StyleSheet.create({
@@ -285,5 +321,33 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#007AFF',
     fontWeight: '600',
+  },
+  warningBanner: {
+    backgroundColor: '#FFF3CD',
+    borderLeftWidth: 4,
+    borderLeftColor: '#FFC107',
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderRadius: 8,
+  },
+  warningIcon: {
+    fontSize: 24,
+    marginRight: 12,
+  },
+  warningContent: {
+    flex: 1,
+  },
+  warningTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#856404',
+    marginBottom: 4,
+  },
+  warningText: {
+    fontSize: 14,
+    color: '#856404',
   },
 });

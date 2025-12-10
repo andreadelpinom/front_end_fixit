@@ -144,6 +144,27 @@ class AuthService {
         });
       }
 
+      // 🚀 Si se está cambiando a TECNICO, crear el registro de técnico automáticamente en el frontend
+      // como fallback en caso de que el backend no lo haya hecho
+      if (nuevoRol === 'TECNICO' && response.user) {
+        console.log('[AuthService] Attempting to create technician record for user:', response.user.idUser);
+        try {
+          const technicianUrl = getApiUrl('/technician/tecnicos');
+          const payload = { idUser: response.user.idUser, isActive: true };
+          await apiClient.post(technicianUrl, payload);
+          console.log('[AuthService] ✅ Technician record created successfully');
+        } catch (techError: any) {
+          // No bloquear si falla - el usuario puede seguir pero sin técnico
+          if (techError?.response?.status === 409) {
+            // Técnico ya existe
+            console.log('[AuthService] Technician already exists for this user');
+          } else {
+            console.warn('[AuthService] Warning creating technician record:', techError?.message);
+          }
+          // Continuar sin lanzar error
+        }
+      }
+
       return response;
     } catch (error) {
       console.error('[AuthService] Switch role failed:', error);

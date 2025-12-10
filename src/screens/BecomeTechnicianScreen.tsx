@@ -8,8 +8,8 @@ import {
   Alert,
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
-import { createTechnician } from '../services/technician.service';
-import { switchRole } from '../services/auth.service';
+import { apiClient } from '../services/api-client.service';
+import { getApiUrl } from '../config/api.config';
 import { RegisterStyle } from '../styles/RegisterScreen.style';
 
 interface BecomeTechnicianScreenProps {
@@ -27,30 +27,36 @@ export default function BecomeTechnicianScreen({
   // TS FIX: user no puede ser null aquí porque App lo filtra antes
   const currentUser = user!;
 
-  const handleCreateTechnician = async () => {
+  const handleSubmitVerification = async () => {
     try {
       setLoading(true);
 
-      // PASO 1: Cambiar el rol del usuario a TECNICO
-      console.log('[BecomeTechnicianScreen] PASO 1: Cambiando rol a TECNICO...');
-      await switchRole('TECNICO');
-      console.log('[BecomeTechnicianScreen] PASO 1: ✅ Rol cambiado exitosamente');
+      console.log('[BecomeTechnicianScreen] Enviando solicitud de verificación para usuario:', currentUser.idUser);
+      
+      // Obtener el técnico actual para obtener su ID
+      const getTechUrl = getApiUrl(`/technician/tecnicos/user/${currentUser.idUser}`);
+      const technicianData = await apiClient.get(getTechUrl);
+      
+      if (!technicianData || !technicianData.idTecnico) {
+        throw new Error('No se encontró el registro de técnico. Por favor intenta convertirte en técnico primero.');
+      }
 
-      // PASO 2: Crear el registro de técnico
-      console.log('[BecomeTechnicianScreen] PASO 2: Creando perfil técnico...');
-      await createTechnician(currentUser.idUser);
-      console.log('[BecomeTechnicianScreen] PASO 2: ✅ Perfil técnico creado');
+      // Enviar solicitud de verificación
+      const submitVerificationUrl = getApiUrl(`/technician/tecnicos/${technicianData.idTecnico}/verification`);
+      await apiClient.post(submitVerificationUrl, {});
+
+      console.log('[BecomeTechnicianScreen] ✅ Solicitud de verificación enviada');
 
       Alert.alert(
-        '✔ Perfil técnico creado',
-        'Ahora puedes añadir servicios y parroquias.',
+        '✔ Solicitud Enviada',
+        'Tu solicitud de verificación ha sido registrada. El equipo de FixIt la revisará pronto.',
         [{ text: 'OK', onPress: onSuccess }],
       );
     } catch (error: any) {
       console.error('[BecomeTechnicianScreen] Error:', error);
       Alert.alert(
         'Error',
-        error?.message ?? 'No se pudo crear el perfil técnico.',
+        error?.message ?? 'No se pudo enviar la solicitud de verificación.',
       );
     } finally {
       setLoading(false);
@@ -62,15 +68,15 @@ export default function BecomeTechnicianScreen({
       contentContainerStyle={RegisterStyle.scrollContent}
       style={RegisterStyle.container}>
       <View style={RegisterStyle.formContainer}>
-        <Text style={RegisterStyle.title}>Convertirse en Técnico</Text>
+        <Text style={RegisterStyle.title}>Verificar Cuenta Técnica</Text>
 
         <Text style={RegisterStyle.subtitle}>
-          Para ofrecer servicios dentro de la plataforma, debes crear primero tu
-          perfil técnico.
+          Ya tienes acceso al panel técnico. Ahora verifica tu cuenta para mejorar tu
+          visibilidad y confianza en la plataforma.
         </Text>
 
         <View style={RegisterStyle.summaryBox}>
-          <Text style={RegisterStyle.summaryTitle}>Datos del Usuario</Text>
+          <Text style={RegisterStyle.summaryTitle}>Tus Datos</Text>
 
           <Text style={RegisterStyle.summaryText}>
             Nombre: {currentUser.nombres} {currentUser.apellidos}
@@ -85,14 +91,21 @@ export default function BecomeTechnicianScreen({
           </Text>
         </View>
 
+        <View style={RegisterStyle.infoBox}>
+          <Text style={RegisterStyle.infoText}>
+            ℹ️ La verificación ayuda a los clientes a confiar más en tus servicios.
+            Un equipo especializado revisará tu solicitud.
+          </Text>
+        </View>
+
         <TouchableOpacity
           style={RegisterStyle.button}
-          onPress={handleCreateTechnician}
+          onPress={handleSubmitVerification}
           disabled={loading}>
           {loading ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={RegisterStyle.buttonText}>Crear Perfil Técnico</Text>
+            <Text style={RegisterStyle.buttonText}>Solicitar Verificación</Text>
           )}
         </TouchableOpacity>
 

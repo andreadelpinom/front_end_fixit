@@ -106,6 +106,20 @@ class HomeService {
     }
   }
 
+  // Obtener las solicitudes del usuario (mis solicitudes)
+  async getMySolicitudes(): Promise<RequestPreview[]> {
+    try {
+      const url = getApiUrl('/request/solicitudes/my');
+      const resp = await apiClient.get<unknown>(url);
+      const data = this.unwrapArrayResponse<RequestPreview>(resp);
+      return data;
+    } catch (err) {
+      console.error('HomeService.getMySolicitudes error', err);
+      ErrorUtils.logError(err, 'HomeService.getMySolicitudes');
+      return [];
+    }
+  }
+
   // Mocked data (backend not available)
   async getHomeBanners(): Promise<Banner[]> {
     // Simple static mocks; adjust images/links for your UI
