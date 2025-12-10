@@ -29,6 +29,7 @@ class AuthService {
         access_token: response.access_token,
         refresh_token: response.refresh_token,
       });
+
       console.log('[AuthService] Tokens saved successfully');
 
       if (response.user) {

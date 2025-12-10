@@ -73,7 +73,7 @@ class ApiClient {
         error: errorData.error || errorData.message || 'An error occurred',
         statusCode: error.response.status,
       };
-      
+    }
     }
     
 
@@ -125,6 +125,11 @@ class ApiClient {
 
   async delete<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
     const response = await this.client.delete(url, config);
+    return this.unwrap<T>(response);
+  }
+
+  async patch<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
+    const response = await this.client.patch(url, data, config);
     return this.unwrap<T>(response);
   }
 }

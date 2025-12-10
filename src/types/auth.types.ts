@@ -10,7 +10,7 @@ export interface User {
   nombres: string;
   apellidos: string;
   email: string;
-  roles: RolUsuario[];  // Array de roles en lugar de un solo rol
+  roles: RolUsuario[];  // Array of roles supporting multi-role system
   createdAt: string;
 }
 

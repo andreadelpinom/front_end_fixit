@@ -37,30 +37,6 @@ export interface RequestPreview {
   estado?: string;
   createdAt?: string;
   ubicacion?: string;
-  idTipoServicio?: number;
-  codigoParroquia?: string;
-}
-
-export interface RequestDetails {
-  idSolicitud: number;
-  tituloProblema: string;
-  descripcionProblema: string;
-  estadoSolicitud: string;
-  idTipoServicio: number;
-  codigoParroquia: string;
-  fechaProgramada?: string;
-  createdAt?: string;
-  idUser?: number;
-}
-
-export interface ServiceType {
-  idTipoServicio: number;
-  nombre: string;
-}
-
-export interface Parroquia {
-  codigoParroquia: string;
-  nombre: string;
 }
 
 // -----------------------------
@@ -105,9 +81,8 @@ class HomeService {
 
   async getTopRatedTechs(limit = 10): Promise<TechPreview[]> {
     try {
-      // Ensure limit is a valid positive integer (1-100 per DTO validation)
-      const validLimit = Math.max(1, Math.min(100, Math.floor(Number(limit) || 10)));
-      const url = `${getApiUrl('/technician/tecnicos/top-rated')}?limit=${validLimit}`;
+      const q = encodeURIComponent(String(limit));
+      const url = `${getApiUrl('/technician/tecnicos/top-rated')}?limit=${q}`;
       const resp = await apiClient.get<unknown>(url);
       const data = this.unwrapArrayResponse<TechPreview>(resp);
       return data;
@@ -122,115 +97,11 @@ class HomeService {
     try {
       const url = getApiUrl('/request/solicitudes');
       const resp = await apiClient.get<unknown>(url);
-      // API returns envelope with data possibly containing { solicitudes: [], pagination }
-      if (resp && typeof resp === 'object') {
-        const anyResp = resp as any;
-        if (anyResp.success === true && anyResp.data) {
-          // If data is array directly
-          if (Array.isArray(anyResp.data)) return anyResp.data as RequestPreview[];
-          // If data has solicitudes
-          if (Array.isArray(anyResp.data.solicitudes)) return anyResp.data.solicitudes as RequestPreview[];
-        }
-      }
-      return [];
+      const data = this.unwrapArrayResponse<RequestPreview>(resp);
+      return data;
     } catch (err) {
       console.error('HomeService.getRecentRequests error', err);
       ErrorUtils.logError(err, 'HomeService.getRecentRequests');
-      return [];
-    }
-  }
-
-  // Fetch service types from catalog
-  async getServiceTypes(): Promise<ServiceType[]> {
-    // Return internal mock list to be used by the client Create Request wizard.
-    // This intentionally avoids calling backend endpoints so the flow works offline
-    // and consistently with the expected DTO shape.
-    const mocks: ServiceType[] = [
-      { idTipoServicio: 1, nombre: 'Electricidad' },
-      { idTipoServicio: 2, nombre: 'Plomería' },
-      { idTipoServicio: 3, nombre: 'Cerrajería' },
-      { idTipoServicio: 4, nombre: 'Aire acondicionado' },
-      { idTipoServicio: 5, nombre: 'Carpintería' },
-      { idTipoServicio: 6, nombre: 'Pintura' },
-    ];
-
-    return Promise.resolve(mocks);
-  }
-
-  // Fetch parroquias from catalog
-  async getParroquias(): Promise<Parroquia[]> {
-    // Internal mock parroquias to be used by the client Create Request wizard.
-    const mocks: Parroquia[] = [
-      { codigoParroquia: 'TAR', nombre: 'Tarqui' },
-      { codigoParroquia: 'XIM', nombre: 'Ximena' },
-      { codigoParroquia: 'PAS', nombre: 'Pascuales' },
-      { codigoParroquia: 'FEC', nombre: 'Febres Cordero' },
-      { codigoParroquia: 'LET', nombre: 'Letamendi' },
-      { codigoParroquia: 'ROC', nombre: 'Rocafuerte' },
-      { codigoParroquia: 'URD', nombre: 'Urdaneta' },
-      { codigoParroquia: 'OLM', nombre: 'Olmedo' },
-    ];
-
-    return Promise.resolve(mocks);
-  }
-
-  // Fetch solicitudes of current user
-  async getMySolicitudes(): Promise<RequestPreview[]> {
-    try {
-      const url = getApiUrl('/request/solicitudes/my/solicitudes');
-      const resp = await apiClient.get<unknown>(url);
-      
-      // Debug: Print complete response structure
-      console.log('[getMySolicitudes] Complete response:', JSON.stringify(resp, null, 2));
-      
-      // Inspect possible structures
-      const respAny = resp as any;
-      console.log('[getMySolicitudes] resp.data type:', typeof respAny?.data);
-      console.log('[getMySolicitudes] resp.data.solicitudes exists:', !!respAny?.data?.solicitudes);
-      console.log('[getMySolicitudes] resp.data.data exists:', !!respAny?.data?.data);
-      
-      // Extract array: Support multiple response structures
-      const solicitudes =
-        respAny?.solicitudes ||
-        respAny?.data?.solicitudes ||
-        respAny?.data?.data?.solicitudes ||
-        [];
-      
-      if (Array.isArray(solicitudes) && solicitudes.length > 0) {
-        if (respAny?.solicitudes) {
-          console.log('[getMySolicitudes] Found solicitudes at: resp.solicitudes');
-        } else if (respAny?.data?.solicitudes) {
-          console.log('[getMySolicitudes] Found solicitudes at: resp.data.solicitudes');
-        } else if (respAny?.data?.data?.solicitudes) {
-          console.log('[getMySolicitudes] Found solicitudes at: resp.data.data.solicitudes');
-        }
-      }
-      
-      console.log(`[getMySolicitudes] Raw count: ${solicitudes.length}`);
-      if (solicitudes.length > 0) {
-        console.log('[getMySolicitudes] Sample:', JSON.stringify(solicitudes[0], null, 2));
-      }
-      
-      // Map backend fields to frontend structure
-      const mapped: RequestPreview[] = solicitudes.map((sol: any) => {
-        const mapped = {
-          idSolicitud: sol.idSolicitud,
-          titulo: sol.tituloProblema || sol.titulo || `Solicitud #${sol.idSolicitud}`,
-          descripcion: sol.descripcionProblema || sol.descripcion || 'Sin descripción',
-          estado: sol.estadoSolicitud || sol.estado || 'Publicada',
-          codigoParroquia: sol.codigoParroquia,
-          createdAt: sol.createdAt || new Date().toISOString(),
-          idTipoServicio: sol.idTipoServicio,
-        };
-        console.log(`[getMySolicitudes] Mapped record ${sol.idSolicitud}:`, JSON.stringify(mapped, null, 2));
-        return mapped;
-      });
-      
-      console.log(`[getMySolicitudes] Final mapped count: ${mapped.length}`);
-      return mapped;
-    } catch (err) {
-      console.error('[getMySolicitudes] Error:', err);
-      ErrorUtils.logError(err, 'HomeService.getMySolicitudes');
       return [];
     }
   }
@@ -282,57 +153,6 @@ class HomeService {
     ];
 
     return Promise.resolve(mocks);
-  }
-
-  // Get request details by ID
-  async getRequestDetails(idSolicitud: number): Promise<RequestDetails> {
-    try {
-      const url = getApiUrl(`/request/solicitudes/${idSolicitud}`);
-      const resp = await apiClient.get<unknown>(url);
-
-      // Extract details from response
-      const respAny = resp as any;
-      const details =
-        respAny?.solicitud ||
-        respAny?.data?.solicitud ||
-        respAny?.data ||
-        respAny;
-
-      if (details && details.idSolicitud) {
-        const mapped: RequestDetails = {
-          idSolicitud: details.idSolicitud,
-          tituloProblema: details.tituloProblema || details.titulo || '',
-          descripcionProblema: details.descripcionProblema || details.descripcion || '',
-          estadoSolicitud: details.estadoSolicitud || details.estado || 'PENDIENTE',
-          idTipoServicio: details.idTipoServicio || 0,
-          codigoParroquia: details.codigoParroquia || '',
-          fechaProgramada: details.fechaProgramada,
-          createdAt: details.createdAt,
-          idUser: details.idUser,
-        };
-        console.log('[getRequestDetails] Mapped:', JSON.stringify(mapped, null, 2));
-        return mapped;
-      }
-
-      throw new Error('Invalid request details structure');
-    } catch (err) {
-      console.error('[getRequestDetails] Error:', err);
-      ErrorUtils.logError(err, 'HomeService.getRequestDetails');
-      throw err;
-    }
-  }
-
-  // Cancel a request (PUT to mark as CANCELADA, not DELETE)
-  async cancelRequest(idSolicitud: number): Promise<void> {
-    try {
-      const url = getApiUrl(`/request/solicitudes/${idSolicitud}`);
-      await apiClient.put(url, { estadoSolicitud: 'CANCELADA' });
-      console.log('[cancelRequest] Success:', idSolicitud);
-    } catch (err) {
-      console.error('[cancelRequest] Error:', err);
-      ErrorUtils.logError(err, 'HomeService.cancelRequest');
-      throw err;
-    }
   }
 }
 

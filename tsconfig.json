@@ -1,5 +1,5 @@
 {
-  "extends": "expo/tsconfig.base",
+  "extends": "expo/tsconfig.base.json",
   "compilerOptions": {
     "typeRoots": ["./types", "./node_modules/@types"],
     /* ✅ Strict type safety */
@@ -35,8 +35,8 @@
       "mock/*": ["mock/*"]
     },
 
-    /* ✅ Avoid deprecation warnings */
-    "ignoreDeprecations": "5.0"
+    /* ✅ Avoid future TS 7 deprecation warnings */
+    "ignoreDeprecations": "6.0"
   },
 
   /* ✅ Include all code files properly */

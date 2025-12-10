@@ -10,7 +10,7 @@ import RequestsHistoryScreen from '../screens/client/RequestsHistoryScreen';
 import ActiveServicesScreen from '../screens/client/ActiveServicesScreen';
 import { NotificationsScreen } from '../screens/client/Notifications/NotificationsScreen';
 import SupportScreen from '../screens/client/SupportScreen';
-import RegisterTechnicianScreen from '../screens/client/RegisterTechnicianScreen';
+import BecomeTechnicianScreen from '../screens/BecomeTechnicianScreen';
 import RequestStepServiceScreen from '../screens/client/request-wizard/RequestStepServiceScreen';
 import RequestStepProblemScreen from '../screens/client/request-wizard/RequestStepProblemScreen';
 import RequestStepScheduleScreen from '../screens/client/request-wizard/RequestStepScheduleScreen';
@@ -53,7 +53,7 @@ function ProfileStack() {
       <Stack.Screen name="ActiveServices" component={ActiveServicesScreen} options={{ title: 'Servicios Activos' }} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ title: 'Notificaciones' }} />
       <Stack.Screen name="Support" component={SupportScreen} options={{ title: 'Soporte Técnico' }} />
-      <Stack.Screen name="RegisterTechnician" component={RegisterTechnicianScreen} options={{ title: 'Registrarse como Técnico' }} />
+      <Stack.Screen name="BecomeTechnician" component={BecomeTechnicianScreen} options={{ title: 'Convertirse en Técnico' }} />
     </Stack.Navigator>
   );
 }
