@@ -118,10 +118,8 @@ export default function RequestStepScheduleScreen({ navigation }: any): React.Re
           onPress: () => {
             updateDraft({
               tituloProblema: undefined,
-              descripcion: undefined,
-              presupuesto: undefined,
+              descripcionProblema: undefined,
               idTipoServicio: undefined,
-              direccion: undefined,
               codigoParroquia: undefined,
               fechaProgramada: undefined,
             });

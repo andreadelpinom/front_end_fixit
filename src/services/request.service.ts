@@ -75,7 +75,7 @@ export const requestService = {
       const sanitizedPage = Number.isNaN(parsedPage) ? 1 : Math.max(1, parsedPage);
       const url = getApiUrl('/request/solicitudes');
       const params = {
-        estadoSolicitud: 'COMPLETADA',
+        estado: 'COMPLETADA',
         limit: sanitizedLimit,
         page: sanitizedPage,
       };
@@ -149,7 +149,7 @@ export const requestService = {
         '/request/solicitudes/my/solicitudes',
         {
           params: {
-            estadoSolicitud: status,
+            estado: status,
             limit,
             page,
           },

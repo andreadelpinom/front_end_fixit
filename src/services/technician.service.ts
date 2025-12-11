@@ -50,11 +50,16 @@ export async function deleteTechnician(idTecnico: number): Promise<void> {
 // ==================== SOLICITUDES DISPONIBLES ====================
 
 // Obtener solicitudes disponibles (PENDIENTES)
-// ✅ ACTUALIZADO: Usa la ruta correcta del backend
+// ✅ ACTUALIZADO: Backend ahora filtra por estado, frontend solo unwraps
 export async function getAvailableRequests(): Promise<Solicitud[]> {
   try {
+    // Backend retorna solo PENDIENTE por defecto con parámetro estado
     const url = getApiUrl('/request/solicitudes');
-    const resp = await apiClient.get<unknown>(url);
+    const resp = await apiClient.get<unknown>(url, {
+      params: {
+        estado: 'PENDIENTE',
+      },
+    });
 
     // Unwrap response structure (handles { data: { solicitudes: [...] } })
     let allRequests: Solicitud[] = [];
@@ -76,10 +81,8 @@ export async function getAvailableRequests(): Promise<Solicitud[]> {
       }
     }
 
-    // Filtrar solo las PENDIENTES
-    return allRequests.filter(
-      req => req.estadoSolicitud === EstadoSolicitud.PENDIENTE,
-    );
+    // ✅ Backend ya retorna solo PENDIENTE, no necesitamos filtrar
+    return allRequests;
   } catch (error) {
     console.error('Error fetching available requests:', error);
     return [];
