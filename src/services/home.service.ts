@@ -121,7 +121,7 @@ class HomeService {
   // Obtener las solicitudes del usuario (mis solicitudes)
   async getMySolicitudes(): Promise<RequestPreview[]> {
     try {
-      const url = getApiUrl('/request/solicitudes/my');
+      const url = getApiUrl('/request/solicitudes/my/solicitudes');
       const resp = await apiClient.get<unknown>(url);
       const data = this.unwrapArrayResponse<RequestPreview>(resp);
       return data;

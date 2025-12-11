@@ -50,7 +50,27 @@ export async function deleteTechnician(idTecnico: number): Promise<void> {
 export async function getAvailableRequests(): Promise<Solicitud[]> {
   try {
     const url = getApiUrl('/request/solicitudes');
-    const allRequests = await apiClient.get<Solicitud[]>(url);
+    const resp = await apiClient.get<unknown>(url);
+    
+    // Unwrap response structure (handles { data: { solicitudes: [...] } })
+    let allRequests: Solicitud[] = [];
+    if (Array.isArray(resp)) {
+      allRequests = resp;
+    } else if (resp && typeof resp === 'object') {
+      const anyResp = resp as any;
+      if (Array.isArray(anyResp.data)) {
+        allRequests = anyResp.data;
+      } else if (anyResp.data && typeof anyResp.data === 'object') {
+        const dataObj = anyResp.data as any;
+        if (Array.isArray(dataObj.solicitudes)) {
+          allRequests = dataObj.solicitudes;
+        } else if (Array.isArray(dataObj.items)) {
+          allRequests = dataObj.items;
+        } else if (Array.isArray(dataObj.data)) {
+          allRequests = dataObj.data;
+        }
+      }
+    }
     
     // Filtrar solo las PENDIENTES
     return allRequests.filter(req => req.estadoSolicitud === EstadoSolicitud.PENDIENTE);
@@ -83,7 +103,29 @@ export async function getMyProposals(): Promise<SolicitudTecnico[]> {
   try {
     // ✅ CAMBIO: El backend automáticamente obtiene las propuestas del técnico autenticado
     const url = getApiUrl('/request/solicitudes-tecnicos/my/propuestas');
-    return await apiClient.get<SolicitudTecnico[]>(url);
+    const resp = await apiClient.get<unknown>(url);
+    
+    // Unwrap response structure (handles { data: {...} })
+    let proposals: SolicitudTecnico[] = [];
+    if (Array.isArray(resp)) {
+      proposals = resp;
+    } else if (resp && typeof resp === 'object') {
+      const anyResp = resp as any;
+      if (Array.isArray(anyResp.data)) {
+        proposals = anyResp.data;
+      } else if (anyResp.data && typeof anyResp.data === 'object') {
+        const dataObj = anyResp.data as any;
+        if (Array.isArray(dataObj.propuestas)) {
+          proposals = dataObj.propuestas;
+        } else if (Array.isArray(dataObj.items)) {
+          proposals = dataObj.items;
+        } else if (Array.isArray(dataObj.data)) {
+          proposals = dataObj.data;
+        }
+      }
+    }
+    
+    return proposals;
   } catch (error) {
     console.error('Error fetching my proposals:', error);
     return [];
