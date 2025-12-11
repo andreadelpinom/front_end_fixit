@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { WIZARD_COLORS } from '../../screens/client/request-wizard/WizardShared';
-import SectionTitle from './SectionTitle';
 
 const HomeHeader: React.FC = () => {
   return (
