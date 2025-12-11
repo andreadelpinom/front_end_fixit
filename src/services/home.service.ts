@@ -51,9 +51,21 @@ class HomeService {
       // If response is an envelope { success, data }
       if (resp && typeof resp === 'object') {
         const anyResp = resp as any;
+        
+        // Handle { success, data: [...] }
         if (anyResp.success === true && Array.isArray(anyResp.data)) {
           return anyResp.data as T[];
         }
+        
+        // Handle { success, data: { solicitudes: [...] } }
+        if (anyResp.success === true && anyResp.data && typeof anyResp.data === 'object') {
+          const dataObj = anyResp.data as any;
+          // Try common property names for arrays
+          if (Array.isArray(dataObj.solicitudes)) return dataObj.solicitudes as T[];
+          if (Array.isArray(dataObj.items)) return dataObj.items as T[];
+          if (Array.isArray(dataObj.data)) return dataObj.data as T[];
+        }
+        
         // success is false or data missing
         return [];
       }
