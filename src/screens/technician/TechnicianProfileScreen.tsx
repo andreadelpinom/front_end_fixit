@@ -149,7 +149,6 @@ export default function TechnicianProfileScreen() {
           <Text style={styles.switchRoleDescription}>
             Cambia a tu vista de cliente para solicitar servicios, ver tu historial y gestionar tus solicitudes.
           </Text>
-          </Text>
           <TouchableOpacity
             style={[
               styles.switchRoleButton,
