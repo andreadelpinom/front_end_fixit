@@ -88,6 +88,11 @@ class HomeService {
           if (Array.isArray(dataObj.data)) return dataObj.data as T[];
         }
 
+        // Handle direct response from microservices: { solicitudes: [...], pagination: {...} }
+        if (Array.isArray(anyResp.solicitudes)) {
+          return anyResp.solicitudes as T[];
+        }
+
         // success is false or data missing
         return [];
       }
