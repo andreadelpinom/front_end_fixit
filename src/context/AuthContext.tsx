@@ -6,6 +6,7 @@ import React, {
   useMemo,
 } from 'react';
 import { authService } from '../services/auth.service';
+import { storageService } from '../services/storage.service';
 import { AuthState, LoginDto, User } from '../types/auth.types';
 
 interface AuthContextType extends AuthState {
@@ -146,11 +147,15 @@ export function AuthProvider({
 
     try {
       const response = await authService.switchRole(nuevoRol);
+      
+      // Guardar el rol activo para la navegación (no quita los roles, solo marca cuál vista ver)
+      await storageService.setActiveRole(nuevoRol as 'CLIENTE' | 'TECNICO');
+      
       dispatch({
         type: 'SWITCH_ROLE',
         payload: { user: response.user },
       });
-      console.log('[AuthContext] Role switched successfully');
+      console.log('[AuthContext] Role switched successfully to:', nuevoRol);
     } catch (error: any) {
       const errorMessage =
         typeof error?.message === 'string'

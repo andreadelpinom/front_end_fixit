@@ -62,21 +62,21 @@ const ClientProfileScreen: React.FC<Props> = ({ navigation }) => {
 
   const handleSwitchToTechnician = async () => {
     Alert.alert(
-      '¿Cambiar a Técnico?',
-      'Esto te permitirá ofertar tus servicios en la plataforma. ¿Estás seguro?',
+      '¿Ver Vista de Técnico?',
+      'Cambiarás a tu perfil de técnico. Podrás volver a la vista de cliente en cualquier momento desde tu perfil técnico.',
       [
         { text: 'Cancelar', style: 'cancel' },
         {
-          text: 'Sí, cambiar a Técnico',
+          text: 'Sí, ver vista técnico',
           style: 'default',
           onPress: async () => {
             try {
               await switchRole('TECNICO');
-              // AppNavigator detectará el nuevo rol automáticamente
+              // AppNavigator detectará el activeRole y mostrará TechnicianNavigator
             } catch (error) {
               Alert.alert(
                 'Error',
-                'No se pudo cambiar de rol. Intenta de nuevo.',
+                'No se pudo cambiar la vista. Intenta de nuevo.',
               );
             }
           },
@@ -171,14 +171,13 @@ const ClientProfileScreen: React.FC<Props> = ({ navigation }) => {
           />
         </View>
 
-        {/* 3️⃣ Become Technician */}
+        {/* 3️⃣ Switch to Technician View */}
         <View style={styles.technicianCard}>
           <Text style={styles.technicianTitle}>
-            ¿Quieres convertirte en técnico?
+            Ver perfil de técnico
           </Text>
           <Text style={styles.technicianDescription}>
-            Únete a nuestra plataforma y genera ingresos reparando lo que amas.
-            Miles de clientes esperan tu ayuda.
+            Cambia a tu vista de técnico para ver solicitudes, ofertar servicios y gestionar tu perfil técnico.
           </Text>
           <TouchableOpacity
             style={styles.technicianButton}
@@ -186,7 +185,7 @@ const ClientProfileScreen: React.FC<Props> = ({ navigation }) => {
             activeOpacity={0.7}
           >
             <Text style={styles.technicianButtonText}>
-              Cambiar a Técnico
+              Cambiar a Vista de Técnico
             </Text>
           </TouchableOpacity>
         </View>

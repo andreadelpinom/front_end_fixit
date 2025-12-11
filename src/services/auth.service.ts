@@ -107,7 +107,16 @@ class AuthService {
 
     try {
       console.log('[AuthService] Switching role to:', nuevoRol);
-      const response = await apiClient.post<AuthResponse>(url, { nuevoRol });
+      console.log('[AuthService] Request URL:', url);
+      
+      // Agregar timeout de 10 segundos
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      
+      const response = await apiClient.post<AuthResponse>(url, { nuevoRol }, {
+        signal: controller.signal as any,
+      });
+      clearTimeout(timeoutId);
 
       // ✅ VALIDACIÓN: Verificar que backend devolvió los tokens requeridos
       if (!response.access_token || !response.refresh_token) {
@@ -152,30 +161,55 @@ class AuthService {
           const technicianUrl = getApiUrl('/technician/tecnicos');
           const payload = { idUser: response.user.idUser, isActive: true };
           
+          console.log('[AuthService] Technician creation request:', { url: technicianUrl, payload });
+          
           // Usar el nuevo token directamente en el header (ya fue guardado)
           const headers = {
             'Authorization': `Bearer ${response.access_token}`,
             'Content-Type': 'application/json',
           };
           
-          await apiClient.post(technicianUrl, payload, { headers });
+          // Timeout de 5 segundos para creación de técnico
+          const techController = new AbortController();
+          const techTimeoutId = setTimeout(() => techController.abort(), 5000);
+          
+          await apiClient.post(technicianUrl, payload, { 
+            headers,
+            signal: techController.signal as any,
+          });
+          clearTimeout(techTimeoutId);
+          
           console.log('[AuthService] ✅ Technician record created successfully');
         } catch (techError: any) {
           // No bloquear si falla - el usuario puede seguir pero sin técnico
           if (techError?.response?.status === 409) {
             // Técnico ya existe
             console.log('[AuthService] Technician already exists for this user');
+          } else if (techError?.name === 'AbortError') {
+            console.warn('[AuthService] Technician creation timed out (>5s), but continuing');
           } else {
-            console.warn('[AuthService] Warning creating technician record:', techError?.message || techError);
+            console.warn('[AuthService] Warning creating technician record:', {
+              message: techError?.message,
+              status: techError?.response?.status,
+              error: techError,
+            });
           }
           // Continuar sin lanzar error
         }
       }
 
       return response;
-    } catch (error) {
+    } catch (error: any) {
       console.error('[AuthService] Switch role failed:', error);
-      ErrorUtils.logError(error, 'Switch Role');
+      
+      // Logging detallado para debugging
+      if (error?.name === 'AbortError') {
+        console.error('[AuthService] Request timed out (>10s)');
+        ErrorUtils.logError(new Error('Switch role request timeout'), 'Switch Role Timeout');
+      } else {
+        ErrorUtils.logError(error, 'Switch Role');
+      }
+      
       throw new Error(ErrorUtils.getErrorMessage(error));
     }
   }

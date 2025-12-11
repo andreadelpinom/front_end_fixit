@@ -51,21 +51,21 @@ export default function TechnicianProfileScreen() {
 
   const handleSwitchToClient = async () => {
     Alert.alert(
-      '¿Cambiar a Cliente?',
-      'Volverás a tu rol de cliente y ya no podrás ofertar servicios. Puedes cambiar de nuevo cuando quieras.',
+      '¿Ver Vista de Cliente?',
+      'Cambiarás a tu perfil de cliente. Podrás volver a la vista de técnico en cualquier momento desde tu perfil de cliente.',
       [
         { text: 'Cancelar', style: 'cancel' },
         {
-          text: 'Sí, cambiar a Cliente',
+          text: 'Sí, ver vista cliente',
           style: 'default',
           onPress: async () => {
             try {
               setSwitchingRole(true);
-              await switchRole('CLIENTE');
+              await switchRole('CLIENTE'); // Cambiar activeRole a CLIENTE
             } catch (error) {
               Alert.alert(
                 'Error',
-                'No se pudo cambiar de rol. Intenta de nuevo.',
+                'No se pudo cambiar la vista. Intenta de nuevo.',
               );
               setSwitchingRole(false);
             }
@@ -144,10 +144,11 @@ export default function TechnicianProfileScreen() {
         {/* Cambiar a Cliente */}
         <View style={styles.switchRoleCard}>
           <Text style={styles.switchRoleTitle}>
-            👤 ¿Volver a Cliente?
+            👤 Ver Perfil de Cliente
           </Text>
           <Text style={styles.switchRoleDescription}>
-            Puedes cambiar de rol cuando quieras. Como cliente podrás solicitar servicios de otros técnicos.
+            Cambia a tu vista de cliente para solicitar servicios, ver tu historial y gestionar tus solicitudes.
+          </Text>
           </Text>
           <TouchableOpacity
             style={[
@@ -162,7 +163,7 @@ export default function TechnicianProfileScreen() {
               <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
               <Text style={styles.switchRoleButtonText}>
-                Cambiar a Cliente
+                Cambiar a Vista de Cliente
               </Text>
             )}
           </TouchableOpacity>

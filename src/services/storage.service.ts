@@ -8,6 +8,7 @@ const STORAGE_KEYS = {
   REFRESH_TOKEN: 'refresh_token',
   USER_DATA: 'user_data',
   REMEMBER_ME: 'remember_me',
+  ACTIVE_ROLE: 'active_role',
 } as const;
 
 interface StorageStrategy {
@@ -173,6 +174,25 @@ class StorageService {
   async clearAll() {
     await this.clearTokens();
     await this.clearUserData();
+    await this.clearActiveRole();
+  }
+
+  // -------------------------
+  // ACTIVE ROLE (Rol de vista actual - para navigation)
+  // -------------------------
+  async setActiveRole(role: 'CLIENTE' | 'TECNICO'): Promise<void> {
+    await this.generalStorage.set(STORAGE_KEYS.ACTIVE_ROLE, role);
+    console.log(`[StorageService] Active role set to: ${role}`);
+  }
+
+  async getActiveRole(): Promise<'CLIENTE' | 'TECNICO'> {
+    const role = await this.generalStorage.get(STORAGE_KEYS.ACTIVE_ROLE);
+    // Default to CLIENTE si no hay rol activo guardado
+    return (role === 'TECNICO' ? 'TECNICO' : 'CLIENTE');
+  }
+
+  async clearActiveRole(): Promise<void> {
+    await this.generalStorage.remove(STORAGE_KEYS.ACTIVE_ROLE);
   }
 }
 
