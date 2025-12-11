@@ -151,7 +151,14 @@ class AuthService {
         try {
           const technicianUrl = getApiUrl('/technician/tecnicos');
           const payload = { idUser: response.user.idUser, isActive: true };
-          await apiClient.post(technicianUrl, payload);
+          
+          // Usar el nuevo token directamente en el header (ya fue guardado)
+          const headers = {
+            'Authorization': `Bearer ${response.access_token}`,
+            'Content-Type': 'application/json',
+          };
+          
+          await apiClient.post(technicianUrl, payload, { headers });
           console.log('[AuthService] ✅ Technician record created successfully');
         } catch (techError: any) {
           // No bloquear si falla - el usuario puede seguir pero sin técnico
@@ -159,7 +166,7 @@ class AuthService {
             // Técnico ya existe
             console.log('[AuthService] Technician already exists for this user');
           } else {
-            console.warn('[AuthService] Warning creating technician record:', techError?.message);
+            console.warn('[AuthService] Warning creating technician record:', techError?.message || techError);
           }
           // Continuar sin lanzar error
         }
