@@ -11,7 +11,7 @@ import {
 import { useRequestDraft } from '../../../context/RequestContext';
 import { apiClient } from '../../../services/api-client.service';
 import { getApiUrl } from '../../../config/api.config';
-import { homeService } from '../../../services/home.service';
+import { homeService, ServiceType } from '../../../services/home.service';
 import {
   WizardHeader,
   ProgressBar,

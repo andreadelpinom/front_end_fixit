@@ -37,6 +37,23 @@ export interface RequestPreview {
   estado?: string;
   createdAt?: string;
   ubicacion?: string;
+  idTipoServicio?: number;
+}
+
+export interface ServiceType {
+  idTipoServicio: number;
+  nombre: string;
+  descripcion?: string;
+  subServicio?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface Parroquia {
+  codigoParroquia: string;
+  nombre: string;
+  codigoCanton?: string;
+  codigoProvincia?: string;
 }
 
 // -----------------------------
@@ -96,6 +113,60 @@ class HomeService {
     }
   }
 
+  async getServiceTypes(): Promise<ServiceType[]> {
+    try {
+      const url = getApiUrl('/technician/tipos-servicios');
+      const resp = await apiClient.get<unknown>(url);
+      const data = this.unwrapArrayResponse<any>(resp);
+      
+      // Normalize backend field names to match frontend expectations
+      return data.map(item => ({
+        idTipoServicio: item.idTipoServicio,
+        nombre: item.nombreServicio,
+        descripcion: item.descripcionServicio,
+        subServicio: item.subServicio,
+        createdAt: item.createdAt,
+        updatedAt: item.updatedAt,
+      }));
+    } catch (err) {
+      console.error('HomeService.getServiceTypes error', err);
+      ErrorUtils.logError(err, 'HomeService.getServiceTypes');
+      return [];
+    }
+  }
+
+  async getParroquias(codigoCanton?: string): Promise<Parroquia[]> {
+    try {
+      const baseUrl = getApiUrl('/geo/parroquias');
+      const url =
+        codigoCanton != null && codigoCanton !== ''
+          ? `${baseUrl}?codigoCanton=${encodeURIComponent(codigoCanton)}`
+          : baseUrl;
+
+      const response = await apiClient.get<unknown>(url);
+      const data = this.unwrapArrayResponse<any>(response);
+
+      // Normalize backend field names to match frontend expectations
+      const mappedParroquias = data.map(item => ({
+        codigoParroquia: item.codigoParroquia,
+        nombre: item.nombreParroquia,
+        codigoCanton: item.codigoCanton,
+        codigoProvincia: item.canton?.codigoProvincia,
+      }));
+
+      console.log('[HomeService] Parroquias fetched', {
+        count: mappedParroquias.length,
+        hasFilter: !!codigoCanton,
+      });
+
+      return mappedParroquias;
+    } catch (error) {
+      console.error('[HomeService] Error fetching parroquias', error);
+      ErrorUtils.logError(error, 'HomeService.getParroquias');
+      return [];
+    }
+  }
+
   async getTopRatedTechs(limit = 10): Promise<TechPreview[]> {
     try {
       const q = encodeURIComponent(String(limit));
@@ -128,8 +199,24 @@ class HomeService {
     try {
       const url = getApiUrl('/request/solicitudes/my/solicitudes');
       const resp = await apiClient.get<unknown>(url);
-      const data = this.unwrapArrayResponse<RequestPreview>(resp);
-      return data;
+      const data = this.unwrapArrayResponse<any>(resp);
+
+      // Normalize backend field names to match frontend expectations
+      const mappedSolicitudes = data.map(item => ({
+        idSolicitud: item.idSolicitud,
+        titulo: item.tituloProblema,
+        descripcion: item.descripcionProblema,
+        estado: item.estadoSolicitud,
+        createdAt: item.createdAt,
+        ubicacion: item.codigoParroquia,
+        idTipoServicio: item.idTipoServicio,
+      }));
+
+      console.log('[HomeService] Mis solicitudes fetched', {
+        count: mappedSolicitudes.length,
+      });
+
+      return mappedSolicitudes;
     } catch (err) {
       console.error('HomeService.getMySolicitudes error', err);
       ErrorUtils.logError(err, 'HomeService.getMySolicitudes');
