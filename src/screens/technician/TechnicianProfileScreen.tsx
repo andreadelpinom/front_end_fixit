@@ -12,9 +12,10 @@ import { useAuth } from '../../context/AuthContext';
 import { getTechnicianByUser, TecnicoWithDetails } from '../../services/technician.service';
 
 export default function TechnicianProfileScreen() {
-  const { user, logout } = useAuth();
+  const { user, logout, switchRole, isLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [technician, setTechnician] = useState<TecnicoWithDetails | null>(null);
+  const [switchingRole, setSwitchingRole] = useState(false);
 
   useEffect(() => {
     loadProfile();
@@ -45,6 +46,32 @@ export default function TechnicianProfileScreen() {
           onPress: () => logout(),
         },
       ]
+    );
+  };
+
+  const handleSwitchToClient = async () => {
+    Alert.alert(
+      '¿Cambiar a Cliente?',
+      'Volverás a tu rol de cliente y ya no podrás ofertar servicios. Puedes cambiar de nuevo cuando quieras.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Sí, cambiar a Cliente',
+          style: 'default',
+          onPress: async () => {
+            try {
+              setSwitchingRole(true);
+              await switchRole('CLIENTE');
+            } catch (error) {
+              Alert.alert(
+                'Error',
+                'No se pudo cambiar de rol. Intenta de nuevo.',
+              );
+              setSwitchingRole(false);
+            }
+          },
+        },
+      ],
     );
   };
 
@@ -112,7 +139,37 @@ export default function TechnicianProfileScreen() {
         </View>
       )}
 
-      {/* Botón de cerrar sesión */}
+      {/* Botones de acción */}
+      <View style={styles.section}>
+        {/* Cambiar a Cliente */}
+        <View style={styles.switchRoleCard}>
+          <Text style={styles.switchRoleTitle}>
+            👤 ¿Volver a Cliente?
+          </Text>
+          <Text style={styles.switchRoleDescription}>
+            Puedes cambiar de rol cuando quieras. Como cliente podrás solicitar servicios de otros técnicos.
+          </Text>
+          <TouchableOpacity
+            style={[
+              styles.switchRoleButton,
+              switchingRole && styles.switchRoleButtonDisabled,
+            ]}
+            onPress={handleSwitchToClient}
+            disabled={switchingRole || isLoading}
+            activeOpacity={0.7}
+          >
+            {switchingRole ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <Text style={styles.switchRoleButtonText}>
+                Cambiar a Cliente
+              </Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Cerrar sesión */}
       <View style={styles.section}>
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <Text style={styles.logoutButtonText}>🚪 Cerrar Sesión</Text>
@@ -191,5 +248,44 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  switchRoleCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    marginBottom: 16,
+  },
+  switchRoleTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#000000',
+    marginBottom: 8,
+  },
+  switchRoleDescription: {
+    fontSize: 14,
+    color: '#666666',
+    lineHeight: 20,
+    marginBottom: 16,
+  },
+  switchRoleButton: {
+    backgroundColor: '#007AFF',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  switchRoleButtonDisabled: {
+    backgroundColor: '#CCCCCC',
+  },
+  switchRoleButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
