@@ -12,7 +12,9 @@ class AuthService {
     const url = getApiUrl(API_CONFIG.ENDPOINTS.AUTH.LOGIN);
 
     try {
-      console.log('[AuthService] Login attempt with:', { email: credentials.email || credentials.cedula });
+      // LoginDto is union type, safely access either email or cedula
+      const identifier = 'email' in credentials ? credentials.email : ('cedula' in credentials ? credentials.cedula : 'unknown');
+      console.log('[AuthService] Login attempt with:', { identifier });
       const response = await apiClient.post<AuthResponse>(url, credentials);
       
       console.log('[AuthService] Login response received:', {

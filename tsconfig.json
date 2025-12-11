@@ -33,10 +33,7 @@
       "core/*": ["core/*"],
       "api/*": ["api/*"],
       "mock/*": ["mock/*"]
-    },
-
-    /* ✅ Avoid future TS 7 deprecation warnings */
-    "ignoreDeprecations": "6.0"
+    }
   },
 
   /* ✅ Include all code files properly */
