@@ -1,12 +1,13 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
   FlatList,
   StyleSheet,
   TouchableOpacity,
+  ActivityIndicator,
 } from 'react-native';
-import { RequestPreview } from '../../services/home.service';
+import { homeService, RequestPreview } from '../../services/home.service';
 import { WIZARD_COLORS } from '../../screens/client/request-wizard/WizardShared';
 import SectionTitle from './SectionTitle';
 
@@ -38,33 +39,37 @@ const getStatusColor = (status?: string): string => {
 };
 
 const RecentActivity: React.FC = () => {
-  // Mock data - para inspiración en home, no datos reales del usuario
-  const mockRequests: RequestPreview[] = [
-    {
-      idSolicitud: 1001,
-      titulo: 'Reparación de tubería',
-      descripcion: 'Goteo en cocina',
-      estado: 'COMPLETADA',
-      createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-      idTipoServicio: 2,
-    },
-    {
-      idSolicitud: 1002,
-      titulo: 'Instalación de luz',
-      descripcion: 'Luz nueva en pasillo',
-      estado: 'ACEPTADA',
-      createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-      idTipoServicio: 1,
-    },
-    {
-      idSolicitud: 1003,
-      titulo: 'Reparación de cerradura',
-      descripcion: 'Puerta principal no cierra bien',
-      estado: 'PENDIENTE',
-      createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
-      idTipoServicio: 3,
-    },
-  ];
+  const [loading, setLoading] = useState(true);
+  const [requests, setRequests] = useState<RequestPreview[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function load() {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await homeService.getRecentRequests();
+        if (mounted) {
+          setRequests(data.slice(0, 5));
+        }
+      } catch (err) {
+        if (mounted) {
+          setError('No se pudieron cargar las solicitudes');
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    load();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const renderRequest = (item: RequestPreview) => (
     <TouchableOpacity style={styles.requestCard} activeOpacity={0.7}>
@@ -88,14 +93,31 @@ const RecentActivity: React.FC = () => {
     </TouchableOpacity>
   );
 
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <SectionTitle title="Actividad Reciente" />
+        <ActivityIndicator size="large" color={WIZARD_COLORS.primary} />
+      </View>
+    );
+  }
+
+  if (error || requests.length === 0) {
+    return (
+      <View style={styles.container}>
+        <SectionTitle title="Actividad Reciente" />
+        <Text style={styles.emptyText}>
+          {error || 'No hay solicitudes recientes'}
+        </Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
-      <SectionTitle 
-        title="Actividad Reciente" 
-        subtitle="Inspiración de solicitudes completadas"
-      />
+      <SectionTitle title="Actividad Reciente" />
       <FlatList
-        data={mockRequests}
+        data={requests}
         keyExtractor={(item) => String(item.idSolicitud)}
         renderItem={({ item }) => renderRequest(item)}
         scrollEnabled={false}
@@ -149,6 +171,12 @@ const styles = StyleSheet.create({
   cardDate: {
     fontSize: 11,
     color: WIZARD_COLORS.textLight,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: WIZARD_COLORS.textSecondary,
+    textAlign: 'center',
+    paddingVertical: 20,
   },
 });
 
