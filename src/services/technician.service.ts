@@ -1,13 +1,13 @@
 // src/services/technician.service.ts
 import { getApiUrl } from '../config/api.config';
 import { apiClient } from './api-client.service';
-import { 
-  Tecnico, 
-  TecnicoWithDetails, 
-  Solicitud, 
+import {
+  Tecnico,
+  TecnicoWithDetails,
+  Solicitud,
   SolicitudTecnico,
   EstadoAceptacion,
-  EstadoSolicitud 
+  EstadoSolicitud,
 } from '../types/api';
 
 // ==================== PERFIL TÉCNICO ====================
@@ -26,13 +26,17 @@ export async function getTechnicians(): Promise<TecnicoWithDetails[]> {
 }
 
 // Obtener técnico por user ID
-export async function getTechnicianByUser(idUser: number): Promise<TecnicoWithDetails> {
+export async function getTechnicianByUser(
+  idUser: number,
+): Promise<TecnicoWithDetails> {
   const url = getApiUrl(`/technician/tecnicos/user/${idUser}`);
   return apiClient.get<TecnicoWithDetails>(url);
 }
 
 // Obtener técnico por ID
-export async function getTechnicianById(idTecnico: number): Promise<TecnicoWithDetails> {
+export async function getTechnicianById(
+  idTecnico: number,
+): Promise<TecnicoWithDetails> {
   const url = getApiUrl(`/technician/tecnicos/${idTecnico}`);
   return apiClient.get<TecnicoWithDetails>(url);
 }
@@ -51,7 +55,7 @@ export async function getAvailableRequests(): Promise<Solicitud[]> {
   try {
     const url = getApiUrl('/request/solicitudes');
     const resp = await apiClient.get<unknown>(url);
-    
+
     // Unwrap response structure (handles { data: { solicitudes: [...] } })
     let allRequests: Solicitud[] = [];
     if (Array.isArray(resp)) {
@@ -71,9 +75,11 @@ export async function getAvailableRequests(): Promise<Solicitud[]> {
         }
       }
     }
-    
+
     // Filtrar solo las PENDIENTES
-    return allRequests.filter(req => req.estadoSolicitud === EstadoSolicitud.PENDIENTE);
+    return allRequests.filter(
+      req => req.estadoSolicitud === EstadoSolicitud.PENDIENTE,
+    );
   } catch (error) {
     console.error('Error fetching available requests:', error);
     return [];
@@ -90,7 +96,9 @@ export interface CreateProposalDto {
   notas?: string;
 }
 
-export async function createProposal(data: CreateProposalDto): Promise<SolicitudTecnico> {
+export async function createProposal(
+  data: CreateProposalDto,
+): Promise<SolicitudTecnico> {
   // ✅ CAMBIO: Usa /postularse en lugar de /solicitud-tecnico
   // El backend resuelve automáticamente idTecnico desde req.user.idUser
   const url = getApiUrl('/request/solicitudes-tecnicos/postularse');
@@ -104,7 +112,7 @@ export async function getMyProposals(): Promise<SolicitudTecnico[]> {
     // ✅ CAMBIO: El backend automáticamente obtiene las propuestas del técnico autenticado
     const url = getApiUrl('/request/solicitudes-tecnicos/my/propuestas');
     const resp = await apiClient.get<unknown>(url);
-    
+
     // Unwrap response structure (handles { data: {...} })
     let proposals: SolicitudTecnico[] = [];
     if (Array.isArray(resp)) {
@@ -124,7 +132,7 @@ export async function getMyProposals(): Promise<SolicitudTecnico[]> {
         }
       }
     }
-    
+
     return proposals;
   } catch (error) {
     console.error('Error fetching my proposals:', error);
@@ -135,8 +143,8 @@ export async function getMyProposals(): Promise<SolicitudTecnico[]> {
 // Actualizar estado de propuesta
 // ✅ ACTUALIZADO: Usa PUT en lugar de PATCH
 export async function updateProposal(
-  idSolTec: number, 
-  data: { costoAcordado?: number; notas?: string }
+  idSolTec: number,
+  data: { costoAcordado?: number; notas?: string },
 ): Promise<SolicitudTecnico> {
   // ✅ CAMBIO: Usa PUT y la ruta correcta
   const url = getApiUrl(`/request/solicitudes-tecnicos/${idSolTec}`);
@@ -186,7 +194,7 @@ export async function getTechnicianStats(): Promise<TechnicianStats> {
     // ✅ CAMBIO: El backend tiene un endpoint específico para esto
     const url = getApiUrl('/request/solicitudes-tecnicos/my/stats');
     const backendStats = await apiClient.get<any>(url);
-    
+
     // Mapear la respuesta del backend al formato que espera el frontend
     return {
       totalProposals: backendStats.totalPropuestas || 0,
@@ -206,24 +214,26 @@ export async function getTechnicianStats(): Promise<TechnicianStats> {
 async function getTechnicianStatsLocal(): Promise<TechnicianStats> {
   try {
     const proposals = await getMyProposals();
-    
+
     const acceptedJobs = proposals.filter(
-      p => p.estadoAcuerdo === EstadoAceptacion.ACEPTADO
+      p => p.estadoAcuerdo === EstadoAceptacion.ACEPTADO,
     ).length;
-    
+
     const completedJobs = proposals.filter(
-      p => p.estadoAcuerdo === 'COMPLETADO'
+      p => p.estadoAcuerdo === 'COMPLETADO',
     ).length;
-    
+
     const totalEarnings = proposals
-      .filter(p => 
-        p.estadoAcuerdo === EstadoAceptacion.ACEPTADO || 
-        p.estadoAcuerdo === 'COMPLETADO'
+      .filter(
+        p =>
+          p.estadoAcuerdo === EstadoAceptacion.ACEPTADO ||
+          p.estadoAcuerdo === 'COMPLETADO',
       )
       .reduce((sum, p) => {
-        const cost = typeof p.costoAcordado === 'string' 
-          ? parseFloat(p.costoAcordado) 
-          : p.costoAcordado || 0;
+        const cost =
+          typeof p.costoAcordado === 'string'
+            ? parseFloat(p.costoAcordado)
+            : p.costoAcordado || 0;
         return sum + cost;
       }, 0);
 
