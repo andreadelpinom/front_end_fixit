@@ -90,61 +90,69 @@ export default function ClientRequestsScreen({ navigation }: Props) {
       return dateB - dateA;
     });
 
-  const renderRequestCard = (item: RequestPreview) => (
-    <TouchableOpacity
-      style={styles.requestCard}
-      onPress={() => {
-        navigation.navigate('RequestDetails', { idSolicitud: item.idSolicitud });
-      }}
-      activeOpacity={0.7}
-    >
-      <View style={styles.cardHeader}>
-        <View style={styles.cardTitleContainer}>
-          <Text style={styles.cardTitle} numberOfLines={2}>
-            {item.titulo}
-          </Text>
-          {item.estado === 'PENDIENTE' && (item.proposalCount ?? 0) > 0 && (
-            <TouchableOpacity
-              style={styles.proposalBadge}
-              onPress={() => {
-                navigation.navigate('Proposals', { idSolicitud: item.idSolicitud });
-              }}
-            >
-              <Text style={styles.proposalBadgeText}>
-                {item.proposalCount} {item.proposalCount === 1 ? 'propuesta' : 'propuestas'}
-              </Text>
-            </TouchableOpacity>
-          )}
+  const renderRequestCard = (item: RequestPreview) => {
+    const hasProposals = item.estado === 'PENDIENTE' && (item.proposalCount ?? 0) > 0;
+
+    return (
+      <TouchableOpacity
+        style={[
+          styles.requestCard,
+          hasProposals && styles.requestCardWithProposals,
+        ]}
+        onPress={() => {
+          navigation.navigate('RequestDetails', { idSolicitud: item.idSolicitud });
+        }}
+        activeOpacity={0.7}
+      >
+        <View style={styles.cardHeader}>
+          <View style={styles.cardTitleContainer}>
+            <Text style={styles.cardTitle} numberOfLines={2}>
+              {item.titulo}
+            </Text>
+            {hasProposals && (
+              <TouchableOpacity
+                style={styles.proposalBadge}
+                onPress={() => {
+                  navigation.navigate('Proposals', { idSolicitud: item.idSolicitud });
+                }}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.proposalBadgeText}>
+                  {item.proposalCount} {item.proposalCount === 1 ? 'propuesta' : 'propuestas'}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+          <View
+            style={[
+              styles.cardStatusBadge,
+              activeTab === 'PENDIENTE' && styles.badgePendiente,
+              activeTab === 'ACEPTADA' && styles.badgeAceptada,
+              activeTab === 'COMPLETADA' && styles.badgeCompletada,
+            ]}
+          >
+            <Text style={styles.badgeText}>{item.estado}</Text>
+          </View>
         </View>
-        <View
-          style={[
-            styles.cardStatusBadge,
-            activeTab === 'PENDIENTE' && styles.badgePendiente,
-            activeTab === 'ACEPTADA' && styles.badgeAceptada,
-            activeTab === 'COMPLETADA' && styles.badgeCompletada,
-          ]}
-        >
-          <Text style={styles.badgeText}>{item.estado}</Text>
-        </View>
-      </View>
 
-      <Text style={styles.cardService}>
-        Servicio ID: {item.idTipoServicio || '-'}
-      </Text>
+        <Text style={styles.cardService}>
+          Servicio ID: {item.idTipoServicio || '-'}
+        </Text>
 
-      <Text style={styles.cardDescription} numberOfLines={2}>
-        {item.descripcion}
-      </Text>
+        <Text style={styles.cardDescription} numberOfLines={2}>
+          {item.descripcion}
+        </Text>
 
-      <Text style={styles.cardLocation}>
-        Ubicación: {item.codigoParroquia || '-'}
-      </Text>
+        <Text style={styles.cardLocation}>
+          Ubicación: {item.codigoParroquia || '-'}
+        </Text>
 
-      <Text style={styles.cardDate}>
-        {formatDate(item.createdAt || '')}
-      </Text>
-    </TouchableOpacity>
-  );
+        <Text style={styles.cardDate}>
+          {formatDate(item.createdAt || '')}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
 
   const renderHeader = () => (
     <>
@@ -372,6 +380,11 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 2,
   },
+  requestCardWithProposals: {
+    backgroundColor: '#FFF8F0',
+    borderLeftColor: '#FF3B30',
+    borderLeftWidth: 5,
+  },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -390,17 +403,16 @@ const styles = StyleSheet.create({
   },
   proposalBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: '#fff3cd',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#ffc107',
+    backgroundColor: '#FF3B30',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    marginTop: 8,
   },
   proposalBadgeText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#856404',
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   cardStatusBadge: {
     paddingHorizontal: 12,

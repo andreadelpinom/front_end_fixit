@@ -146,7 +146,7 @@ export const requestService = {
   ): Promise<SolicitudResponse> {
     try {
       const response = await apiClient.get<ApiResponse>(
-        '/request/solicitudes/my/solicitudes',
+        '/request/solicitudes',
         {
           params: {
             estado: status,
