@@ -15,12 +15,16 @@ import {
   createProposal,
   Solicitud,
 } from '../../services/technician.service';
+import SubmitProposalModal from '../../components/SubmitProposalModal';
 
 export default function AvailableRequestsScreen() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [requests, setRequests] = useState<Solicitud[]>([]);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState<Solicitud | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   const loadData = async () => {
     if (!user) return;
@@ -47,40 +51,38 @@ export default function AvailableRequestsScreen() {
     loadData();
   };
 
-  const handleApply = async (request: Solicitud) => {
-  Alert.prompt(
-    'Enviar Propuesta',
-    `Ingresa tu costo propuesto para: "${request.tituloProblema}"`,
-    [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Enviar',
-        onPress: async (costo?: string) => {
-          try {
-            const costoNum = parseFloat(costo || '0');
-            if (isNaN(costoNum) || costoNum <= 0) {
-              Alert.alert('Error', 'Ingresa un costo válido');
-              return;
-            }
+  const handleApply = (request: Solicitud) => {
+    setSelectedRequest(request);
+    setModalVisible(true);
+  };
 
-            // El backend resuelve idTecnico automáticamente desde el JWT
-            await createProposal({
-              idSolicitud: request.idSolicitud,
-              costoAcordado: costoNum,
-              notas: 'Propuesta enviada desde la app',
-            });
+  const handleSubmitProposal = async (cost: number, notes?: string) => {
+    if (!selectedRequest) return;
 
-            Alert.alert('Éxito', '✅ Propuesta enviada correctamente');
+    setSubmitting(true);
+    try {
+      await createProposal({
+        idSolicitud: selectedRequest.idSolicitud,
+        costoAcordado: cost,
+        notas: notes || 'Propuesta enviada desde la app',
+      });
+
+      Alert.alert('Éxito', '✅ Propuesta enviada correctamente', [
+        {
+          text: 'OK',
+          onPress: () => {
+            setSelectedRequest(null);
             loadData();
-          } catch (err: any) {
-            Alert.alert('Error', err.message || 'No se pudo enviar la propuesta');
-          }
+          },
         },
-      },
-    ],
-    'plain-text'
-  );
-};
+      ]);
+    } catch (err: any) {
+      console.error('[AvailableRequestsScreen] Error:', err);
+      Alert.alert('Error', err.message || 'No se pudo enviar la propuesta');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const renderItem = ({ item }: { item: Solicitud }) => (
     <View style={styles.card}>
@@ -142,6 +144,19 @@ export default function AvailableRequestsScreen() {
           </View>
         }
       />
+
+      {selectedRequest && (
+        <SubmitProposalModal
+          visible={modalVisible}
+          requestTitle={selectedRequest.tituloProblema}
+          onClose={() => {
+            setModalVisible(false);
+            setSelectedRequest(null);
+          }}
+          onSubmit={handleSubmitProposal}
+          isLoading={submitting}
+        />
+      )}
     </View>
   );
 }

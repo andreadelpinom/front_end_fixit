@@ -61,8 +61,8 @@ export default function ProposalsScreen({ navigation, route }: Props) {
 
   const handleAcceptProposal = (proposal: Proposal) => {
     Alert.alert(
-      'Aceptar Propuesta',
-      `¿Aceptar la propuesta de $${proposal.costoAcordado?.toFixed(2) || '0.00'}?\n\nEsta acción asignará el técnico a tu solicitud y rechazará todas las demás propuestas.`,
+      '✅ Aceptar Propuesta',
+      `¿Aceptar esta propuesta de $${proposal.costoAcordado?.toFixed(2) || '0.00'}?\n\nEsta acción:\n• Asignará el técnico a tu solicitud\n• Rechazará automáticamente las otras propuestas`,
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -71,7 +71,7 @@ export default function ProposalsScreen({ navigation, route }: Props) {
             setAccepting(proposal.idSolTec);
             try {
               await homeService.acceptProposal(proposal.idSolTec);
-              Alert.alert('Éxito', '✅ Propuesta aceptada correctamente', [
+              Alert.alert('✅ Éxito', 'Propuesta aceptada. El técnico ha sido asignado.', [
                 {
                   text: 'OK',
                   onPress: () => {
@@ -96,8 +96,8 @@ export default function ProposalsScreen({ navigation, route }: Props) {
 
   const handleRejectProposal = (proposal: Proposal) => {
     Alert.alert(
-      'Rechazar Propuesta',
-      '¿Rechazar esta propuesta?',
+      '❌ Rechazar Propuesta',
+      `¿Rechazar la propuesta de $${proposal.costoAcordado?.toFixed(2) || '0.00'}?\n\nLa solicitud seguirá abierta para otras propuestas.`,
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -106,7 +106,7 @@ export default function ProposalsScreen({ navigation, route }: Props) {
             setAccepting(proposal.idSolTec);
             try {
               await homeService.rejectProposal(proposal.idSolTec);
-              Alert.alert('Éxito', 'Propuesta rechazada');
+              Alert.alert('✅ Propuesta rechazada');
               loadProposals();
             } catch (err) {
               console.error('Error rejecting proposal:', err);

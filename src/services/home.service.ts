@@ -39,6 +39,7 @@ export interface RequestPreview {
   ubicacion?: string;
   codigoParroquia?: string;
   idTipoServicio?: number;
+  proposalCount?: number;
 }
 
 export interface RequestDetails {

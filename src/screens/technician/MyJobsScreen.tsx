@@ -6,7 +6,9 @@ import {
   StyleSheet,
   ActivityIndicator,
   RefreshControl,
+  TouchableOpacity,
 } from 'react-native';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useAuth } from '../../context/AuthContext';
 import {
   getMyProposals,
@@ -14,7 +16,9 @@ import {
 } from '../../services/technician.service';
 import { EstadoAceptacion } from '../../types/api';
 
-export default function MyJobsScreen() {
+type Props = NativeStackScreenProps<any>;
+
+export default function MyJobsScreen({ navigation }: Props) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -108,6 +112,17 @@ export default function MyJobsScreen() {
           </Text>
         )}
       </View>
+
+      {item.estadoAcuerdo === EstadoAceptacion.ACEPTADO && (
+        <TouchableOpacity
+          style={styles.ctaButton}
+          onPress={() => {
+            navigation.navigate('ActiveJobs', { idSolicitud: item.idSolicitud });
+          }}
+        >
+          <Text style={styles.ctaButtonText}>Ir al trabajo →</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 
@@ -202,11 +217,25 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#E5E5EA',
     paddingTop: 8,
+    marginBottom: 12,
   },
   date: {
     fontSize: 12,
     color: '#8E8E93',
     marginTop: 4,
+  },
+  ctaButton: {
+    backgroundColor: '#34C759',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  ctaButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
   },
   emptyContainer: {
     padding: 32,

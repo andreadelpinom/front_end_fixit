@@ -99,9 +99,23 @@ export default function ClientRequestsScreen({ navigation }: Props) {
       activeOpacity={0.7}
     >
       <View style={styles.cardHeader}>
-        <Text style={styles.cardTitle} numberOfLines={2}>
-          {item.titulo}
-        </Text>
+        <View style={styles.cardTitleContainer}>
+          <Text style={styles.cardTitle} numberOfLines={2}>
+            {item.titulo}
+          </Text>
+          {item.estado === 'PENDIENTE' && (item.proposalCount ?? 0) > 0 && (
+            <TouchableOpacity
+              style={styles.proposalBadge}
+              onPress={() => {
+                navigation.navigate('Proposals', { idSolicitud: item.idSolicitud });
+              }}
+            >
+              <Text style={styles.proposalBadgeText}>
+                {item.proposalCount} {item.proposalCount === 1 ? 'propuesta' : 'propuestas'}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
         <View
           style={[
             styles.cardStatusBadge,
@@ -363,13 +377,30 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     marginBottom: 8,
+    gap: 8,
+  },
+  cardTitleContainer: {
+    flex: 1,
   },
   cardTitle: {
     fontSize: 14,
     fontWeight: '700',
     color: '#333',
-    flex: 1,
-    marginRight: 8,
+    marginBottom: 4,
+  },
+  proposalBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#fff3cd',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#ffc107',
+  },
+  proposalBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#856404',
   },
   cardStatusBadge: {
     paddingHorizontal: 12,
