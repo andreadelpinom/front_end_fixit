@@ -449,6 +449,68 @@ class HomeService {
     }
   }
 
+  /**
+   * Obtiene propuestas para una solicitud específica
+   * @param idSolicitud - ID de la solicitud
+   */
+  async getProposals(idSolicitud: number): Promise<any[]> {
+    try {
+      const url = getApiUrl(`/request/solicitudes-tecnicos/solicitud/${idSolicitud}`);
+      const resp = await apiClient.get<unknown>(url);
+      const data = this.unwrapArrayResponse<any>(resp);
+      return data;
+    } catch (err) {
+      console.error('[HomeService] Error fetching proposals:', err);
+      throw err;
+    }
+  }
+
+  /**
+   * Acepta una propuesta
+   * @param idSolTec - ID de la propuesta técnico-solicitud
+   */
+  async acceptProposal(idSolTec: number): Promise<any> {
+    try {
+      const url = getApiUrl(`/request/solicitudes-tecnicos/${idSolTec}/responder`);
+      const response = await apiClient.put<any>(url, {
+        estadoAcuerdo: 'ACEPTADO',
+      });
+
+      if (response && response.success === false) {
+        throw new Error(response.error || 'No se pudo aceptar la propuesta');
+      }
+
+      console.log('[HomeService] Proposal accepted', { idSolTec });
+      return response;
+    } catch (err) {
+      console.error('[HomeService] Error accepting proposal:', err);
+      throw err;
+    }
+  }
+
+  /**
+   * Rechaza una propuesta
+   * @param idSolTec - ID de la propuesta técnico-solicitud
+   */
+  async rejectProposal(idSolTec: number): Promise<any> {
+    try {
+      const url = getApiUrl(`/request/solicitudes-tecnicos/${idSolTec}/responder`);
+      const response = await apiClient.put<any>(url, {
+        estadoAcuerdo: 'RECHAZADO',
+      });
+
+      if (response && response.success === false) {
+        throw new Error(response.error || 'No se pudo rechazar la propuesta');
+      }
+
+      console.log('[HomeService] Proposal rejected', { idSolTec });
+      return response;
+    } catch (err) {
+      console.error('[HomeService] Error rejecting proposal:', err);
+      throw err;
+    }
+  }
+
 }
 
 export const homeService = new HomeService();

@@ -270,6 +270,14 @@ export default function RequestDetailsScreen({ navigation, route }: Props) {
                 {canceling ? 'Cancelando...' : '🗑️ Cancelar solicitud'}
               </Text>
             </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.viewProposalsButton}
+              onPress={() => navigation.navigate('Proposals', { idSolicitud: details.idSolicitud })}
+              disabled={canceling}
+            >
+              <Text style={styles.viewProposalsButtonText}>👀 Ver propuestas</Text>
+            </TouchableOpacity>
           </View>
         )}
 
@@ -393,6 +401,18 @@ const styles = StyleSheet.create({
   },
   cancelButtonDisabled: {
     opacity: 0.6,
+  },
+  viewProposalsButton: {
+    backgroundColor: '#FF9800',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  viewProposalsButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
   },
   backToListButton: {
     paddingVertical: 14,

@@ -119,7 +119,9 @@ export default function RequestStepScheduleScreen({ navigation }: any): React.Re
             updateDraft({
               tituloProblema: undefined,
               descripcionProblema: undefined,
+              presupuesto: undefined,
               idTipoServicio: undefined,
+              direccion: undefined,
               codigoParroquia: undefined,
               fechaProgramada: undefined,
             });

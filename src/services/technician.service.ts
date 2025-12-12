@@ -60,19 +60,24 @@ export async function deleteTechnician(idTecnico: number): Promise<void> {
 
 // ==================== SOLICITUDES DISPONIBLES ====================
 
-// Obtener solicitudes disponibles (PENDIENTES)
-// ✅ ACTUALIZADO: Backend ahora filtra por estado, frontend solo unwraps
-export async function getAvailableRequests(): Promise<Solicitud[]> {
+/**
+ * 🔑 NUEVO: Obtiene solicitudes disponibles para técnicos
+ * 
+ * MVP DEFINITION:
+ * Una solicitud es visible si: estadoSolicitud = PENDIENTE AND idTecnicoAsignado IS NULL
+ * 
+ * Basado en modelo Uber/InDriver
+ * @returns Array de solicitudes sin técnico asignado
+ */
+export async function getAvailableRequests(filterDto?: any): Promise<Solicitud[]> {
   try {
-    // Backend retorna solo PENDIENTE por defecto con parámetro estado
-    const url = getApiUrl('/request/solicitudes');
+    // 🔑 NUEVO ENDPOINT: Diseñado específicamente para técnicos
+    const url = getApiUrl('/request/solicitudes/available/technicians');
     const resp = await apiClient.get<unknown>(url, {
-      params: {
-        estado: 'PENDIENTE',
-      },
+      params: filterDto || {},
     });
 
-    // Unwrap response structure (handles { data: { solicitudes: [...] } })
+    // Unwrap response structure
     let allRequests: Solicitud[] = [];
     if (Array.isArray(resp)) {
       allRequests = resp;
@@ -92,10 +97,10 @@ export async function getAvailableRequests(): Promise<Solicitud[]> {
       }
     }
 
-    // ✅ Backend ya retorna solo PENDIENTE, no necesitamos filtrar
+    console.log('[TechnicianService] Available requests loaded:', allRequests.length);
     return allRequests;
   } catch (error) {
-    console.error('Error fetching available requests:', error);
+    console.error('[TechnicianService] Error fetching available requests:', error);
     return [];
   }
 }

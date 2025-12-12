@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import HomeScreen from '../screens/client/HomeScreen';
 import ClientRequestsScreen from '../screens/client/ClientRequestsScreen';
 import RequestDetailsScreen from '../screens/client/RequestDetailsScreen';
+import ProposalsScreen from '../screens/client/ProposalsScreen';
 import ClientProfileScreen from '../screens/client/ClientProfileScreen';
 import EditProfileScreen from '../screens/client/EditProfileScreen';
 import RequestsHistoryScreen from '../screens/client/RequestsHistoryScreen';
@@ -39,6 +40,7 @@ function RequestsStack() {
     <Stack.Navigator initialRouteName="ClientRequests">
       <Stack.Screen name="ClientRequests" component={ClientRequestsScreen} options={{ title: 'Solicitudes' }} />
       <Stack.Screen name="RequestDetails" component={RequestDetailsScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="Proposals" component={ProposalsScreen} options={{ title: 'Propuestas' }} />
       <Stack.Screen name="CreateRequestStack" component={CreateRequestStack as any} options={{ headerShown: false }} />
     </Stack.Navigator>
   );

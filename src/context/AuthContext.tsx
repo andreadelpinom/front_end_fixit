@@ -47,7 +47,7 @@ const initialState: ExtendedAuthState = {
   user: null,
   tokens: null,
   isAuthenticated: false,
-  isLoading: true,
+  isLoading: false,
   error: null,
   isRoleSelectionNeeded: false,
 };
@@ -80,7 +80,10 @@ function authReducer(state: ExtendedAuthState, action: AuthAction): ExtendedAuth
       };
 
     case 'LOGOUT':
-      return { ...initialState };
+      return {
+        ...initialState,
+        isLoading: false, // Asegurar que no quede en loading
+      };
 
     case 'RESTORE_SESSION':
       return {
