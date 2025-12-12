@@ -13,7 +13,8 @@ import {
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../../context/AuthContext';
 import { WIZARD_COLORS } from './request-wizard/WizardShared';
-import { requestService, Solicitud } from '../../services/request.service';
+import { requestService } from '../../services/request.service';
+import { Solicitud } from '../../types/api';
 
 type Props = NativeStackNavigationProp<any>;
 
