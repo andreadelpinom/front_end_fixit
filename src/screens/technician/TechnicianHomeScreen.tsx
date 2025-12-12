@@ -8,33 +8,80 @@ import {
   TouchableOpacity,
   RefreshControl,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../../context/AuthContext';
 import {
   getTechnicianByUser,
   getTechnicianStats,
   TechnicianStats,
 } from '../../services/technician.service';
+import { technician as technicianService } from '../../services/technician.service';
 import { TecnicoWithDetails } from '../../types/api';
 
-export default function TechnicianHomeScreen() {
+interface PendingOffer {
+  idSolTec: number;
+  tituloProblema: string;
+  costoAcordado: number;
+  fechaPropuesta: string;
+}
+
+interface ActiveJob {
+  idSolicitud: number;
+  tituloProblema: string;
+  direccion: string;
+  fechaProgramada?: string;
+}
+
+export default function TechnicianHomeScreen({ navigation }: any) {
   const { user } = useAuth();
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [technician, setTechnician] = useState<TecnicoWithDetails | null>(null);
   const [stats, setStats] = useState<TechnicianStats | null>(null);
+  const [pendingOffer, setPendingOffer] = useState<PendingOffer | null>(null);
+  const [activeJob, setActiveJob] = useState<ActiveJob | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      loadData();
+    }, [user])
+  );
 
   const loadData = async () => {
     if (!user) return;
 
     try {
       setError(null);
+      // Load technician data
       const techData = await getTechnicianByUser(user.idUser);
       setTechnician(techData);
 
-      // El backend resuelve automáticamente desde el JWT
+      // Load stats
       const statsData = await getTechnicianStats();
       setStats(statsData);
+
+      // Try to load pending offer (first proposal in PROPUESTO state)
+      try {
+        const proposals = await technicianService.getMyProposals();
+        const pending = proposals.find(
+          (p: any) => p.estadoAceptacion === 'PROPUESTO'
+        );
+        setPendingOffer(pending || null);
+      } catch {
+        setPendingOffer(null);
+      }
+
+      // Try to load active job
+      try {
+        const jobs = await technicianService.getMyJobs();
+        const active = jobs.find(
+          (j: any) => j.estadoSolicitud === 'ACEPTADA'
+        );
+        setActiveJob(active || null);
+      } catch {
+        setActiveJob(null);
+      }
     } catch (err: any) {
       console.error('Error loading technician data:', err);
       setError(err?.message || 'Error al cargar datos');
@@ -44,13 +91,55 @@ export default function TechnicianHomeScreen() {
     }
   };
 
-  useEffect(() => {
-    loadData();
-  }, [user]);
-
   const onRefresh = () => {
     setRefreshing(true);
     loadData();
+  };
+
+  const getMainStatusContent = () => {
+    // Priority 1: Active job
+    if (activeJob) {
+      return {
+        title: activeJob.tituloProblema,
+        status: '✅ TRABAJO ACTIVO',
+        statusColor: '#4CAF50',
+        details: activeJob.direccion,
+        cta: {
+          text: 'Ir al trabajo',
+          action: () =>
+            navigation.navigate('MyJobs', {
+              screen: 'JobDetails',
+              params: { idSolicitud: activeJob.idSolicitud },
+            }),
+        },
+      };
+    }
+
+    // Priority 2: Pending offer
+    if (pendingOffer) {
+      return {
+        title: pendingOffer.tituloProblema,
+        status: '⏳ PROPUESTA ENVIADA',
+        statusColor: '#FF9800',
+        details: `Propuesta de $${pendingOffer.costoAcordado}`,
+        cta: {
+          text: 'Ver mis propuestas',
+          action: () => navigation.navigate('MyJobs'),
+        },
+      };
+    }
+
+    // Default: no active work
+    return {
+      title: 'Sin trabajos activos',
+      status: null,
+      statusColor: null,
+      details: 'Explora solicitudes disponibles',
+      cta: {
+        text: 'Explorar solicitudes',
+        action: () => navigation.navigate('AvailableRequests'),
+      },
+    };
   };
 
   if (loading) {
@@ -73,7 +162,7 @@ export default function TechnicianHomeScreen() {
     );
   }
 
-  // Verificar si el técnico no está verificado
+  const mainStatus = getMainStatusContent();
   const isNotVerified = technician && technician.status !== 'VERIFICADO';
 
   return (
@@ -83,7 +172,7 @@ export default function TechnicianHomeScreen() {
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
       }
     >
-      {/* Banner de no verificado */}
+      {/* Verification Banner */}
       {isNotVerified && (
         <View style={styles.warningBanner}>
           <Text style={styles.warningIcon}>⚠️</Text>
@@ -96,258 +185,231 @@ export default function TechnicianHomeScreen() {
         </View>
       )}
 
-      {/* Header con bienvenida */}
-      <View style={styles.header}>
-        <Text style={styles.greeting}>¡Hola, {user?.nombres}!</Text>
-        <Text style={styles.subtitle}>Bienvenido a tu panel de técnico</Text>
+      {/* Main Status Card */}
+      <View style={styles.statusCard}>
+        {mainStatus.status && (
+          <View
+            style={[
+              styles.statusBadge,
+              { backgroundColor: mainStatus.statusColor },
+            ]}
+          >
+            <Text style={styles.statusBadgeText}>{mainStatus.status}</Text>
+          </View>
+        )}
+        <Text style={styles.mainTitle}>{mainStatus.title}</Text>
+        <Text style={styles.statusDetails}>{mainStatus.details}</Text>
       </View>
 
-      {/* Estadísticas principales */}
+      {/* Primary CTA */}
+      <TouchableOpacity
+        style={styles.ctaButton}
+        onPress={mainStatus.cta.action}
+      >
+        <Text style={styles.ctaButtonText}>{mainStatus.cta.text}</Text>
+      </TouchableOpacity>
+
+      {/* Stats Row */}
       {stats && (
         <View style={styles.statsContainer}>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{stats.totalProposals}</Text>
-            <Text style={styles.statLabel}>Propuestas</Text>
+          <View style={styles.statBox}>
+            <Text style={styles.statNumber}>{stats.totalWorksCompleted}</Text>
+            <Text style={styles.statLabel}>Trabajos</Text>
           </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{stats.acceptedJobs}</Text>
-            <Text style={styles.statLabel}>Aceptados</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{stats.completedJobs}</Text>
-            <Text style={styles.statLabel}>Completados</Text>
-          </View>
-          <View style={styles.statCard}>
+          <View style={styles.statBox}>
             <Text style={styles.statNumber}>
-              ${stats.totalEarnings.toFixed(2)}
+              {stats.averageRating?.toFixed(1) || '—'}
             </Text>
+            <Text style={styles.statLabel}>Calificación</Text>
+          </View>
+          <View style={styles.statBox}>
+            <Text style={styles.statNumber}>{stats.totalEarnings || '$0'}</Text>
             <Text style={styles.statLabel}>Ganancias</Text>
           </View>
         </View>
       )}
 
-      {/* Información del perfil */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Mi Perfil Técnico</Text>
-        <View style={styles.card}>
-          <InfoRow label="ID Técnico" value={`#${technician?.idTecnico}`} />
-          <InfoRow
-            label="Calificaciones"
-            value={`${technician?.totalCalificaciones || 0}`}
-          />
-          <InfoRow
-            label="Promedio"
-            value={`${technician?.promedioCalificaciones?.toFixed(1) || 'N/A'} ⭐`}
-          />
-          <InfoRow
-            label="Estado Cuenta"
-            value={getStatusDisplay(technician?.status || 'REGISTRADO')}
-          />
-          <InfoRow
-            label="Estado"
-            value={technician?.isActive ? '✅ Activo' : '❌ Inactivo'}
-          />
+      {/* Profile Completion Banner */}
+      {technician && (
+        <View style={styles.infoCard}>
+          <Text style={styles.infoTitle}>📋 Completa tu Perfil</Text>
+          <Text style={styles.infoText}>
+            Los clientes ven mejor tu perfil cuando está 100% completo
+          </Text>
+          <TouchableOpacity
+            style={styles.infoButton}
+            onPress={() => navigation.navigate('Profile')}
+          >
+            <Text style={styles.infoButtonText}>Editar Perfil</Text>
+          </TouchableOpacity>
         </View>
-      </View>
-
-      {/* Acciones rápidas */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Acciones Rápidas</Text>
-        <TouchableOpacity style={styles.actionButton}>
-          <Text style={styles.actionButtonText}>📋 Ver Solicitudes Disponibles</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton}>
-          <Text style={styles.actionButtonText}>💼 Mis Trabajos Activos</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton}>
-          <Text style={styles.actionButtonText}>⚙️ Configurar Servicios</Text>
-        </TouchableOpacity>
-      </View>
+      )}
     </ScrollView>
   );
-}
-
-// Componente auxiliar
-function InfoRow({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={styles.infoRow}>
-      <Text style={styles.infoLabel}>{label}:</Text>
-      <Text style={styles.infoValue}>{value}</Text>
-    </View>
-  );
-}
-
-// Función para mostrar el estado de forma legible
-function getStatusDisplay(status: string): string {
-  switch (status) {
-    case 'REGISTRADO':
-      return '🟡 No Verificado';
-    case 'VERIFICACION_PENDIENTE':
-      return '🟠 En Revisión';
-    case 'VERIFICADO':
-      return '✅ Verificado';
-    case 'BLOQUEADO':
-      return '🔴 Bloqueado';
-    default:
-      return '🟡 No Verificado';
-  }
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: '#F5F5F5',
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F2F2F7',
   },
   loadingText: {
     marginTop: 12,
     fontSize: 16,
-    color: '#8E8E93',
+    color: '#757575',
   },
   errorText: {
     fontSize: 16,
-    color: '#FF3B30',
+    color: '#C62828',
+    marginBottom: 16,
     textAlign: 'center',
-    marginHorizontal: 32,
-    marginBottom: 20,
   },
   retryButton: {
     backgroundColor: '#007AFF',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 6,
   },
   retryButtonText: {
     color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  header: {
-    backgroundColor: '#007AFF',
-    padding: 24,
-    paddingTop: 16,
-  },
-  greeting: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 4,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#FFFFFF',
-    opacity: 0.9,
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    padding: 16,
-    gap: 12,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  statNumber: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#007AFF',
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#8E8E93',
-    textAlign: 'center',
-  },
-  section: {
-    padding: 16,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#000000',
-    marginBottom: 12,
-  },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-  },
-  infoLabel: {
-    fontSize: 16,
-    color: '#8E8E93',
-  },
-  infoValue: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000000',
-  },
-  actionButton: {
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  actionButtonText: {
-    fontSize: 16,
-    color: '#007AFF',
     fontWeight: '600',
   },
   warningBanner: {
-    backgroundColor: '#FFF3CD',
+    backgroundColor: '#FFF3E0',
+    borderLeftColor: '#FF9800',
     borderLeftWidth: 4,
-    borderLeftColor: '#FFC107',
+    padding: 12,
+    margin: 12,
+    borderRadius: 6,
     flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    marginHorizontal: 16,
-    marginTop: 16,
-    borderRadius: 8,
+    alignItems: 'flex-start',
   },
   warningIcon: {
-    fontSize: 24,
-    marginRight: 12,
+    fontSize: 20,
+    marginRight: 8,
   },
   warningContent: {
     flex: 1,
   },
   warningTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
-    color: '#856404',
-    marginBottom: 4,
+    color: '#E65100',
   },
   warningText: {
+    fontSize: 12,
+    color: '#BF360C',
+    marginTop: 4,
+  },
+  statusCard: {
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 12,
+    marginTop: 12,
+    marginBottom: 16,
+    padding: 20,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  statusBadge: {
+    alignSelf: 'flex-start',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    marginBottom: 12,
+  },
+  statusBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  mainTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#212121',
+    marginBottom: 8,
+  },
+  statusDetails: {
     fontSize: 14,
-    color: '#856404',
+    color: '#757575',
+  },
+  ctaButton: {
+    backgroundColor: '#007AFF',
+    marginHorizontal: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  ctaButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    marginHorizontal: 12,
+    marginBottom: 20,
+    gap: 12,
+  },
+  statBox: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  statNumber: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#007AFF',
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#757575',
+    marginTop: 4,
+  },
+  infoCard: {
+    backgroundColor: '#E3F2FD',
+    marginHorizontal: 12,
+    marginBottom: 20,
+    padding: 16,
+    borderRadius: 8,
+  },
+  infoTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1565C0',
+    marginBottom: 8,
+  },
+  infoText: {
+    fontSize: 13,
+    color: '#0D47A1',
+    lineHeight: 18,
+    marginBottom: 12,
+  },
+  infoButton: {
+    backgroundColor: '#1976D2',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  infoButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
