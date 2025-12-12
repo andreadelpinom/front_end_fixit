@@ -57,6 +57,13 @@ class StorageService {
   private readonly tokenStorage: StorageStrategy;
   private readonly generalStorage: StorageStrategy;
 
+  // 🚀 CACHE EN MEMORIA para tokens (mejora de performance)
+  // Apps reales (Uber, Indriver) guardan tokens en memoria para acceso rápido
+  private memoryCache = {
+    accessToken: null as string | null,
+    refreshToken: null as string | null,
+  };
+
   constructor() {
     const isWeb = Platform.OS === 'web';
     this.tokenStorage = isWeb
@@ -68,7 +75,7 @@ class StorageService {
   }
 
   // -------------------------
-  // TOKENS (CON VALIDACIÓN)
+  // TOKENS (CON CACHING EN MEMORIA)
   // -------------------------
   async saveTokens(tokens: AuthTokens): Promise<void> {
     // Validar que ambos tokens sean strings válidos
@@ -86,6 +93,11 @@ class StorageService {
       refreshTokenLength: tokens.refresh_token.length,
     });
 
+    // Guardar en cache en memoria (instant)
+    this.memoryCache.accessToken = tokens.access_token;
+    this.memoryCache.refreshToken = tokens.refresh_token;
+
+    // Guardar en storage persistente (async, background)
     await this.tokenStorage.set(STORAGE_KEYS.ACCESS_TOKEN, tokens.access_token);
     await this.tokenStorage.set(
       STORAGE_KEYS.REFRESH_TOKEN,
@@ -95,17 +107,40 @@ class StorageService {
   }
 
   async getAccessToken() {
+    // 🟢 Primero intentar desde cache en memoria (instant, 0.1ms)
+    if (this.memoryCache.accessToken) {
+      return this.memoryCache.accessToken;
+    }
+
+    // 🔵 Si no está en cache, cargar desde storage (first time only)
     const token = await this.tokenStorage.get(STORAGE_KEYS.ACCESS_TOKEN);
+    if (token) {
+      this.memoryCache.accessToken = token;
+    }
     console.log('[StorageService] getAccessToken called:', { hasToken: !!token });
     return token;
   }
 
   async getRefreshToken() {
-    return this.tokenStorage.get(STORAGE_KEYS.REFRESH_TOKEN);
+    // 🟢 Primero intentar desde cache en memoria
+    if (this.memoryCache.refreshToken) {
+      return this.memoryCache.refreshToken;
+    }
+
+    // 🔵 Si no está en cache, cargar desde storage
+    const token = await this.tokenStorage.get(STORAGE_KEYS.REFRESH_TOKEN);
+    if (token) {
+      this.memoryCache.refreshToken = token;
+    }
+    return token;
   }
 
   async clearTokens() {
     console.log('[StorageService] Clearing tokens...');
+    // Limpiar cache en memoria
+    this.memoryCache.accessToken = null;
+    this.memoryCache.refreshToken = null;
+    // Limpiar storage persistente
     await this.tokenStorage.remove(STORAGE_KEYS.ACCESS_TOKEN);
     await this.tokenStorage.remove(STORAGE_KEYS.REFRESH_TOKEN);
     console.log('[StorageService] Tokens cleared');
