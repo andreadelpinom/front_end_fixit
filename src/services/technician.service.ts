@@ -204,16 +204,6 @@ export interface TipoServicio {
   isActive: boolean;
 }
 
-export async function getServiceTypes(): Promise<TipoServicio[]> {
-  try {
-    const url = getApiUrl('/technician/tipos-servicios');
-    return await apiClient.get<TipoServicio[]>(url);
-  } catch (error) {
-    console.error('Error fetching service types:', error);
-    return [];
-  }
-}
-
 // ==================== ESTADÍSTICAS DEL TÉCNICO ====================
 
 export interface TechnicianStats {
