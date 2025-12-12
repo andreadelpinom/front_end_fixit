@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
-import { homeService, RequestDetails } from '../../services/home.service';
+import { homeService, RequestDetails, ProposalDetails } from '../../services/home.service';
 import { WIZARD_COLORS } from './request-wizard/WizardShared';
 
 type Props = NativeStackScreenProps<any, 'RequestDetails'>;
@@ -99,6 +99,51 @@ export default function RequestDetailsScreen({ navigation, route }: Props) {
       loadDetails();
     }, [idSolicitud])
   );
+
+  const handleAcceptProposal = async (proposal: ProposalDetails) => {
+    Alert.alert(
+      'Aceptar Propuesta',
+      `¿Aceptar la propuesta de ${proposal.tecnico?.nombres} por $${proposal.costoAcordado}?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Aceptar',
+          onPress: async () => {
+            try {
+              await homeService.acceptProposal(proposal.idSolTec);
+              Alert.alert('Éxito', '✅ Propuesta aceptada. El técnico ha sido notificado.');
+              loadDetails();
+            } catch (err: any) {
+              Alert.alert('Error', err.message || 'No se pudo aceptar la propuesta');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleRejectProposal = async (proposal: ProposalDetails) => {
+    Alert.alert(
+      'Rechazar Propuesta',
+      `¿Rechazar la propuesta de ${proposal.tecnico?.nombres}?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Rechazar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await homeService.rejectProposal(proposal.idSolTec);
+              Alert.alert('Propuesta rechazada');
+              loadDetails();
+            } catch (err: any) {
+              Alert.alert('Error', err.message || 'No se pudo rechazar la propuesta');
+            }
+          },
+        },
+      ]
+    );
+  };
 
   const handleEdit = () => {
     if (!details) return;
@@ -249,6 +294,65 @@ export default function RequestDetailsScreen({ navigation, route }: Props) {
           <Text style={styles.cardTitle}>Fecha de Publicación</Text>
           <Text style={styles.cardText}>{formatDate(details.createdAt)}</Text>
         </View>
+
+        {/* Propuestas Recibidas */}
+        {details.propuestas && details.propuestas.length > 0 && (
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>
+              📬 Propuestas Recibidas ({details.propuestas.length})
+            </Text>
+            {details.propuestas.map((proposal, index) => (
+              <View key={proposal.idSolTec} style={styles.proposalCard}>
+                <View style={styles.proposalHeader}>
+                  <Text style={styles.proposalTechName}>
+                    👤 {proposal.tecnico?.nombres} {proposal.tecnico?.apellidos}
+                  </Text>
+                  {proposal.tecnico?.calificacionPromedio && (
+                    <Text style={styles.proposalRating}>
+                      ⭐ {proposal.tecnico.calificacionPromedio.toFixed(1)}
+                    </Text>
+                  )}
+                </View>
+
+                <View style={styles.proposalInfo}>
+                  <Text style={styles.proposalCost}>💰 ${proposal.costoAcordado}</Text>
+                  <Text style={styles.proposalDate}>
+                    📅 {new Date(proposal.fechaPropuesta).toLocaleDateString()}
+                  </Text>
+                </View>
+
+                {proposal.notas && (
+                  <Text style={styles.proposalNotes}>📝 {proposal.notas}</Text>
+                )}
+
+                <View style={[
+                  styles.proposalStatusBadge,
+                  proposal.estadoAcuerdo === 'ACEPTADO' && styles.statusAccepted,
+                  proposal.estadoAcuerdo === 'RECHAZADO' && styles.statusRejected,
+                ]}>
+                  <Text style={styles.proposalStatusText}>{proposal.estadoAcuerdo}</Text>
+                </View>
+
+                {proposal.estadoAcuerdo === 'PROPUESTO' && isPendiente && (
+                  <View style={styles.proposalActions}>
+                    <TouchableOpacity
+                      style={styles.acceptButton}
+                      onPress={() => handleAcceptProposal(proposal)}
+                    >
+                      <Text style={styles.acceptButtonText}>✅ Aceptar</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.rejectButton}
+                      onPress={() => handleRejectProposal(proposal)}
+                    >
+                      <Text style={styles.rejectButtonText}>❌ Rechazar</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+            ))}
+          </View>
+        )}
 
         {/* Actions Section */}
         {isPendiente && (
@@ -418,5 +522,98 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#fff',
+  },
+  // Proposal styles
+  proposalCard: {
+    backgroundColor: '#F2F2F7',
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+  },
+  proposalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  proposalTechName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+  },
+  proposalRating: {
+    fontSize: 14,
+    color: '#FF9500',
+    fontWeight: '600',
+  },
+  proposalInfo: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  proposalCost: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#007AFF',
+  },
+  proposalDate: {
+    fontSize: 14,
+    color: '#666',
+  },
+  proposalNotes: {
+    fontSize: 14,
+    color: '#666',
+    fontStyle: 'italic',
+    marginBottom: 8,
+  },
+  proposalStatusBadge: {
+    backgroundColor: '#FFF3CD',
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+    marginBottom: 8,
+  },
+  statusAccepted: {
+    backgroundColor: '#D4EDDA',
+  },
+  statusRejected: {
+    backgroundColor: '#F8D7DA',
+  },
+  proposalStatusText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#000',
+  },
+  proposalActions: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 8,
+  },
+  acceptButton: {
+    flex: 1,
+    backgroundColor: '#34C759',
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  acceptButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  rejectButton: {
+    flex: 1,
+    backgroundColor: '#FF3B30',
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  rejectButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

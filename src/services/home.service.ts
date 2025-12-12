@@ -40,6 +40,39 @@ export interface RequestPreview {
   idTipoServicio?: number;
 }
 
+export interface RequestDetails {
+  idSolicitud: number;
+  idUser: number;
+  idTipoServicio: number;
+  codigoParroquia: string;
+  tituloProblema: string;
+  descripcionProblema: string;
+  costoEstimado: number | null;
+  estadoSolicitud: string;
+  fechaProgramada: string | null;
+  fechaPublicacion: string;
+  fechaInicio: string | null;
+  fechaFinalizacion: string | null;
+  createdAt: string;
+  propuestas?: ProposalDetails[];
+}
+
+export interface ProposalDetails {
+  idSolTec: number;
+  idTecnico: number;
+  idSolicitud: number;
+  costoAcordado: number;
+  notas: string | null;
+  estadoAcuerdo: 'PROPUESTO' | 'ACEPTADO' | 'RECHAZADO';
+  fechaPropuesta: string;
+  tecnico?: {
+    nombres: string;
+    apellidos: string;
+    telefono?: string;
+    calificacionPromedio?: number;
+  };
+}
+
 export interface ServiceType {
   idTipoServicio: number;
   nombre: string;
@@ -226,6 +259,106 @@ class HomeService {
       console.error('HomeService.getMySolicitudes error', err);
       ErrorUtils.logError(err, 'HomeService.getMySolicitudes');
       return [];
+    }
+  }
+
+  // Obtener detalles de una solicitud con propuestas
+  async getRequestDetails(idSolicitud: number): Promise<RequestDetails> {
+    try {
+      // Obtener solicitud (crítico)
+      const solicitudResp = await apiClient.get<unknown>(getApiUrl(`/request/solicitudes/${idSolicitud}`));
+      
+      // Procesar solicitud
+      let solicitud: any;
+      if (solicitudResp && typeof solicitudResp === 'object') {
+        const anyResp = solicitudResp as any;
+        solicitud = anyResp.data || anyResp;
+      } else {
+        solicitud = solicitudResp;
+      }
+
+      // Intentar obtener propuestas (no crítico - puede fallar)
+      let propuestas: any[] = [];
+      try {
+        const propuestasResp = await apiClient.get<unknown>(
+          getApiUrl(`/request/solicitudes-tecnicos/solicitud/${idSolicitud}`)
+        );
+        
+        if (Array.isArray(propuestasResp)) {
+          propuestas = propuestasResp;
+        } else if (propuestasResp && typeof propuestasResp === 'object') {
+          const anyResp = propuestasResp as any;
+          if (Array.isArray(anyResp.data)) {
+            propuestas = anyResp.data;
+          } else if (anyResp.data && Array.isArray(anyResp.data.propuestas)) {
+            propuestas = anyResp.data.propuestas;
+          }
+        }
+      } catch (propErr) {
+        // Si falla obtener propuestas, continuar sin ellas
+        console.warn('[HomeService] No se pudieron cargar propuestas:', propErr);
+        propuestas = [];
+      }
+
+      // Combinar solicitud con propuestas
+      const result = {
+        ...solicitud,
+        propuestas: propuestas,
+      };
+
+      console.log('[HomeService] Request details fetched', {
+        idSolicitud,
+        hasProposals: propuestas.length,
+      });
+
+      return result as RequestDetails;
+    } catch (err) {
+      console.error('HomeService.getRequestDetails error', err);
+      ErrorUtils.logError(err, 'HomeService.getRequestDetails');
+      throw err;
+    }
+  }
+
+  // Cancelar una solicitud
+  async cancelRequest(idSolicitud: number): Promise<void> {
+    try {
+      const url = getApiUrl(`/request/solicitudes/${idSolicitud}/cancel`);
+      await apiClient.put(url, {});
+      console.log('[HomeService] Request cancelled', { idSolicitud });
+    } catch (err) {
+      console.error('HomeService.cancelRequest error', err);
+      ErrorUtils.logError(err, 'HomeService.cancelRequest');
+      throw err;
+    }
+  }
+
+  // Aceptar una propuesta de técnico
+  async acceptProposal(idSolTec: number): Promise<void> {
+    try {
+      const url = getApiUrl(`/request/solicitudes-tecnicos/${idSolTec}/responder`);
+      await apiClient.put(url, {
+        estadoAcuerdo: 'ACEPTADO'
+      });
+      console.log('[HomeService] Proposal accepted', { idSolTec });
+    } catch (err) {
+      console.error('HomeService.acceptProposal error', err);
+      ErrorUtils.logError(err, 'HomeService.acceptProposal');
+      throw err;
+    }
+  }
+
+  // Rechazar una propuesta de técnico
+  async rejectProposal(idSolTec: number): Promise<void> {
+    try {
+      const url = getApiUrl(`/request/solicitudes-tecnicos/${idSolTec}/responder`);
+      await apiClient.put(url, {
+        estadoAcuerdo: 'RECHAZADO'
+      });
+      console.log('[HomeService] Proposal rejected', { idSolTec });
+    } catch (err) {
+      console.error('HomeService.rejectProposal error', err);
+      ErrorUtils.logError(err, 'HomeService.rejectProposal');
+      throw err;
     }
   }
 

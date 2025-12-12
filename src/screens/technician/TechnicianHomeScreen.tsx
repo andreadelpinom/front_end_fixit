@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,22 +7,38 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   RefreshControl,
+  Alert,
 } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
 import {
   getTechnicianByUser,
   getTechnicianStats,
+  getAvailableCertifications,
+  getTechnicianCertifications,
+  addTechnicianCertification,
   TechnicianStats,
+  Certificacion,
+  TecnicoCertificacion,
+  TecnicoWithDetails,
 } from '../../services/technician.service';
-import { TecnicoWithDetails } from '../../types/api';
+import * as Notifications from 'expo-notifications';
+import {
+  registerForPushNotifications,
+  addNotificationReceivedListener,
+  addNotificationResponseReceivedListener,
+} from '../../services/notification.service';
 
-export default function TechnicianHomeScreen() {
+export default function TechnicianHomeScreen({ navigation }: any) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [technician, setTechnician] = useState<TecnicoWithDetails | null>(null);
   const [stats, setStats] = useState<TechnicianStats | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [availableCerts, setAvailableCerts] = useState<Certificacion[]>([]);
+  const [myCerts, setMyCerts] = useState<TecnicoCertificacion[]>([]);
+  const notificationListener = useRef<Notifications.Subscription | null>(null);
+  const responseListener = useRef<Notifications.Subscription | null>(null);
 
   const loadData = async () => {
     if (!user) return;
@@ -32,9 +48,16 @@ export default function TechnicianHomeScreen() {
       const techData = await getTechnicianByUser(user.idUser);
       setTechnician(techData);
 
-      // El backend resuelve automáticamente desde el JWT
-      const statsData = await getTechnicianStats();
+      // Cargar datos en paralelo
+      const [statsData, certsData, myCertsData] = await Promise.all([
+        getTechnicianStats(),
+        getAvailableCertifications(),
+        getTechnicianCertifications(techData.idTecnico),
+      ]);
+      
       setStats(statsData);
+      setAvailableCerts(certsData);
+      setMyCerts(myCertsData);
     } catch (err: any) {
       console.error('Error loading technician data:', err);
       setError(err?.message || 'Error al cargar datos');
@@ -44,9 +67,99 @@ export default function TechnicianHomeScreen() {
     }
   };
 
+  const handleApplyCertification = async (cert: Certificacion) => {
+    if (!technician) return;
+    
+    // Verificar si ya tiene esta certificación
+    const hasCert = myCerts.some(c => c.idCertificacion === cert.idCertificacion);
+    if (hasCert) {
+      Alert.alert('Info', 'Ya tienes esta certificación');
+      return;
+    }
+    
+    Alert.alert(
+      'Solicitar Certificación',
+      `¿Deseas solicitar la certificación "${cert.nombre}"?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Solicitar',
+          onPress: async () => {
+            try {
+              await addTechnicianCertification({
+                idTecnico: technician.idTecnico,
+                idCertificacion: cert.idCertificacion,
+              });
+              Alert.alert('Éxito', '✅ Solicitud de certificación enviada');
+              loadData();
+            } catch (err: any) {
+              Alert.alert('Error', err.message || 'No se pudo solicitar la certificación');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const setupNotifications = async () => {
+    try {
+      if (!user) return;
+
+      // Solicitar permisos y obtener token para TECNICO
+      const token = await registerForPushNotifications(user.idUser, 'TECNICO');
+      
+      if (token) {
+        console.log('✅ Notificaciones configuradas para técnico');
+      }
+
+      // Listener para notificaciones recibidas mientras la app está abierta
+      const receivedSubscription = addNotificationReceivedListener((notification) => {
+        console.log('[TechnicianHome] 📩 Notificación recibida:', notification);
+        // Recargar datos cuando llega notificación
+        loadData();
+      });
+      notificationListener.current = receivedSubscription;
+
+      // Listener para cuando el usuario toca una notificación
+      const responseSubscription = addNotificationResponseReceivedListener((response) => {
+        console.log('[TechnicianHome] 👆 Notificación tocada:', response);
+        const data = response.notification.request.content.data;
+        
+        // Recargar datos
+        if (data) {
+          loadData();
+        }
+      });
+      responseListener.current = responseSubscription;
+    } catch (err) {
+      console.error('Error setting up notifications:', err);
+    }
+  };
+
   useEffect(() => {
     loadData();
-  }, [user]);
+    setupNotifications();
+
+    return () => {
+      // Cleanup listeners
+      if (notificationListener.current) {
+        try {
+          notificationListener.current.remove();
+          notificationListener.current = null;
+        } catch (e) {
+          console.log('[TechnicianHome] Cleanup listener error:', e);
+        }
+      }
+      if (responseListener.current) {
+        try {
+          responseListener.current.remove();
+          responseListener.current = null;
+        } catch (e) {
+          console.log('[TechnicianHome] Cleanup response listener error:', e);
+        }
+      }
+    };
+  }, [user?.idUser]); // Solo depende del ID del usuario
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -75,6 +188,11 @@ export default function TechnicianHomeScreen() {
 
   // Verificar si el técnico no está verificado
   const isNotVerified = technician && technician.status !== 'VERIFICADO';
+
+  // Filtrar certificaciones disponibles (las que no tiene)
+  const availableForMe = availableCerts.filter(
+    (cert) => !myCerts.find((mc) => mc.idCertificacion === cert.idCertificacion)
+  );
 
   return (
     <ScrollView
@@ -117,52 +235,84 @@ export default function TechnicianHomeScreen() {
             <Text style={styles.statNumber}>{stats.completedJobs}</Text>
             <Text style={styles.statLabel}>Completados</Text>
           </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>
-              ${stats.totalEarnings.toFixed(2)}
-            </Text>
-            <Text style={styles.statLabel}>Ganancias</Text>
-          </View>
         </View>
       )}
-
-      {/* Información del perfil */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Mi Perfil Técnico</Text>
-        <View style={styles.card}>
-          <InfoRow label="ID Técnico" value={`#${technician?.idTecnico}`} />
-          <InfoRow
-            label="Calificaciones"
-            value={`${technician?.totalCalificaciones || 0}`}
-          />
-          <InfoRow
-            label="Promedio"
-            value={`${technician?.promedioCalificaciones?.toFixed(1) || 'N/A'} ⭐`}
-          />
-          <InfoRow
-            label="Estado Cuenta"
-            value={getStatusDisplay(technician?.status || 'REGISTRADO')}
-          />
-          <InfoRow
-            label="Estado"
-            value={technician?.isActive ? '✅ Activo' : '❌ Inactivo'}
-          />
-        </View>
-      </View>
 
       {/* Acciones rápidas */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Acciones Rápidas</Text>
-        <TouchableOpacity style={styles.actionButton}>
+        <TouchableOpacity 
+          style={styles.actionButton}
+          onPress={() => navigation.navigate('AvailableRequests')}
+        >
           <Text style={styles.actionButtonText}>📋 Ver Solicitudes Disponibles</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton}>
+        <TouchableOpacity 
+          style={styles.actionButton}
+          onPress={() => navigation.navigate('MyJobs')}
+        >
           <Text style={styles.actionButtonText}>💼 Mis Trabajos Activos</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton}>
+        <TouchableOpacity 
+          style={styles.actionButton}
+          onPress={() => navigation.navigate('TechnicianProfile')}
+        >
           <Text style={styles.actionButtonText}>⚙️ Configurar Servicios</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Certificaciones disponibles */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Certificaciones Disponibles</Text>
+        {availableForMe.length === 0 ? (
+          <View style={styles.card}>
+            <Text style={styles.emptyText}>
+              ✅ Ya tienes todas las certificaciones disponibles o no hay certificaciones nuevas
+            </Text>
+          </View>
+        ) : (
+          availableForMe.map((cert) => (
+            <View key={cert.idCertificacion} style={styles.certCard}>
+              <View style={styles.certInfo}>
+                <Text style={styles.certName}>🏆 {cert.nombre}</Text>
+                {cert.descripcion && (
+                  <Text style={styles.certDescription} numberOfLines={2}>
+                    {cert.descripcion}
+                  </Text>
+                )}
+              </View>
+              <TouchableOpacity
+                style={styles.certButton}
+                onPress={() => handleApplyCertification(cert)}
+              >
+                <Text style={styles.certButtonText}>Solicitar</Text>
+              </TouchableOpacity>
+            </View>
+          ))
+        )}
+      </View>
+
+      {/* Mis certificaciones */}
+      {myCerts.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Mis Certificaciones</Text>
+          {myCerts.map((cert) => (
+            <View key={cert.idCertificacion} style={styles.myCertCard}>
+              <Text style={styles.certName}>
+                {cert.certificacion?.nombre || 'Certificación'}
+              </Text>
+              <Text style={styles.certStatus}>
+                Estado: ACTIVA
+              </Text>
+              {cert.fechaVencimiento && (
+                <Text style={styles.certDate}>
+                  Vence: {new Date(cert.fechaVencimiento).toLocaleDateString()}
+                </Text>
+              )}
+            </View>
+          ))}
+        </View>
+      )}
     </ScrollView>
   );
 }
@@ -261,7 +411,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   statNumber: {
-    fontSize: 24,
+    fontSize: 32,
     fontWeight: 'bold',
     color: '#007AFF',
     marginBottom: 4,
@@ -349,5 +499,68 @@ const styles = StyleSheet.create({
   warningText: {
     fontSize: 14,
     color: '#856404',
+  },
+  certCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  certInfo: {
+    flex: 1,
+    marginRight: 12,
+  },
+  certName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000000',
+    marginBottom: 4,
+  },
+  certDescription: {
+    fontSize: 13,
+    color: '#8E8E93',
+  },
+  certButton: {
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  certButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  myCertCard: {
+    backgroundColor: '#E8F5E9',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: '#34C759',
+  },
+  certStatus: {
+    fontSize: 13,
+    color: '#2E7D32',
+    marginTop: 4,
+    fontWeight: '600',
+  },
+  certDate: {
+    fontSize: 12,
+    color: '#8E8E93',
+    marginTop: 2,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: '#8E8E93',
+    textAlign: 'center',
+    paddingVertical: 20,
   },
 });

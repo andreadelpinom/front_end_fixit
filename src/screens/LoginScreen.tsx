@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
 import { ValidationUtils } from '../utils/validation.utils';
 import { ErrorUtils } from '../utils/error.utils';
@@ -41,10 +42,11 @@ const mapValidationErrors = (
   return errorMap;
 };
 
-export function LoginScreen({
-  onRegister,
-}: Readonly<{ onRegister: () => void }>) {
+export function LoginScreen() {
+  const navigation = useNavigation();
   const { login, isLoading, error, clearError } = useAuth();
+
+  console.log('[LoginScreen] 🎬 Componente renderizado, isLoading:', isLoading);
 
   const [loginMode, setLoginMode] = useState<'email' | 'cedula'>('email');
 
@@ -64,6 +66,9 @@ export function LoginScreen({
   }, [error, clearError]);
 
   const handleLogin = async () => {
+    console.log('[LoginScreen] 🔘 Botón presionado - iniciando login...');
+    console.log('[LoginScreen] 📝 Datos ingresados:', { identifier, password: '***', loginMode });
+    
     setValidationErrors({});
 
     const errors = ValidationUtils.validateLoginForm(
@@ -73,18 +78,25 @@ export function LoginScreen({
     );
 
     if (errors.length > 0) {
+      console.log('[LoginScreen] ❌ Errores de validación:', errors);
       setValidationErrors(mapValidationErrors(errors));
+      Alert.alert('Error de validación', errors.map(e => e.message).join('\n'));
       return;
     }
+
+    console.log('[LoginScreen] ✅ Validación exitosa, enviando credenciales...');
 
     try {
       const selectedBuilder =
         credentialBuilders[loginMode] ?? credentialBuilders.email;
 
       const credentials = selectedBuilder(identifier, password);
+      console.log('[LoginScreen] 📤 Credenciales construidas:', { ...credentials, password: '***' });
 
       await login(credentials, rememberMe);
+      console.log('[LoginScreen] ✅ Login exitoso!');
     } catch (err) {
+      console.error('[LoginScreen] ❌ Error en handleLogin:', err);
       ErrorUtils.logError(err, 'LoginScreen');
     }
   };
@@ -222,7 +234,11 @@ export function LoginScreen({
               LoginStyle.loginButton,
               isLoading && LoginStyle.loginButtonDisabled,
             ]}
-            onPress={handleLogin}
+            onPress={() => {
+              console.log('[LoginScreen] ⚡ TouchableOpacity presionado!');
+              handleLogin();
+            }}
+            activeOpacity={0.7}
             disabled={isLoading}>
             {isLoading ? (
               <ActivityIndicator color="#fff" />
@@ -240,7 +256,7 @@ export function LoginScreen({
 
           {/* --- Register Button --- */}
           <TouchableOpacity
-            onPress={onRegister}
+            onPress={() => navigation.navigate('Register' as never)}
             style={LoginStyle.registerContainer}>
             <Text style={LoginStyle.registerText}>
               ¿No tienes cuenta? Crear una

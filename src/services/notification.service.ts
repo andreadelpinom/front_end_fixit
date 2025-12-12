@@ -1,5 +1,14 @@
+import * as Notifications from 'expo-notifications';
+import * as Device from 'expo-device';
+import { Platform } from 'react-native';
 import { apiClient } from './api-client.service';
 import { getApiUrl } from '../config/api.config';
+
+// Tipo de respuesta al marcar como leída
+interface MarkAsReadResponse {
+  success: boolean;
+  message?: string;
+}
 
 /**
  * Tipos de notificación disponibles según backend
@@ -10,6 +19,15 @@ export enum TipoNotificacion {
   SOLICITUD_COMPLETADA = 'SOLICITUD_COMPLETADA',
   CALIFICACION_RECIBIDA = 'CALIFICACION_RECIBIDA',
   RECORDATORIO = 'RECORDATORIO',
+  // Tipos específicos para técnicos
+  PROPUESTA_ACEPTADA = 'PROPUESTA_ACEPTADA',
+  PROPUESTA_RECHAZADA = 'PROPUESTA_RECHAZADA',
+  TRABAJO_CANCELADO = 'TRABAJO_CANCELADO',
+  // Tipos específicos para clientes
+  NUEVA_PROPUESTA = 'NUEVA_PROPUESTA',
+  TECNICO_EN_CAMINO = 'TECNICO_EN_CAMINO',
+  SERVICIO_INICIADO = 'SERVICIO_INICIADO',
+  SERVICIO_COMPLETADO = 'SERVICIO_COMPLETADO',
 }
 
 /**
@@ -42,17 +60,148 @@ export interface NotificationPaginationResponse {
 }
 
 /**
- * Interface para respuesta de mark as read
+// ==================== CONFIGURACIÓN EXPO NOTIFICATIONS ====================
+
+// Configurar el comportamiento de las notificaciones
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  }),
+});
+
+// ==================== FUNCIONES PARA PUSH TOKENS ====================
+
+/**
+ * Registrar token de notificaciones push
+ * @param idUser - ID del usuario
+ * @param userType - Tipo de usuario: CLIENTE o TECNICO
+ * @returns Token de push o null si falla
  */
-interface MarkAsReadResponse {
-  success: boolean;
-  data: Notification;
-  error?: string;
-  statusCode?: number;
+export async function registerForPushNotifications(
+  idUser: number,
+  userType: 'CLIENTE' | 'TECNICO'
+): Promise<string | null> {
+  try {
+    // Verificar si es dispositivo físico
+    if (!Device.isDevice) {
+      console.warn('Las notificaciones push solo funcionan en dispositivos físicos');
+      return null;
+    }
+
+    // Obtener permisos
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+    
+    if (existingStatus !== 'granted') {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+    
+    if (finalStatus !== 'granted') {
+      console.warn('No se obtuvieron permisos para notificaciones');
+      return null;
+    }
+
+    // Obtener token
+    const tokenData = await Notifications.getExpoPushTokenAsync({
+      projectId: 'your-project-id', // ⚠️ CAMBIAR por el project ID real de Expo
+    });
+    const token = tokenData.data;
+    console.log(`✅ Push token obtenido para ${userType}:`, token);
+
+    // Enviar token al backend con el tipo de usuario
+    await savePushToken(idUser, token, userType);
+
+    // Configurar canal de notificaciones para Android
+    if (Platform.OS === 'android') {
+      await Notifications.setNotificationChannelAsync('default', {
+        name: 'default',
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: '#FF231F7C',
+      });
+    }
+
+    return token;
+  } catch (error) {
+    console.error('Error registrando notificaciones push:', error);
+    return null;
+  }
 }
 
 /**
+ * Guardar token en el backend con tipo de usuario
+ */
+async function savePushToken(
+  idUser: number,
+  token: string,
+  userType: 'CLIENTE' | 'TECNICO'
+): Promise<void> {
+  try {
+    const url = getApiUrl('/notifications/register-token');
+    await apiClient.post(url, {
+      idUser,
+      token,
+      userType, // ✅ Diferencia entre cliente y técnico
+      platform: Platform.OS,
+    });
+    console.log(`✅ Token guardado en backend para ${userType}`);
+  } catch (error) {
+    console.error('Error guardando token en backend:', error);
+  }
+}
+
+// ==================== LISTENERS DE NOTIFICACIONES ====================
+
+/**
+ * Configurar listener para notificaciones recibidas mientras la app está en foreground
+ */
+export function addNotificationReceivedListener(
+  callback: (notification: Notifications.Notification) => void
+): Notifications.Subscription {
+  return Notifications.addNotificationReceivedListener(callback);
+}
+
+/**
+ * Configurar listener para cuando el usuario toca una notificación
+ */
+export function addNotificationResponseReceivedListener(
+  callback: (response: Notifications.NotificationResponse) => void
+): Notifications.Subscription {
+  return Notifications.addNotificationResponseReceivedListener(callback);
+}
+
+/**
+ * Actualizar badge count con el número de notificaciones no leídas
+ */
+export async function updateBadgeCount(): Promise<void> {
+  try {
+    const count = await notificationService.getUnreadCount();
+    await Notifications.setBadgeCountAsync(count);
+  } catch (error) {
+    console.error('Error updating badge count:', error);
+  }
+}
+
+/**
+ * Limpiar todas las notificaciones locales
+ */
+export async function clearAllNotifications(): Promise<void> {
+  try {
+    await Notifications.dismissAllNotificationsAsync();
+    await Notifications.setBadgeCountAsync(0);
+  } catch (error) {
+    console.error('Error clearing notifications:', error);
+  }
+}
+
+// ==================== API BACKEND ====================
+
+/**
  * Servicio para la gestión de notificaciones del usuario
+ * ✅ El backend automáticamente filtra por tipo de usuario según el token JWT
  */
 export const notificationService = {
   /**

@@ -1,5 +1,5 @@
 export const API_CONFIG = {
-  BASE_URL: 'http://localhost:3300',
+  BASE_URL: 'http://192.168.2.19:3300',
   API_VERSION: 'v1',
   ENDPOINTS: {
     AUTH: {
