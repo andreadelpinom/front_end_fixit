@@ -8,6 +8,7 @@ import React, {
 import { authService } from '../services/auth.service';
 import { storageService } from '../services/storage.service';
 import { tokenRefreshService } from '../services/token-refresh.service';
+import { notifyRoleChange } from '../navigation/AppNavigator';
 import { AuthState, LoginDto, User } from '../types/auth.types';
 
 /**
@@ -123,6 +124,7 @@ export function AuthProvider({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   const [state, dispatch] = useReducer(authReducer, initialState);
+  const [isSwitchingRole, setIsSwitchingRole] = React.useState(false);
 
   // Efecto 1: Verificar autenticación al montar
   useEffect(() => {
@@ -136,6 +138,9 @@ export function AuthProvider({
 
     const authCheckInterval = setInterval(async () => {
       try {
+        // ✅ No hacer logout durante switchRole - el nuevo token ya está siendo procesado
+        if (isSwitchingRole) return;
+        
         // Solo chequear si aún hay token en storage
         const token = await storageService.getAccessToken();
         
@@ -151,7 +156,7 @@ export function AuthProvider({
     }, 5000); // Verificar cada 5 segundos
 
     return () => clearInterval(authCheckInterval);
-  }, [state.isAuthenticated]);
+  }, [state.isAuthenticated, isSwitchingRole]);
 
   const checkStoredAuth = async () => {
     try {
@@ -200,30 +205,42 @@ export function AuthProvider({
   };
 
   const switchRole = async (nuevoRol: string) => {
+    setIsSwitchingRole(true);
     dispatch({ type: 'SET_LOADING', payload: true });
 
     try {
       const response = await authService.switchRole(nuevoRol);
       
+      // ✅ Cambiar de rol NO dispara logout - es solo un cambio de vista
       // Guardar el rol activo para la navegación (no quita los roles, solo marca cuál vista ver)
       await storageService.setActiveRole(nuevoRol as 'CLIENTE' | 'TECNICO');
       
+      // ✅ Notificar a AppNavigator que el rol cambió
+      notifyRoleChange(nuevoRol as 'CLIENTE' | 'TECNICO');
+      
+      // ✅ Actualizar contexto con nuevo rol pero mantener sesión activa
       dispatch({
         type: 'SWITCH_ROLE',
         payload: { user: response.user },
       });
-      console.log('[AuthContext] Role switched successfully to:', nuevoRol);
+      console.log('[AuthContext] ✅ Role switched successfully to:', nuevoRol);
     } catch (error: any) {
+      // ⚠️ IMPORTANTE: NO hacer LOGIN_FAILURE ni LOGOUT aquí
+      // El error de switchRole NO debe afectar la sesión autenticada
       const errorMessage =
         typeof error?.message === 'string'
           ? error.message
           : 'Error al cambiar de rol';
 
-      dispatch({
-        type: 'LOGIN_FAILURE',
-        payload: errorMessage,
-      });
+      // Solo reportar el error, no hacer logout
+      dispatch({ type: 'CLEAR_ERROR' });
+      dispatch({ type: 'SET_LOADING', payload: false });
+      
+      console.error('[AuthContext] Switch role error (session maintained):', errorMessage);
       throw error;
+    } finally {
+      // ✅ Reactivar el monitoreo de pérdida de tokens
+      setIsSwitchingRole(false);
     }
   };
 

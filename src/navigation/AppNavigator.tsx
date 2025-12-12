@@ -7,17 +7,40 @@ import TechnicianNavigator from './TechnicianNavigator';
 import { RequestProvider } from '../context/RequestContext';
 import { ActivityIndicator, View } from 'react-native';
 
+// ✅ Crear un listener externo para cambios de activeRole
+// Esto permite que AppNavigator reaccione sin necesitar cambios en user
+let roleChangeListeners: Set<(role: 'CLIENTE' | 'TECNICO') => void> = new Set();
+
+export const notifyRoleChange = (role: 'CLIENTE' | 'TECNICO') => {
+  roleChangeListeners.forEach(listener => listener(role));
+};
+
 export default function AppNavigator() {
   const { isAuthenticated, user, isRoleSelectionNeeded } = useAuth();
   const [activeRole, setActiveRole] = useState<'CLIENTE' | 'TECNICO' | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // ✅ Escuchar cambios de rol desde switchRole
+  useEffect(() => {
+    const listener = (role: 'CLIENTE' | 'TECNICO') => {
+      setActiveRole(role);
+      console.log('[AppNavigator] Role changed to:', role);
+    };
+    
+    roleChangeListeners.add(listener);
+    return () => {
+      roleChangeListeners.delete(listener);
+    };
+  }, []);
+
+  // ✅ Cargar rol inicial cuando auth cambia
   useEffect(() => {
     const loadActiveRole = async () => {
       if (isAuthenticated && user) {
         try {
           const role = await storageService.getActiveRole();
           setActiveRole(role);
+          console.log('[AppNavigator] Loaded initial active role:', role);
         } catch (error) {
           console.error('Error loading active role:', error);
           setActiveRole('CLIENTE');
