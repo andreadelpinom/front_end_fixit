@@ -129,18 +129,20 @@ export function AuthProvider({
     checkStoredAuth();
   }, []);
 
-  // Efecto 2: Monitorear pérdida de autenticación (cuando 401 ocurre y ApiClient limpia tokens)
+  // Efecto 2: Monitorear pérdida de autenticación SOLO si estamos autenticados
+  // Esto detecta cuando ApiClient limpió los tokens por un 401
   useEffect(() => {
     if (!state.isAuthenticated) return; // No hacer nada si ya estamos desautenticados
 
     const authCheckInterval = setInterval(async () => {
       try {
-        const { isAuthenticated } = await authService.checkAuthStatus();
-
-        // Si ApiClient limpió los tokens (401), isAuthenticated será false
-        // pero nuestro state aún piensa que estamos autenticados
-        if (!isAuthenticated && state.isAuthenticated) {
-          console.warn('[AuthContext] Detected token loss, logging out...');
+        // Solo chequear si aún hay token en storage
+        const token = await storageService.getAccessToken();
+        
+        // Si NO hay token pero AuthContext aún piensa que estamos autenticados,
+        // significa que ApiClient limpió los tokens por un 401
+        if (!token && state.isAuthenticated) {
+          console.warn('[AuthContext] Detected token loss (401 cleanup), logging out...');
           dispatch({ type: 'LOGOUT' });
         }
       } catch (err) {
@@ -153,10 +155,13 @@ export function AuthProvider({
 
   const checkStoredAuth = async () => {
     try {
-      const { isAuthenticated, user } = await authService.checkAuthStatus();
+      // En app startup, solo restaurar si rememberMe estaba activado
+      const { shouldRestore, user } = await authService.checkSessionPersistence();
 
-      if (isAuthenticated && user) {
+      if (shouldRestore && user) {
         dispatch({ type: 'RESTORE_SESSION', payload: { user } });
+        // Iniciar auto-refresh después de restaurar sesión
+        tokenRefreshService.startAutoRefresh();
       } else {
         dispatch({ type: 'SET_LOADING', payload: false });
       }

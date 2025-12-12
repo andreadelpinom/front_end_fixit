@@ -216,20 +216,41 @@ class AuthService {
     }
   }
 
+  /**
+   * Chequea si la sesión actual es válida
+   * Se enfoca solo en si hay token + usuario, no en rememberMe
+   * (rememberMe es solo para persistencia entre sesiones)
+   */
   async checkAuthStatus() {
+    const token = await storageService.getAccessToken();
+    const user = await storageService.getUserData();
+
+    // La sesión es válida si hay token Y usuario
+    if (token && user) {
+      return { isAuthenticated: true, user };
+    }
+
+    return { isAuthenticated: false, user: null };
+  }
+
+  /**
+   * Chequea si la sesión debe ser restaurada al iniciar la app
+   * Esto SÍ considera rememberMe
+   */
+  async checkSessionPersistence() {
     const rememberMe = await storageService.getRememberMe();
     if (!rememberMe) {
-      return { isAuthenticated: false, user: null };
+      return { shouldRestore: false, user: null };
     }
 
     const token = await storageService.getAccessToken();
     const user = await storageService.getUserData();
 
     if (token && user) {
-      return { isAuthenticated: true, user };
+      return { shouldRestore: true, user };
     }
 
-    return { isAuthenticated: false, user: null };
+    return { shouldRestore: false, user: null };
   }
 
   async getStoredUser(): Promise<User | null> {
