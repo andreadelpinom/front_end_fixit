@@ -7,6 +7,7 @@ import React, {
 } from 'react';
 import { authService } from '../services/auth.service';
 import { storageService } from '../services/storage.service';
+import { tokenRefreshService } from '../services/token-refresh.service';
 import { AuthState, LoginDto, User } from '../types/auth.types';
 
 /**
@@ -123,9 +124,32 @@ export function AuthProvider({
 }: Readonly<{ children: React.ReactNode }>) {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
+  // Efecto 1: Verificar autenticación al montar
   useEffect(() => {
     checkStoredAuth();
   }, []);
+
+  // Efecto 2: Monitorear pérdida de autenticación (cuando 401 ocurre y ApiClient limpia tokens)
+  useEffect(() => {
+    if (!state.isAuthenticated) return; // No hacer nada si ya estamos desautenticados
+
+    const authCheckInterval = setInterval(async () => {
+      try {
+        const { isAuthenticated } = await authService.checkAuthStatus();
+
+        // Si ApiClient limpió los tokens (401), isAuthenticated será false
+        // pero nuestro state aún piensa que estamos autenticados
+        if (!isAuthenticated && state.isAuthenticated) {
+          console.warn('[AuthContext] Detected token loss, logging out...');
+          dispatch({ type: 'LOGOUT' });
+        }
+      } catch (err) {
+        // Ignorar errores de verificación
+      }
+    }, 5000); // Verificar cada 5 segundos
+
+    return () => clearInterval(authCheckInterval);
+  }, [state.isAuthenticated]);
 
   const checkStoredAuth = async () => {
     try {
@@ -148,6 +172,9 @@ export function AuthProvider({
     try {
       const response = await authService.login(credentials, rememberMe);
       dispatch({ type: 'LOGIN_SUCCESS', payload: { user: response.user } });
+      
+      // Iniciar auto-refresh de tokens para evitar que expiren
+      tokenRefreshService.startAutoRefresh();
     } catch (error: any) {
       const errorMessage =
         typeof error?.message === 'string' ? error.message : 'Login failed';
@@ -159,6 +186,8 @@ export function AuthProvider({
 
   const logout = async () => {
     try {
+      // Detener el auto-refresh antes de hacer logout
+      tokenRefreshService.stopAutoRefresh();
       await authService.logout();
     } finally {
       dispatch({ type: 'LOGOUT' });
