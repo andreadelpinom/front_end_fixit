@@ -90,13 +90,30 @@ export const requestService = {
       );
 
       if (!response.success) {
-        throw new Error('Error fetching completed requests');
+        console.warn('[requestService] Backend returned unsuccessful response for completed requests:', response);
+        return {
+          solicitudes: [],
+          pagination: {
+            total: 0,
+            page: sanitizedPage,
+            limit: sanitizedLimit,
+            totalPages: 0,
+          },
+        };
       }
 
       return response.data;
     } catch (error) {
       console.error('[requestService] Error fetching completed requests:', error);
-      throw error;
+      return {
+        solicitudes: [],
+        pagination: {
+          total: 0,
+          page: 1,
+          limit: 20,
+          totalPages: 0,
+        },
+      };
     }
   },
 
@@ -146,7 +163,7 @@ export const requestService = {
   ): Promise<SolicitudResponse> {
     try {
       const response = await apiClient.get<ApiResponse>(
-        '/request/solicitudes',
+        getApiUrl('/request/solicitudes'),
         {
           params: {
             estado: status,
@@ -157,13 +174,32 @@ export const requestService = {
       );
 
       if (!response.success) {
-        throw new Error(`Error fetching requests with status ${status}`);
+        console.warn('[requestService] Backend returned unsuccessful response:', response);
+        // Return empty response instead of throwing
+        return {
+          solicitudes: [],
+          pagination: {
+            total: 0,
+            page: 1,
+            limit: limit,
+            totalPages: 0,
+          },
+        };
       }
 
       return response.data;
     } catch (error) {
       console.error('[requestService] Error fetching requests by status:', error);
-      throw error;
+      // Return empty response instead of throwing, for graceful degradation
+      return {
+        solicitudes: [],
+        pagination: {
+          total: 0,
+          page: 1,
+          limit: limit,
+          totalPages: 0,
+        },
+      };
     }
   },
 };
