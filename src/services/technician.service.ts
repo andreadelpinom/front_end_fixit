@@ -1,22 +1,33 @@
 // src/services/technician.service.ts
 import { getApiUrl } from '../config/api.config';
 import { apiClient } from './api-client.service';
+import technicianProfileService from './technician-profile.service';
 import {
   Tecnico,
   TecnicoWithDetails,
   Solicitud,
   SolicitudTecnico,
   EstadoAceptacion,
-  EstadoSolicitud,
 } from '../types/api';
 
 // ==================== PERFIL TÉCNICO ====================
 
-// Crear perfil de técnico
+/**
+ * Crear perfil de técnico de forma segura
+ * Si ya existe, no intenta crear de nuevo
+ * @param idUser ID del usuario
+ * @returns Perfil técnico creado o existente
+ */
 export async function createTechnician(idUser: number): Promise<Tecnico> {
-  const url = getApiUrl('/technician/tecnicos');
-  const payload = { idUser, isActive: true };
-  return apiClient.post<Tecnico>(url, payload);
+  try {
+    const result = await technicianProfileService.createTechnicianProfileSafely(
+      idUser.toString(),
+    );
+    return result as Tecnico;
+  } catch (error) {
+    // Si el servicio falla, lanzar el error
+    throw error;
+  }
 }
 
 // Obtener todos los técnicos

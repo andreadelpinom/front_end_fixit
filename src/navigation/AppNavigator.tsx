@@ -8,7 +8,7 @@ import { RequestProvider } from '../context/RequestContext';
 import { ActivityIndicator, View } from 'react-native';
 
 export default function AppNavigator() {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, isRoleSelectionNeeded } = useAuth();
   const [activeRole, setActiveRole] = useState<'CLIENTE' | 'TECNICO' | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -33,6 +33,12 @@ export default function AppNavigator() {
     return <AuthNavigator />;
   }
 
+  // Si estamos en el flujo de selección de rol, no mostrar navegador
+  // El modal se muestra en LoginScreen
+  if (isRoleSelectionNeeded) {
+    return <AuthNavigator />;
+  }
+
   if (loading) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -42,7 +48,7 @@ export default function AppNavigator() {
   }
 
   // Verificar que el usuario tenga el rol TECNICO en su array de roles
-  const hasTechnicianRole = user?.roles?.includes('TECNICO');
+  const hasTechnicianRole = user?.roles?.includes('TECNICO' as any);
 
   // Si el rol activo es TECNICO y el usuario tiene ese rol, mostrar TechnicianNavigator
   if (activeRole === 'TECNICO' && hasTechnicianRole) {

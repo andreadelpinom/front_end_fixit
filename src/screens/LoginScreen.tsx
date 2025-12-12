@@ -12,6 +12,7 @@ import {
   Alert,
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
+import { RoleSelectionModal } from '../components/RoleSelectionModal';
 import { ValidationUtils } from '../utils/validation.utils';
 import { ErrorUtils } from '../utils/error.utils';
 import { LoginStyle } from 'styles';
@@ -44,7 +45,7 @@ const mapValidationErrors = (
 export function LoginScreen({
   onRegister,
 }: Readonly<{ onRegister: () => void }>) {
-  const { login, isLoading, error, clearError } = useAuth();
+  const { login, isLoading, error, clearError, switchRole, user, isRoleSelectionNeeded, completeRoleSelection } = useAuth();
 
   const [loginMode, setLoginMode] = useState<'email' | 'cedula'>('email');
 
@@ -55,6 +56,7 @@ export function LoginScreen({
     Record<string, string>
   >({});
   const [showPassword, setShowPassword] = useState(false);
+  const [roleSelectionLoading, setRoleSelectionLoading] = useState(false);
 
   useEffect(() => {
     if (error) {
@@ -95,16 +97,46 @@ export function LoginScreen({
     setValidationErrors({});
   };
 
+  /**
+   * Maneja la selección de rol cuando el usuario tiene múltiples roles
+   */
+  const handleRoleSelection = async (selectedRole: 'CLIENTE' | 'TECNICO') => {
+    setRoleSelectionLoading(true);
+    try {
+      // Cambiar el rol activo
+      await switchRole(selectedRole);
+      completeRoleSelection();
+    } catch (err) {
+      ErrorUtils.logError(err, 'LoginScreen - handleRoleSelection');
+      Alert.alert(
+        'Error al cambiar rol',
+        'No pudimos cambiar a tu rol seleccionado. Intenta nuevamente.',
+      );
+    } finally {
+      setRoleSelectionLoading(false);
+    }
+  };
+
   const identifierField = loginMode === 'email' ? 'email' : 'cedula';
 
   return (
-    <KeyboardAvoidingView
-      style={LoginStyle.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScrollView
-        contentContainerStyle={LoginStyle.scrollContent}
-        keyboardShouldPersistTaps="handled">
-        <View style={LoginStyle.formContainer}>
+    <>
+      {/* Modal de selección de rol */}
+      <RoleSelectionModal
+        visible={isRoleSelectionNeeded}
+        loading={roleSelectionLoading}
+        onSelectRole={handleRoleSelection}
+        userName={user?.nombres}
+      />
+
+      <KeyboardAvoidingView
+        style={LoginStyle.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <ScrollView
+          contentContainerStyle={LoginStyle.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          scrollEnabled={!isRoleSelectionNeeded}>
+          <View style={LoginStyle.formContainer}>
           <Text style={LoginStyle.title}>Bienvenido a FixIt</Text>
           <Text style={LoginStyle.subtitle}>Inicia sesión para continuar</Text>
 
@@ -249,5 +281,6 @@ export function LoginScreen({
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
+    </>
   );
 }

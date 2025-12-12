@@ -9,13 +9,21 @@ import { authService } from '../services/auth.service';
 import { storageService } from '../services/storage.service';
 import { AuthState, LoginDto, User } from '../types/auth.types';
 
-interface AuthContextType extends AuthState {
+/**
+ * Estado extendido que incluye el flujo de selección de rol
+ */
+interface ExtendedAuthState extends AuthState {
+  isRoleSelectionNeeded: boolean;
+}
+
+interface AuthContextType extends ExtendedAuthState {
   login: (credentials: LoginDto, rememberMe: boolean) => Promise<void>;
   logout: () => Promise<void>;
   switchRole: (nuevoRol: string) => Promise<void>;
   refreshAuth: () => Promise<void>;
   clearError: () => void;
   setUser: (user: User) => void;
+  completeRoleSelection: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -29,28 +37,34 @@ type AuthAction =
   | { type: 'CLEAR_ERROR' }
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'SWITCH_ROLE'; payload: { user: User } }
-  | { type: 'SET_USER'; payload: { user: User } };
+  | { type: 'SET_USER'; payload: { user: User } }
+  | { type: 'SHOW_ROLE_SELECTION' }
+  | { type: 'COMPLETE_ROLE_SELECTION' };
 
-const initialState: AuthState = {
+const initialState: ExtendedAuthState = {
   user: null,
   tokens: null,
   isAuthenticated: false,
   isLoading: true,
   error: null,
+  isRoleSelectionNeeded: false,
 };
 
-function authReducer(state: AuthState, action: AuthAction): AuthState {
+function authReducer(state: ExtendedAuthState, action: AuthAction): ExtendedAuthState {
   switch (action.type) {
     case 'LOGIN_START':
       return { ...state, isLoading: true, error: null };
 
     case 'LOGIN_SUCCESS':
+      // Si el usuario tiene múltiples roles, mostrar selector
+      const hasMultipleRoles = action.payload.user.roles.length > 1;
       return {
         ...state,
         user: action.payload.user,
         isAuthenticated: true,
         isLoading: false,
         error: null,
+        isRoleSelectionNeeded: hasMultipleRoles,
       };
 
     case 'LOGIN_FAILURE':
@@ -60,10 +74,11 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
         isAuthenticated: false,
         isLoading: false,
         error: action.payload,
+        isRoleSelectionNeeded: false,
       };
 
     case 'LOGOUT':
-      return { ...initialState, isLoading: false };
+      return { ...initialState };
 
     case 'RESTORE_SESSION':
       return {
@@ -71,6 +86,7 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
         user: action.payload.user,
         isAuthenticated: true,
         isLoading: false,
+        isRoleSelectionNeeded: false,
       };
 
     case 'CLEAR_ERROR':
@@ -85,10 +101,17 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
         user: action.payload.user,
         isLoading: false,
         error: null,
+        isRoleSelectionNeeded: false,
       };
 
     case 'SET_USER':
       return { ...state, user: action.payload.user };
+
+    case 'SHOW_ROLE_SELECTION':
+      return { ...state, isRoleSelectionNeeded: true };
+
+    case 'COMPLETE_ROLE_SELECTION':
+      return { ...state, isRoleSelectionNeeded: false };
 
     default:
       return state;
@@ -185,6 +208,10 @@ export function AuthProvider({
     dispatch({ type: 'SET_USER', payload: { user } });
   };
 
+  const completeRoleSelection = () => {
+    dispatch({ type: 'COMPLETE_ROLE_SELECTION' });
+  };
+
   // ------------------------------
   // FIX: Memoize context value
   // ------------------------------
@@ -197,6 +224,7 @@ export function AuthProvider({
       refreshAuth,
       clearError,
       setUser,
+      completeRoleSelection,
     }),
     [state], // Recalcula solo cuando el estado cambia
   );
