@@ -37,16 +37,13 @@ export default function HomeScreen({ navigation }: any): React.ReactElement {
     if (!user) return;
     setLoading(true);
     try {
-      const response = await requestService.getAllRequests(100, 1);
+      const response = await requestService.getRequestsByStatus('PENDIENTE', 100, 1);
       // Filter for active/pending request from solicitudes array or direct array
       const solicitudes = Array.isArray(response) 
         ? response 
         : response.solicitudes || [];
-      const active = solicitudes.find(
-        (r: any) =>
-          r.estadoSolicitud === 'PENDIENTE' || r.estadoSolicitud === 'ACEPTADA'
-      );
-      setActiveRequest(active || null);
+      const active = solicitudes[0] || null;
+      setActiveRequest(active);
       setError(null);
     } catch (err: any) {
       console.error('Error loading active request:', err);
