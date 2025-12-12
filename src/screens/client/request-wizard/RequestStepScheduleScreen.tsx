@@ -25,7 +25,7 @@ const COLORS = {
 };
 
 export default function RequestStepScheduleScreen({ navigation }: any): React.ReactElement {
-  const { draft, updateDraft } = useRequestDraft();
+  const { updateDraft } = useRequestDraft();
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<Date | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -47,7 +47,7 @@ export default function RequestStepScheduleScreen({ navigation }: any): React.Re
   };
 
   // Handle date picker change
-  const handleDateChange = (event: any, date?: Date) => {
+  const handleDateChange = (_event: any, date?: Date) => {
     if (Platform.OS === 'android') {
       setShowDatePicker(false);
     }
@@ -57,7 +57,7 @@ export default function RequestStepScheduleScreen({ navigation }: any): React.Re
   };
 
   // Handle time picker change
-  const handleTimeChange = (event: any, date?: Date) => {
+  const handleTimeChange = (_event: any, date?: Date) => {
     if (Platform.OS === 'android') {
       setShowTimePicker(false);
     }
@@ -119,9 +119,7 @@ export default function RequestStepScheduleScreen({ navigation }: any): React.Re
             updateDraft({
               tituloProblema: undefined,
               descripcionProblema: undefined,
-              presupuesto: undefined,
               idTipoServicio: undefined,
-              direccion: undefined,
               codigoParroquia: undefined,
               fechaProgramada: undefined,
             });

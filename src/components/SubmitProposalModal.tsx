@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   TextInput,
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
@@ -25,7 +24,6 @@ export default function SubmitProposalModal({
   requestTitle,
   onClose,
   onSubmit,
-  isLoading = false,
 }: SubmitProposalModalProps) {
   const [cost, setCost] = useState('');
   const [notes, setNotes] = useState('');
