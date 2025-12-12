@@ -13,6 +13,7 @@ import {
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { homeService } from '../../services/home.service';
 import { WIZARD_COLORS } from './request-wizard/WizardShared';
+import { formatCurrency } from '../../utils/currency.utils';
 
 type Props = NativeStackScreenProps<any, 'Proposals'>;
 
@@ -62,7 +63,7 @@ export default function ProposalsScreen({ navigation, route }: Props) {
   const handleAcceptProposal = (proposal: Proposal) => {
     Alert.alert(
       '✅ Aceptar Propuesta',
-      `¿Aceptar esta propuesta de $${proposal.costoAcordado?.toFixed(2) || '0.00'}?\n\nEsta acción:\n• Asignará el técnico a tu solicitud\n• Rechazará automáticamente las otras propuestas`,
+      `¿Aceptar esta propuesta de $${formatCurrency(proposal.costoAcordado)}?\n\nEsta acción:\n• Asignará el técnico a tu solicitud\n• Rechazará automáticamente las otras propuestas`,
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -97,7 +98,7 @@ export default function ProposalsScreen({ navigation, route }: Props) {
   const handleRejectProposal = (proposal: Proposal) => {
     Alert.alert(
       '❌ Rechazar Propuesta',
-      `¿Rechazar la propuesta de $${proposal.costoAcordado?.toFixed(2) || '0.00'}?\n\nLa solicitud seguirá abierta para otras propuestas.`,
+      `¿Rechazar la propuesta de $${formatCurrency(proposal.costoAcordado)}?\n\nLa solicitud seguirá abierta para otras propuestas.`,
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -149,7 +150,7 @@ export default function ProposalsScreen({ navigation, route }: Props) {
         <View style={styles.proposalBody}>
           <Text style={styles.priceLabel}>Costo Propuesto</Text>
           <Text style={styles.price}>
-            ${item.costoAcordado?.toFixed(2) || '0.00'}
+            ${formatCurrency(item.costoAcordado)}
           </Text>
 
           {item.notas && (

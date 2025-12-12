@@ -1,58 +1,6 @@
 import { apiClient } from './api-client.service';
 import { getApiUrl } from '../config/api.config';
-
-/**
- * Interface para una solicitud de servicio completada
- */
-export interface Solicitud {
-  idSolicitud: number;
-  idUser: number;
-  idTipoServicio: number;
-  codigoParroquia: string;
-  tituloProblema: string;
-  descripcionProblema: string;
-  costoEstimado: number | null;
-  costoPromocion: number | null;
-  promocion: boolean;
-  estadoSolicitud: 'PENDIENTE' | 'ACEPTADA' | 'COMPLETADA' | 'CANCELADA';
-  fechaProgramada: string | null;
-  fechaPublicacion: string;
-  fechaInicio: string | null;
-  fechaFinalizacion: string | null;
-  duracionEstimadaMin: number | null;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-  createdBy: number | null;
-  updatedBy: number | null;
-  _count: {
-    solicitudesTecnico: number;
-    calificaciones: number;
-  };
-}
-
-/**
- * Interface para la respuesta del servidor
- */
-export interface SolicitudResponse {
-  solicitudes: Solicitud[];
-  pagination: {
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
-  };
-}
-
-/**
- * Interface para la respuesta completa del API
- */
-interface ApiResponse {
-  success: boolean;
-  data: SolicitudResponse;
-  error?: string;
-  statusCode?: number;
-}
+import { Solicitud, PaginatedSolicitudes } from '../types/api';
 
 /**
  * Servicio para obtener solicitudes de servicio del cliente
@@ -67,7 +15,7 @@ export const requestService = {
   async getCompletedRequests(
     limit: number = 20,
     page: number = 1
-  ): Promise<SolicitudResponse> {
+  ): Promise<PaginatedSolicitudes> {
     try {
       const parsedLimit = Number.parseInt(String(limit), 10);
       const parsedPage = Number.parseInt(String(page), 10);
@@ -126,7 +74,7 @@ export const requestService = {
   async getAllRequests(
     limit: number = 20,
     page: number = 1
-  ): Promise<SolicitudResponse> {
+  ): Promise<PaginatedSolicitudes> {
     try {
       const response = await apiClient.get<ApiResponse>(
         '/request/solicitudes/my/solicitudes',
@@ -160,7 +108,7 @@ export const requestService = {
     status: 'PENDIENTE' | 'ACEPTADA' | 'COMPLETADA' | 'CANCELADA',
     limit: number = 20,
     page: number = 1
-  ): Promise<SolicitudResponse> {
+  ): Promise<PaginatedSolicitudes> {
     try {
       const response = await apiClient.get<ApiResponse>(
         getApiUrl('/request/solicitudes'),

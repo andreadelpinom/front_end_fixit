@@ -17,6 +17,7 @@ import {
 } from '../../services/technician.service';
 import { technician as technicianService } from '../../services/technician.service';
 import { TecnicoWithDetails } from '../../types/api';
+import { formatCurrency } from '../../utils/currency.utils';
 
 interface PendingOffer {
   idSolTec: number;
@@ -121,7 +122,7 @@ export default function TechnicianHomeScreen({ navigation }: any) {
         title: pendingOffer.tituloProblema,
         status: '⏳ PROPUESTA ENVIADA',
         statusColor: '#FF9800',
-        details: `Propuesta de $${pendingOffer.costoAcordado}`,
+        details: `Propuesta de $${formatCurrency(pendingOffer.costoAcordado)}`,
         cta: {
           text: 'Ver mis propuestas',
           action: () => navigation.navigate('MyJobs'),

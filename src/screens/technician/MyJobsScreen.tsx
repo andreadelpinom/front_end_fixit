@@ -15,6 +15,7 @@ import {
   getMyProposals,
   SolicitudTecnico,
 } from '../../services/technician.service';
+import { formatCurrency } from '../../utils/currency.utils';
 
 type Props = NativeStackScreenProps<any>;
 type SubTab = 'EN_CURSO' | 'HISTORIAL';
@@ -109,9 +110,7 @@ export default function MyJobsScreen({ navigation }: Props) {
       </View>
 
       <Text style={styles.cost}>
-        💰 ${typeof item.costoAcordado === 'string' 
-          ? parseFloat(item.costoAcordado).toFixed(2)
-          : item.costoAcordado?.toFixed(2) || 'N/A'}
+        ${formatCurrency(item.costoAcordado)}
       </Text>
       
       {item.notas && (

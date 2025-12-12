@@ -184,11 +184,6 @@ class HomeService {
         codigoProvincia: item.canton?.codigoProvincia,
       }));
 
-      console.log('[HomeService] Parroquias fetched', {
-        count: mappedParroquias.length,
-        hasFilter: !!codigoCanton,
-      });
-
       return mappedParroquias;
     } catch (error) {
       console.error('[HomeService] Error fetching parroquias', error);
@@ -241,10 +236,12 @@ class HomeService {
         ubicacion: item.codigoParroquia,
         codigoParroquia: item.codigoParroquia,
         idTipoServicio: item.idTipoServicio,
+        proposalCount: item._count?.solicitudesTecnico || 0,
       }));
 
-      console.log('[HomeService] Mis solicitudes fetched', {
+      console.log('[HomeService] getMySolicitudes fetched', {
         count: mappedSolicitudes.length,
+        proposalCounts: mappedSolicitudes.map(s => ({ id: s.idSolicitud, count: s.proposalCount })),
       });
 
       return mappedSolicitudes;
@@ -348,7 +345,6 @@ class HomeService {
         updatedBy: data.updatedBy || null,
       };
 
-      console.log('[HomeService] Request details fetched', { idSolicitud });
       return details;
     } catch (err) {
       console.error('[HomeService] Error fetching request details:', err);
@@ -417,11 +413,6 @@ class HomeService {
         updatedBy: item.updatedBy || null,
       }));
 
-      console.log('[HomeService] Published requests fetched', {
-        count: details.length,
-        estado,
-      });
-
       return details;
     } catch (err) {
       console.error('[HomeService] Error fetching published requests:', err);
@@ -442,8 +433,6 @@ class HomeService {
       if (response && response.success === false) {
         throw new Error(response.error || 'No se pudo cancelar la solicitud');
       }
-
-      console.log('[HomeService] Request cancelled', { idSolicitud });
     } catch (err) {
       console.error('[HomeService] Error cancelling request:', err);
       throw err;
@@ -481,7 +470,6 @@ class HomeService {
         throw new Error(response.error || 'No se pudo aceptar la propuesta');
       }
 
-      console.log('[HomeService] Proposal accepted', { idSolTec });
       return response;
     } catch (err) {
       console.error('[HomeService] Error accepting proposal:', err);
@@ -504,7 +492,6 @@ class HomeService {
         throw new Error(response.error || 'No se pudo rechazar la propuesta');
       }
 
-      console.log('[HomeService] Proposal rejected', { idSolTec });
       return response;
     } catch (err) {
       console.error('[HomeService] Error rejecting proposal:', err);

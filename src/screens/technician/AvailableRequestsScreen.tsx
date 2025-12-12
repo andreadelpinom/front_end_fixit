@@ -17,6 +17,7 @@ import {
   Solicitud,
   SolicitudTecnico,
 } from '../../services/technician.service';
+import { formatCurrency } from '../../utils/currency.utils';
 import SubmitProposalModal from '../../components/SubmitProposalModal';
 
 type SubTab = 'DISPONIBLES' | 'OFERTAS';
@@ -122,9 +123,7 @@ export default function AvailableRequestsScreen() {
       </View>
 
       <Text style={styles.cost}>
-        ${typeof item.costoAcordado === 'string' 
-          ? parseFloat(item.costoAcordado).toFixed(2)
-          : item.costoAcordado?.toFixed(2) || 'N/A'}
+        ${formatCurrency(item.costoAcordado)}
       </Text>
       
       {item.notas && (
