@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -8,66 +8,84 @@ import {
   RefreshControl,
   TouchableOpacity,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useAuth } from '../../context/AuthContext';
 import {
   getMyProposals,
   SolicitudTecnico,
 } from '../../services/technician.service';
-import { EstadoAceptacion } from '../../types/api';
 
 type Props = NativeStackScreenProps<any>;
+type SubTab = 'EN_CURSO' | 'HISTORIAL';
 
 export default function MyJobsScreen({ navigation }: Props) {
   const { user } = useAuth();
+  const [subTab, setSubTab] = useState<SubTab>('EN_CURSO');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [proposals, setProposals] = useState<SolicitudTecnico[]>([]);
 
+  useFocusEffect(
+    React.useCallback(() => {
+      loadData();
+    }, [user])
+  );
+
   const loadData = async () => {
     if (!user) return;
+    setLoading(true);
 
     try {
-      // El backend resuelve automáticamente desde el JWT
       const data = await getMyProposals();
       setProposals(data);
     } catch (err) {
       console.error('Error loading proposals:', err);
+      setProposals([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
 
-  useEffect(() => {
-    loadData();
-  }, [user]);
-
   const onRefresh = () => {
     setRefreshing(true);
     loadData();
   };
 
-  const getStatusColor = (status: string) => {
+  // Filter proposals by subtab
+  const getFilteredProposals = (): SolicitudTecnico[] => {
+    return proposals.filter((p) => {
+      if (subTab === 'EN_CURSO') {
+        // Only show ACCEPTED jobs
+        return p.estadoAcuerdo === 'ACEPTADO';
+      } else {
+        // Show REJECTED or completed
+        return p.estadoAcuerdo === 'RECHAZADO' || (p.estadoAcuerdo === 'ACEPTADO' && p.fechaConfirmada);
+      }
+    });
+  };
+
+  const getStatusColor = (status: string): string => {
     switch (status) {
-      case EstadoAceptacion.ACEPTADO:
+      case 'ACEPTADO':
         return '#34C759';
-      case EstadoAceptacion.RECHAZADO:
+      case 'RECHAZADO':
         return '#FF3B30';
-      case EstadoAceptacion.PROPUESTO:
+      case 'PROPUESTO':
         return '#FF9500';
       default:
         return '#8E8E93';
     }
   };
 
-  const getStatusLabel = (status: string) => {
+  const getStatusLabel = (status: string): string => {
     switch (status) {
-      case EstadoAceptacion.ACEPTADO:
-        return '✅ ACEPTADO';
-      case EstadoAceptacion.RECHAZADO:
+      case 'ACEPTADO':
+        return '✅ EN CURSO';
+      case 'RECHAZADO':
         return '❌ RECHAZADO';
-      case EstadoAceptacion.PROPUESTO:
+      case 'PROPUESTO':
         return '⏳ PROPUESTO';
       default:
         return status;
@@ -113,11 +131,14 @@ export default function MyJobsScreen({ navigation }: Props) {
         )}
       </View>
 
-      {item.estadoAcuerdo === EstadoAceptacion.ACEPTADO && (
+      {item.estadoAcuerdo === 'ACEPTADO' && subTab === 'EN_CURSO' && (
         <TouchableOpacity
           style={styles.ctaButton}
           onPress={() => {
-            navigation.navigate('ActiveJobs', { idSolicitud: item.idSolicitud });
+            navigation.navigate('Dashboard', { 
+              screen: 'ActiveJobs', 
+              params: { idSolicitud: item.idSolicitud } 
+            });
           }}
         >
           <Text style={styles.ctaButtonText}>Ir al trabajo →</Text>
@@ -134,10 +155,33 @@ export default function MyJobsScreen({ navigation }: Props) {
     );
   }
 
+  const filteredProposals = getFilteredProposals();
+
   return (
     <View style={styles.container}>
+      {/* Subtabs */}
+      <View style={styles.subtabsContainer}>
+        <TouchableOpacity
+          style={[styles.subtab, subTab === 'EN_CURSO' && styles.subtabActive]}
+          onPress={() => setSubTab('EN_CURSO')}
+        >
+          <Text style={[styles.subtabText, subTab === 'EN_CURSO' && styles.subtabTextActive]}>
+            En curso ({proposals.filter(p => p.estadoAcuerdo === 'ACEPTADO').length})
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.subtab, subTab === 'HISTORIAL' && styles.subtabActive]}
+          onPress={() => setSubTab('HISTORIAL')}
+        >
+          <Text style={[styles.subtabText, subTab === 'HISTORIAL' && styles.subtabTextActive]}>
+            Historial
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Content */}
       <FlatList
-        data={proposals}
+        data={filteredProposals}
         renderItem={renderItem}
         keyExtractor={(item) => item.idSolTec.toString()}
         contentContainerStyle={styles.listContent}
@@ -147,7 +191,9 @@ export default function MyJobsScreen({ navigation }: Props) {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>
-              📭 No tienes propuestas enviadas todavía
+              {subTab === 'EN_CURSO' 
+                ? '📭 No tienes trabajos en curso' 
+                : '📭 No hay historial'}
             </Text>
           </View>
         }
@@ -159,12 +205,36 @@ export default function MyJobsScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: '#F5F5F5',
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  subtabsContainer: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+    backgroundColor: '#FFFFFF',
+  },
+  subtab: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  subtabActive: {
+    borderBottomWidth: 2,
+    borderBottomColor: '#007AFF',
+  },
+  subtabText: {
+    fontSize: 14,
+    color: '#757575',
+    fontWeight: '500',
+  },
+  subtabTextActive: {
+    color: '#007AFF',
+    fontWeight: '700',
   },
   listContent: {
     padding: 16,
@@ -240,6 +310,7 @@ const styles = StyleSheet.create({
   emptyContainer: {
     padding: 32,
     alignItems: 'center',
+    minHeight: 200,
   },
   emptyText: {
     fontSize: 16,

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -7,59 +7,66 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   RefreshControl,
-  Alert,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../../context/AuthContext';
 import {
   getAvailableRequests,
+  getMyProposals,
   createProposal,
   Solicitud,
+  SolicitudTecnico,
 } from '../../services/technician.service';
 import SubmitProposalModal from '../../components/SubmitProposalModal';
 
+type SubTab = 'DISPONIBLES' | 'OFERTAS';
+
 export default function AvailableRequestsScreen() {
   const { user } = useAuth();
+  const [subTab, setSubTab] = useState<SubTab>('DISPONIBLES');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [requests, setRequests] = useState<Solicitud[]>([]);
+  const [availableRequests, setAvailableRequests] = useState<Solicitud[]>([]);
+  const [myProposals, setMyProposals] = useState<SolicitudTecnico[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<Solicitud | null>(null);
-  const [submitting, setSubmitting] = useState(false);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      loadData();
+    }, [user])
+  );
 
   const loadData = async () => {
     if (!user) return;
+    setLoading(true);
 
     try {
-      // Obtener solicitudes disponibles
-      const data = await getAvailableRequests();
-      setRequests(data);
+      // Load both available and proposals in parallel
+      const [available, proposals] = await Promise.all([
+        getAvailableRequests(),
+        getMyProposals(),
+      ]);
+      setAvailableRequests(available);
+      setMyProposals(proposals);
     } catch (err: any) {
-      console.error('Error loading requests:', err);
-      Alert.alert('Error', 'No se pudieron cargar las solicitudes');
+      console.error('Error loading data:', err);
+      setAvailableRequests([]);
+      setMyProposals([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
 
-  useEffect(() => {
-    loadData();
-  }, [user]);
-
   const onRefresh = () => {
     setRefreshing(true);
     loadData();
   };
 
-  const handleApply = (request: Solicitud) => {
-    setSelectedRequest(request);
-    setModalVisible(true);
-  };
-
   const handleSubmitProposal = async (cost: number, notes?: string) => {
     if (!selectedRequest) return;
 
-    setSubmitting(true);
     try {
       await createProposal({
         idSolicitud: selectedRequest.idSolicitud,
@@ -67,24 +74,17 @@ export default function AvailableRequestsScreen() {
         notas: notes || 'Propuesta enviada desde la app',
       });
 
-      Alert.alert('Éxito', '✅ Propuesta enviada correctamente', [
-        {
-          text: 'OK',
-          onPress: () => {
-            setSelectedRequest(null);
-            loadData();
-          },
-        },
-      ]);
+      // Refresh data after successful submission
+      setModalVisible(false);
+      setSelectedRequest(null);
+      loadData();
     } catch (err: any) {
-      console.error('[AvailableRequestsScreen] Error:', err);
-      Alert.alert('Error', err.message || 'No se pudo enviar la propuesta');
-    } finally {
-      setSubmitting(false);
+      console.error('Error:', err);
     }
   };
 
-  const renderItem = ({ item }: { item: Solicitud }) => (
+  // Render DISPONIBLES tab
+  const renderAvailableItem = ({ item }: { item: Solicitud }) => (
     <View style={styles.card}>
       <Text style={styles.title}>{item.tituloProblema}</Text>
       <Text style={styles.description} numberOfLines={2}>
@@ -97,26 +97,75 @@ export default function AvailableRequestsScreen() {
             ? item.costoEstimado 
             : item.costoEstimado?.toFixed(2) || 'N/A'}
         </Text>
-        <Text style={styles.infoText}>
-          ⏱️ {item.duracionEstimadaMin || 'N/A'} min
-        </Text>
-      </View>
-
-      <View style={styles.infoContainer}>
-        <Text style={styles.infoSmall}>📍 {item.codigoParroquia}</Text>
-        <Text style={styles.infoSmall}>
-          📅 {new Date(item.fechaPublicacion).toLocaleDateString()}
-        </Text>
       </View>
 
       <TouchableOpacity
-        style={styles.applyButton}
-        onPress={() => handleApply(item)}
+        style={styles.ctaButton}
+        onPress={() => {
+          setSelectedRequest(item);
+          setModalVisible(true);
+        }}
       >
-        <Text style={styles.applyButtonText}>Enviar Propuesta</Text>
+        <Text style={styles.ctaButtonText}>Enviar Propuesta</Text>
       </TouchableOpacity>
     </View>
   );
+
+  // Render MIS OFERTAS tab
+  const renderProposalItem = ({ item }: { item: SolicitudTecnico }) => (
+    <View style={styles.card}>
+      <View style={styles.header}>
+        <Text style={styles.id}>Solicitud #{item.idSolicitud}</Text>
+        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.estadoAcuerdo) }]}>
+          <Text style={styles.statusText}>{getStatusLabel(item.estadoAcuerdo)}</Text>
+        </View>
+      </View>
+
+      <Text style={styles.cost}>
+        ${typeof item.costoAcordado === 'string' 
+          ? parseFloat(item.costoAcordado).toFixed(2)
+          : item.costoAcordado?.toFixed(2) || 'N/A'}
+      </Text>
+      
+      {item.notas && (
+        <Text style={styles.notes} numberOfLines={2}>
+          {item.notas}
+        </Text>
+      )}
+
+      {item.estadoAcuerdo === 'ACEPTADO' && (
+        <TouchableOpacity style={styles.ctaButton}>
+          <Text style={styles.ctaButtonText}>Ir al Trabajo</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+
+  const getStatusColor = (status: string): string => {
+    switch (status) {
+      case 'ACEPTADO':
+        return '#34C759';
+      case 'RECHAZADO':
+        return '#FF3B30';
+      case 'PROPUESTO':
+        return '#FF9500';
+      default:
+        return '#8E8E93';
+    }
+  };
+
+  const getStatusLabel = (status: string): string => {
+    switch (status) {
+      case 'ACEPTADO':
+        return '✅ ACEPTADO';
+      case 'RECHAZADO':
+        return '❌ RECHAZADO';
+      case 'PROPUESTO':
+        return '⏳ PROPUESTO';
+      default:
+        return status;
+    }
+  };
 
   if (loading) {
     return (
@@ -128,35 +177,58 @@ export default function AvailableRequestsScreen() {
 
   return (
     <View style={styles.container}>
-      <FlatList
-        data={requests}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.idSolicitud.toString()}
-        contentContainerStyle={styles.listContent}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      {/* Subtabs */}
+      <View style={styles.subtabsContainer}>
+        <TouchableOpacity
+          style={[styles.subtab, subTab === 'DISPONIBLES' && styles.subtabActive]}
+          onPress={() => setSubTab('DISPONIBLES')}
+        >
+          <Text style={[styles.subtabText, subTab === 'DISPONIBLES' && styles.subtabTextActive]}>
+            Disponibles
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.subtab, subTab === 'OFERTAS' && styles.subtabActive]}
+          onPress={() => setSubTab('OFERTAS')}
+        >
+          <Text style={[styles.subtabText, subTab === 'OFERTAS' && styles.subtabTextActive]}>
+            Mis Ofertas ({myProposals.length})
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Content */}
+      <FlatList<any>
+        data={subTab === 'DISPONIBLES' ? availableRequests : myProposals}
+        renderItem={subTab === 'DISPONIBLES' ? renderAvailableItem : renderProposalItem}
+        keyExtractor={(item: any) => 
+          subTab === 'DISPONIBLES' 
+            ? `req-${item.idSolicitud}`
+            : `prop-${item.idSolTec}`
         }
+        contentContainerStyle={styles.listContent}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>
-              📭 No hay solicitudes disponibles en este momento
+              {subTab === 'DISPONIBLES' 
+                ? 'No hay solicitudes disponibles' 
+                : 'No has enviado ofertas aún'}
             </Text>
           </View>
         }
       />
 
-      {selectedRequest && (
-        <SubmitProposalModal
-          visible={modalVisible}
-          requestTitle={selectedRequest.tituloProblema}
-          onClose={() => {
-            setModalVisible(false);
-            setSelectedRequest(null);
-          }}
-          onSubmit={handleSubmitProposal}
-          isLoading={submitting}
-        />
-      )}
+      {/* Modal */}
+      <SubmitProposalModal
+        visible={modalVisible}
+        requestTitle={selectedRequest?.tituloProblema || ''}
+        onClose={() => {
+          setModalVisible(false);
+          setSelectedRequest(null);
+        }}
+        onSubmit={handleSubmitProposal}
+      />
     </View>
   );
 }
@@ -164,71 +236,120 @@ export default function AvailableRequestsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: '#F5F5F5',
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
+  subtabsContainer: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+    backgroundColor: '#FFFFFF',
+  },
+  subtab: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  subtabActive: {
+    borderBottomWidth: 2,
+    borderBottomColor: '#007AFF',
+  },
+  subtabText: {
+    fontSize: 14,
+    color: '#757575',
+    fontWeight: '500',
+  },
+  subtabTextActive: {
+    color: '#007AFF',
+    fontWeight: '700',
+  },
   listContent: {
-    padding: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
   },
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    borderRadius: 8,
     padding: 16,
-    marginBottom: 16,
+    marginBottom: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowRadius: 3,
+    elevation: 2,
   },
-  title: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#000000',
-    marginBottom: 8,
-  },
-  description: {
-    fontSize: 14,
-    color: '#8E8E93',
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 12,
   },
-  infoContainer: {
-    flexDirection: 'row',
-    gap: 16,
+  title: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#212121',
     marginBottom: 8,
   },
-  infoText: {
-    fontSize: 14,
-    color: '#000000',
-    fontWeight: '500',
-  },
-  infoSmall: {
+  id: {
     fontSize: 12,
-    color: '#8E8E93',
+    color: '#757575',
   },
-  applyButton: {
-    backgroundColor: '#007AFF',
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 8,
+  description: {
+    fontSize: 13,
+    color: '#666',
+    marginBottom: 8,
   },
-  applyButtonText: {
+  infoContainer: {
+    marginVertical: 8,
+  },
+  infoText: {
+    fontSize: 13,
+    color: '#333',
+  },
+  statusBadge: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 4,
+  },
+  statusText: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  cost: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#007AFF',
+    marginBottom: 8,
+  },
+  notes: {
+    fontSize: 12,
+    color: '#999',
+    marginVertical: 8,
+  },
+  ctaButton: {
+    backgroundColor: '#007AFF',
+    paddingVertical: 10,
+    borderRadius: 6,
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  ctaButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
     fontWeight: '600',
   },
   emptyContainer: {
-    padding: 32,
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
+    minHeight: 200,
   },
   emptyText: {
-    fontSize: 16,
-    color: '#8E8E93',
-    textAlign: 'center',
+    fontSize: 14,
+    color: '#999',
   },
 });

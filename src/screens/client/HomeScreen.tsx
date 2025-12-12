@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   ScrollView,
   SafeAreaView,
@@ -37,9 +37,12 @@ export default function HomeScreen({ navigation }: any): React.ReactElement {
     if (!user) return;
     setLoading(true);
     try {
-      const response = await requestService.getClientRequests();
-      // Filter for active/pending request
-      const active = response.find(
+      const response = await requestService.getAllRequests(100, 1);
+      // Filter for active/pending request from solicitudes array or direct array
+      const solicitudes = Array.isArray(response) 
+        ? response 
+        : response.solicitudes || [];
+      const active = solicitudes.find(
         (r: any) =>
           r.estadoSolicitud === 'PENDIENTE' || r.estadoSolicitud === 'ACEPTADA'
       );
@@ -47,7 +50,9 @@ export default function HomeScreen({ navigation }: any): React.ReactElement {
       setError(null);
     } catch (err: any) {
       console.error('Error loading active request:', err);
-      setError(err?.message || 'Error al cargar solicitud');
+      // Graceful degradation - no error shown to user if fetch fails
+      setActiveRequest(null);
+      setError(null);
     } finally {
       setLoading(false);
     }
