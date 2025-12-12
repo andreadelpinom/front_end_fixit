@@ -73,9 +73,13 @@ export async function getAvailableRequests(filterDto?: any): Promise<Solicitud[]
   try {
     // 🔑 NUEVO ENDPOINT: Diseñado específicamente para técnicos
     const url = getApiUrl('/request/solicitudes/available/technicians');
+    console.log('[TechnicianService] Fetching from:', url);
+    
     const resp = await apiClient.get<unknown>(url, {
       params: filterDto || {},
     });
+
+    console.log('[TechnicianService] Raw response:', JSON.stringify(resp, null, 2));
 
     // Unwrap response structure
     let allRequests: Solicitud[] = [];
@@ -83,17 +87,30 @@ export async function getAvailableRequests(filterDto?: any): Promise<Solicitud[]
       allRequests = resp;
     } else if (resp && typeof resp === 'object') {
       const anyResp = resp as any;
-      if (Array.isArray(anyResp.data)) {
-        allRequests = anyResp.data;
-      } else if (anyResp.data && typeof anyResp.data === 'object') {
+      
+      // Direct solicitudes property
+      if (Array.isArray(anyResp.solicitudes)) {
+        allRequests = anyResp.solicitudes;
+        console.log('[TechnicianService] Found solicitudes directly:', allRequests.length);
+      }
+      // Wrapped in data
+      else if (anyResp.data && typeof anyResp.data === 'object') {
         const dataObj = anyResp.data as any;
         if (Array.isArray(dataObj.solicitudes)) {
           allRequests = dataObj.solicitudes;
+          console.log('[TechnicianService] Found in data.solicitudes:', allRequests.length);
         } else if (Array.isArray(dataObj.items)) {
           allRequests = dataObj.items;
+          console.log('[TechnicianService] Found in data.items:', allRequests.length);
         } else if (Array.isArray(dataObj.data)) {
           allRequests = dataObj.data;
+          console.log('[TechnicianService] Found in data.data:', allRequests.length);
         }
+      }
+      // Direct array in data
+      else if (Array.isArray(anyResp.data)) {
+        allRequests = anyResp.data;
+        console.log('[TechnicianService] Found direct array in data:', allRequests.length);
       }
     }
 
