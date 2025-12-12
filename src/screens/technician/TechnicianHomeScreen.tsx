@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -14,9 +14,9 @@ import {
   getTechnicianByUser,
   getTechnicianStats,
   TechnicianStats,
+  getMyProposals,
 } from '../../services/technician.service';
-import { technician as technicianService } from '../../services/technician.service';
-import { TecnicoWithDetails } from '../../types/api';
+import { TecnicoWithDetails, SolicitudTecnico } from '../../types/api';
 import { formatCurrency } from '../../utils/currency.utils';
 
 interface PendingOffer {
@@ -64,10 +64,10 @@ export default function TechnicianHomeScreen({ navigation }: any) {
 
       // Try to load pending offer (first proposal in PROPUESTO state)
       try {
-        const proposals = await technicianService.getMyProposals();
+        const proposals = await getMyProposals();
         const pending = proposals.find(
-          (p: any) => p.estadoAceptacion === 'PROPUESTO'
-        );
+          (p: any) => p.estadoAcuerdo === 'PROPUESTO'
+        ) as any;
         setPendingOffer(pending || null);
       } catch {
         setPendingOffer(null);
@@ -75,10 +75,10 @@ export default function TechnicianHomeScreen({ navigation }: any) {
 
       // Try to load active job
       try {
-        const jobs = await technicianService.getMyJobs();
+        const jobs = await getMyProposals();
         const active = jobs.find(
-          (j: any) => j.estadoSolicitud === 'ACEPTADA'
-        );
+          (j: any) => j.estadoAcuerdo === 'ACEPTADO'
+        ) as any;
         setActiveJob(active || null);
       } catch {
         setActiveJob(null);
@@ -214,7 +214,7 @@ export default function TechnicianHomeScreen({ navigation }: any) {
       {stats && (
         <View style={styles.statsContainer}>
           <View style={styles.statBox}>
-            <Text style={styles.statNumber}>{stats.totalWorksCompleted}</Text>
+            <Text style={styles.statNumber}>{stats.completedJobs}</Text>
             <Text style={styles.statLabel}>Trabajos</Text>
           </View>
           <View style={styles.statBox}>

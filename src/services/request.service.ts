@@ -1,6 +1,6 @@
 import { apiClient } from './api-client.service';
 import { getApiUrl } from '../config/api.config';
-import { Solicitud, PaginatedSolicitudes } from '../types/api';
+import { PaginatedSolicitudes } from '../types/api';
 
 /**
  * Servicio para obtener solicitudes de servicio del cliente
@@ -30,15 +30,13 @@ export const requestService = {
 
       console.log('[requestService] Fetching completed requests', { url, params });
 
-      const response = await apiClient.get<ApiResponse>(
-        url,
-        {
-          params,
-        }
-      );
+      const response = await apiClient.get<any>(url, {
+        params,
+      });
 
-      if (!response.success) {
-        console.warn('[requestService] Backend returned unsuccessful response for completed requests:', response);
+      // Check if response has the expected solicitudes array
+      if (!response?.solicitudes) {
+        console.warn('[requestService] No solicitudes in response for completed requests:', response);
         return {
           solicitudes: [],
           pagination: {
@@ -50,7 +48,7 @@ export const requestService = {
         };
       }
 
-      return response.data;
+      return response as PaginatedSolicitudes;
     } catch (error) {
       console.error('[requestService] Error fetching completed requests:', error);
       return {
@@ -76,21 +74,26 @@ export const requestService = {
     page: number = 1
   ): Promise<PaginatedSolicitudes> {
     try {
-      const response = await apiClient.get<ApiResponse>(
-        '/request/solicitudes/my/solicitudes',
-        {
-          params: {
-            limit,
-            page,
-          },
-        }
-      );
+      const response = await apiClient.get<any>('/request/solicitudes/my/solicitudes', {
+        params: {
+          limit,
+          page,
+        },
+      });
 
-      if (!response.success) {
-        throw new Error('Error fetching all requests');
+      if (!response?.solicitudes) {
+        return {
+          solicitudes: [],
+          pagination: {
+            total: 0,
+            page: 1,
+            limit: limit,
+            totalPages: 0,
+          },
+        };
       }
 
-      return response.data;
+      return response as PaginatedSolicitudes;
     } catch (error) {
       console.error('[requestService] Error fetching all requests:', error);
       throw error;
@@ -110,7 +113,7 @@ export const requestService = {
     page: number = 1
   ): Promise<PaginatedSolicitudes> {
     try {
-      const response = await apiClient.get<ApiResponse>(
+      const response = await apiClient.get<any>(
         getApiUrl('/request/solicitudes'),
         {
           params: {
@@ -121,8 +124,8 @@ export const requestService = {
         }
       );
 
-      if (!response.success) {
-        console.warn('[requestService] Backend returned unsuccessful response:', response);
+      if (!response?.solicitudes) {
+        console.warn('[requestService] No solicitudes in response:', response);
         // Return empty response instead of throwing
         return {
           solicitudes: [],
@@ -135,7 +138,7 @@ export const requestService = {
         };
       }
 
-      return response.data;
+      return response as PaginatedSolicitudes;
     } catch (error) {
       console.error('[requestService] Error fetching requests by status:', error);
       // Return empty response instead of throwing, for graceful degradation

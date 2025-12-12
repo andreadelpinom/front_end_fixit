@@ -92,7 +92,7 @@ export default function TechnicianProfileScreen() {
           <InfoRow label="Nombre" value={`${user?.nombres} ${user?.apellidos}`} />
           <InfoRow label="Email" value={user?.email || 'N/A'} />
           <InfoRow label="Cédula" value={user?.cedula || 'N/A'} />
-          <InfoRow label="Rol" value={user?.rol || 'N/A'} />
+          <InfoRow label="Rol" value={user?.roles?.[0] || 'N/A'} />
         </View>
       </View>
 

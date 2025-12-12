@@ -15,6 +15,7 @@ import { useAuth } from '../../context/AuthContext';
 import { WIZARD_COLORS } from './request-wizard/WizardShared';
 import { requestService } from '../../services/request.service';
 import { Solicitud } from '../../types/api';
+import { formatCurrency } from '../../utils/currency.utils';
 
 type Props = NativeStackNavigationProp<any>;
 
@@ -82,7 +83,7 @@ const RequestsHistoryScreen: React.FC<RequestsHistoryScreenProps> = ({ navigatio
   /**
    * Formatea una fecha ISO a formato español (DD de Mes de YYYY)
    */
-  const formatDate = (dateString: string | null): string => {
+  const formatDate = (dateString: string | null | undefined): string => {
     if (!dateString) return 'No especificada';
 
     try {
@@ -141,11 +142,11 @@ const RequestsHistoryScreen: React.FC<RequestsHistoryScreenProps> = ({ navigatio
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Costo:</Text>
             <Text style={styles.infoValue}>
-              ${item.costoEstimado.toFixed(2)}
+              ${formatCurrency(item.costoEstimado)}
               {item.costoPromocion && (
                 <Text style={styles.promoPrice}>
                   {' '}
-                  (${item.costoPromocion.toFixed(2)})
+                  (${formatCurrency(item.costoPromocion)})
                 </Text>
               )}
             </Text>
