@@ -7,7 +7,7 @@ import { ServiceCardVariant } from '../useHomeClient';
 
 const buttonLabels: Record<ServiceCardVariant, string> = {
   EMPTY: 'Crear solicitud',
-  PROPOSALS: 'Ver propuestas',
+  PROPOSALS: 'Ver solicitud',
   IN_PROGRESS: 'Ver progreso en tiempo real',
   WAITING: 'Ver detalles',
 };

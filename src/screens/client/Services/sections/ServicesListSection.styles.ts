@@ -71,25 +71,7 @@ export const servicesListStyles = StyleSheet.create({
     fontSize: 12,
     color: theme.colors.text.muted,
   },
-  proposalsBadge: {
-    marginTop: theme.spacing.sm,
-    alignSelf: 'flex-start',
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
-    borderRadius: theme.spacing.lg,
-    backgroundColor: theme.colors.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: theme.colors.primary,
-  },
-  proposalsText: {
-    color: theme.colors.primary,
-    fontWeight: theme.typography.weights.medium,
-    fontSize: 13,
-  },
   cardPressed: {
     opacity: 0.9,
-  },
-  proposalsPressed: {
-    opacity: 0.85,
   },
 });

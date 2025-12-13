@@ -3,10 +3,11 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import HomeClientScreen from '../screens/client/Home/HomeClientScreen';
 import ClientServicesScreen from '../screens/client/Services/ClientServicesScreen';
-import RequestDetailsScreen from '../screens/client/RequestDetailsScreen';
-import ProposalsScreen from '../screens/client/ProposalsScreen';
-import ClientProfileScreen from '../screens/client/ClientProfileScreen';
-import EditProfileScreen from '../screens/client/EditProfileScreen';
+import DetalleSolicitudScreen from '../screens/client/Services/DetalleSolicitudScreen';
+import ProposalsListScreen from '../screens/client/Proposals/ProposalsListScreen';
+import ProposalDetailScreen from '../screens/client/Proposals/ProposalDetailScreen';
+import ClientProfileScreen from '../screens/client/Profile/ClientProfileScreen';
+import EditClientProfileScreen from '../screens/client/Profile/EditClientProfileScreen';
 import RequestsHistoryScreen from '../screens/client/RequestsHistoryScreen';
 import ActiveServicesScreen from '../screens/client/ActiveServicesScreen';
 import { NotificationsScreen } from '../screens/client/Notifications/NotificationsScreen';
@@ -21,72 +22,114 @@ import RequestStepReviewScreen from '../screens/client/request-wizard/RequestSte
 import { TabIcon } from '../ui';
 import { navigationStyles } from './navigation.styles';
 import { theme } from '../theme';
-
-type ClientTabParamList = {
-  ClientHome: undefined;
-  ClientServices: undefined;
-  ClientActivity: undefined;
-  ClientProfile: undefined;
-};
+import {
+  ClientProfileStackParamList,
+  ClientServicesStackParamList,
+  ClientTabParamList,
+  RequestWizardStackParamList,
+} from './types';
 
 type TabIconName = Parameters<typeof TabIcon>[0]['name'];
 
 const Tab = createBottomTabNavigator<ClientTabParamList>();
-const Stack = createNativeStackNavigator();
+const ServicesStackNavigator = createNativeStackNavigator<ClientServicesStackParamList>();
+const RequestWizardStackNavigator = createNativeStackNavigator<RequestWizardStackParamList>();
+const ActivityStackNavigator = createNativeStackNavigator();
+const ProfileStackNavigator =
+  createNativeStackNavigator<ClientProfileStackParamList>();
 
 const stackScreenOptions = {
   headerStyle: navigationStyles.header,
   headerTintColor: theme.colors.text.inverse,
   headerTitleStyle: navigationStyles.headerTitle,
+  headerBackTitleVisible: false,
 };
 
 function CreateRequestStack() {
   return (
-    <Stack.Navigator initialRouteName="RequestStepService" screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="RequestStepService" component={RequestStepServiceScreen} />
-      <Stack.Screen name="RequestStepProblem" component={RequestStepProblemScreen} />
-      <Stack.Screen name="RequestStepSchedule" component={RequestStepScheduleScreen} />
-      <Stack.Screen name="RequestStepPhotos" component={RequestStepPhotosScreen} />
-      <Stack.Screen name="RequestStepAddress" component={RequestStepAddressScreen} />
-      <Stack.Screen name="RequestStepReview" component={RequestStepReviewScreen} />
-    </Stack.Navigator>
+    <RequestWizardStackNavigator.Navigator initialRouteName="RequestStepService" screenOptions={{ headerShown: false }}>
+      <RequestWizardStackNavigator.Screen name="RequestStepService" component={RequestStepServiceScreen} />
+      <RequestWizardStackNavigator.Screen name="RequestStepProblem" component={RequestStepProblemScreen} />
+      <RequestWizardStackNavigator.Screen name="RequestStepSchedule" component={RequestStepScheduleScreen} />
+      <RequestWizardStackNavigator.Screen name="RequestStepPhotos" component={RequestStepPhotosScreen} />
+      <RequestWizardStackNavigator.Screen name="RequestStepAddress" component={RequestStepAddressScreen} />
+      <RequestWizardStackNavigator.Screen name="RequestStepReview" component={RequestStepReviewScreen} />
+    </RequestWizardStackNavigator.Navigator>
   );
 }
 
 function ServicesStack() {
   return (
-    <Stack.Navigator initialRouteName="ClientRequests" screenOptions={stackScreenOptions}>
-      <Stack.Screen name="ClientRequests" component={ClientServicesScreen} options={{ title: 'Servicios' }} />
-      <Stack.Screen name="RequestDetails" component={RequestDetailsScreen} options={{ headerShown: false }} />
-      <Stack.Screen name="Proposals" component={ProposalsScreen} options={{ title: 'Propuestas' }} />
-      <Stack.Screen name="CreateRequestStack" component={CreateRequestStack as any} options={{ headerShown: false }} />
-    </Stack.Navigator>
+    <ServicesStackNavigator.Navigator
+      initialRouteName="ClientServicesScreen"
+      screenOptions={{
+        ...stackScreenOptions,
+        headerLargeTitle: false,
+        headerShadowVisible: false,
+      }}
+    >
+      <ServicesStackNavigator.Screen
+        name="ClientServicesScreen"
+        component={ClientServicesScreen}
+        options={{ title: 'Servicios' }}
+      />
+      <ServicesStackNavigator.Screen
+        name="ClientRequests"
+        component={ClientServicesScreen}
+        options={{ title: 'Servicios' }}
+      />
+      <ServicesStackNavigator.Screen
+        name="RequestDetails"
+        component={DetalleSolicitudScreen}
+        options={{ title: 'Detalle de solicitud' }}
+      />
+      <ServicesStackNavigator.Screen
+        name="ProposalsList"
+        component={ProposalsListScreen}
+        options={{ title: 'Propuestas' }}
+      />
+      <ServicesStackNavigator.Screen
+        name="ProposalDetail"
+        component={ProposalDetailScreen}
+        options={{ title: 'Detalle de propuesta' }}
+      />
+      <ServicesStackNavigator.Screen
+        name="CreateRequestStack"
+        component={CreateRequestStack as any}
+        options={{ headerShown: false }}
+      />
+    </ServicesStackNavigator.Navigator>
   );
 }
 
 function ActivityStack() {
   return (
-    <Stack.Navigator initialRouteName="RequestsHistory" screenOptions={stackScreenOptions}>
-      <Stack.Screen name="RequestsHistory" component={RequestsHistoryScreen} options={{ title: 'Actividad' }} />
-      <Stack.Screen name="RequestDetails" component={RequestDetailsScreen} options={{ headerShown: false }} />
-      <Stack.Screen name="Proposals" component={ProposalsScreen} options={{ title: 'Propuestas' }} />
-      <Stack.Screen name="ActiveServices" component={ActiveServicesScreen} options={{ title: 'Servicios Activos' }} />
-      <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ title: 'Notificaciones' }} />
-    </Stack.Navigator>
+    <ActivityStackNavigator.Navigator initialRouteName="RequestsHistory" screenOptions={stackScreenOptions}>
+      <ActivityStackNavigator.Screen name="RequestsHistory" component={RequestsHistoryScreen} options={{ title: 'Actividad' }} />
+      <ActivityStackNavigator.Screen
+        name="RequestDetails"
+        component={DetalleSolicitudScreen}
+        options={{ title: 'Detalle de solicitud' }}
+      />
+      <ActivityStackNavigator.Screen name="ProposalsList" component={ProposalsListScreen} options={{ title: 'Propuestas' }} />
+      <ActivityStackNavigator.Screen name="ProposalDetail" component={ProposalDetailScreen} options={{ title: 'Detalle de propuesta' }} />
+      <ActivityStackNavigator.Screen name="ActiveServices" component={ActiveServicesScreen} options={{ title: 'Servicios Activos' }} />
+      <ActivityStackNavigator.Screen name="Notifications" component={NotificationsScreen} options={{ title: 'Notificaciones' }} />
+    </ActivityStackNavigator.Navigator>
   );
 }
 
 function ProfileStack() {
   return (
-    <Stack.Navigator initialRouteName="Profile" screenOptions={stackScreenOptions}>
-      <Stack.Screen name="Profile" component={ClientProfileScreen} options={{ title: 'Perfil' }} />
-      <Stack.Screen name="EditProfile" component={EditProfileScreen} options={{ title: 'Editar Perfil' }} />
-      <Stack.Screen name="RequestsHistory" component={RequestsHistoryScreen} options={{ title: 'Historial de Solicitudes' }} />
-      <Stack.Screen name="ActiveServices" component={ActiveServicesScreen} options={{ title: 'Servicios Activos' }} />
-      <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ title: 'Notificaciones' }} />
-      <Stack.Screen name="Support" component={SupportScreen} options={{ title: 'Soporte Técnico' }} />
-      <Stack.Screen name="BecomeTechnician" component={BecomeTechnicianScreen} options={{ title: 'Convertirse en Técnico' }} />
-    </Stack.Navigator>
+    <ProfileStackNavigator.Navigator initialRouteName="Profile" screenOptions={stackScreenOptions}>
+      <ProfileStackNavigator.Screen name="Profile" component={ClientProfileScreen} options={{ title: 'Perfil' }} />
+      <ProfileStackNavigator.Screen name="EditProfile" component={EditClientProfileScreen} options={{ title: 'Editar Perfil' }} />
+      <ProfileStackNavigator.Screen name="RequestsHistory" component={RequestsHistoryScreen} options={{ title: 'Historial de Solicitudes' }} />
+      <ProfileStackNavigator.Screen name="ActiveServices" component={ActiveServicesScreen} options={{ title: 'Servicios Activos' }} />
+      <ProfileStackNavigator.Screen name="Notifications" component={NotificationsScreen} options={{ title: 'Notificaciones' }} />
+      <ProfileStackNavigator.Screen name="Support" component={SupportScreen} options={{ title: 'Soporte Técnico' }} />
+      <ProfileStackNavigator.Screen name="BecomeTechnician" component={BecomeTechnicianScreen} options={{ title: 'Convertirse en Técnico' }} />
+    </ProfileStackNavigator.Navigator>
   );
 }
 

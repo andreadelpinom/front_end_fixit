@@ -15,8 +15,9 @@ import { EmptyServicesSection } from './sections/EmptyServicesSection';
 import { useClientServices, ClientServicesTab } from './useClientServices';
 import { RequestPreview } from '../../../services/home.service';
 import { theme } from '../../../theme';
+import { ClientServicesStackParamList } from '../../../navigation/types';
 
-type Props = NativeStackScreenProps<any>;
+type Props = NativeStackScreenProps<ClientServicesStackParamList, 'ClientServicesScreen'>;
 
 type EmptyStateConfig = Record<
   ClientServicesTab,
@@ -71,10 +72,6 @@ export default function ClientServicesScreen({ navigation }: Props): React.React
 
   const handleOpenDetails = (request: RequestPreview) => {
     navigation.navigate('RequestDetails', { idSolicitud: request.idSolicitud });
-  };
-
-  const handleOpenProposals = (request: RequestPreview) => {
-    navigation.navigate('Proposals', { idSolicitud: request.idSolicitud });
   };
 
   const handleCreateRequest = () => {
@@ -144,11 +141,9 @@ export default function ClientServicesScreen({ navigation }: Props): React.React
           <View style={styles.content}>
             <ServicesListSection
               requests={currentRequests}
-              activeTab={activeTab}
               refreshing={refreshing}
               onRefresh={onRefresh}
               onRequestPress={handleOpenDetails}
-              onProposalsPress={handleOpenProposals}
             />
           </View>
         )}

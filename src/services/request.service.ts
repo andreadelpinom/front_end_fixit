@@ -2,6 +2,8 @@ import { apiClient } from './api-client.service';
 import { getApiUrl } from '../config/api.config';
 import { PaginatedSolicitudes } from '../types/api';
 import { extractCollection, extractData } from './response-helpers';
+import { ErrorUtils } from '../utils/error.utils';
+import type { RequestDetails } from './home.service';
 
 const COLLECTION_KEYS = ['solicitudes', 'items', 'data', 'rows'];
 
@@ -50,6 +52,29 @@ const normalizePaginatedSolicitudes = (
     },
   };
 };
+
+const mapRequestDetails = (item: any): RequestDetails => ({
+  idSolicitud: Number(item.idSolicitud ?? 0),
+  idUser: Number(item.idUser ?? item.usuario?.idUser ?? 0),
+  idTipoServicio: Number(item.idTipoServicio ?? item.tipoServicioId ?? 0),
+  codigoParroquia: item.codigoParroquia ?? '',
+  tituloProblema: item.tituloProblema ?? item.titulo ?? '',
+  descripcionProblema: item.descripcionProblema ?? item.descripcion ?? '',
+  costoEstimado: item.costoEstimado ?? null,
+  costoPromocion: item.costoPromocion ?? null,
+  promocion: Boolean(item.promocion),
+  estadoSolicitud: item.estadoSolicitud,
+  fechaProgramada: item.fechaProgramada ?? null,
+  fechaPublicacion: item.fechaPublicacion ?? item.createdAt ?? '',
+  fechaInicio: item.fechaInicio ?? null,
+  fechaFinalizacion: item.fechaFinalizacion ?? null,
+  duracionEstimadaMin: item.duracionEstimadaMin ?? null,
+  isActive: Boolean(item.isActive ?? true),
+  createdAt: item.createdAt ?? item.fechaPublicacion ?? '',
+  updatedAt: item.updatedAt ?? item.modifiedAt ?? item.createdAt ?? item.fechaPublicacion ?? '',
+  createdBy: item.createdBy ?? null,
+  updatedBy: item.updatedBy ?? null,
+});
 
 /**
  * Servicio para obtener solicitudes de servicio del cliente
@@ -117,13 +142,13 @@ export const requestService = {
 
   /**
    * Obtiene las solicitudes por estado específico
-   * @param status - Estado de la solicitud (PENDIENTE, ACEPTADA, COMPLETADA, CANCELADA)
+  * @param status - Estado de la solicitud (PENDIENTE, PUBLICADA, ACEPTADA, ASIGNADA, EN_PROCESO, COMPLETADA, CANCELADA)
    * @param limit - Límite de resultados por página (default: 20)
    * @param page - Página a obtener (default: 1)
    * @returns Array de solicitudes del estado especificado
    */
   async getRequestsByStatus(
-    status: 'PENDIENTE' | 'ACEPTADA' | 'COMPLETADA' | 'CANCELADA',
+    status: 'PENDIENTE' | 'PUBLICADA' | 'ACEPTADA' | 'ASIGNADA' | 'EN_PROCESO' | 'COMPLETADA' | 'CANCELADA',
     limit: number = 20,
     page: number = 1
   ): Promise<PaginatedSolicitudes> {
@@ -142,6 +167,20 @@ export const requestService = {
     } catch (error) {
       console.error('[requestService] Error fetching requests by status:', error);
       return buildEmptyPaginated(1, limit);
+    }
+  },
+
+  async getRequestDetails(idSolicitud: number): Promise<RequestDetails> {
+    try {
+      const response = await apiClient.get<unknown>(
+        getApiUrl(`/request/solicitudes/${idSolicitud}`),
+      );
+      const data = extractData<any>(response);
+      return mapRequestDetails(data);
+    } catch (error) {
+      console.error('[requestService] Error fetching request details:', error);
+      ErrorUtils.logError(error, `requestService.getRequestDetails(${idSolicitud})`);
+      throw error;
     }
   },
 };

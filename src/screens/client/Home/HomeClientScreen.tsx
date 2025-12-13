@@ -1,5 +1,6 @@
 import React from 'react';
 import { ActivityIndicator, RefreshControl, SafeAreaView, ScrollView, View } from 'react-native';
+import { NavigationProp, useNavigation } from '@react-navigation/native';
 import { useHomeClient } from './useHomeClient';
 import { styles } from './HomeClientScreen.styles';
 import { HomeHeaderSection } from './sections/HomeHeaderSection';
@@ -10,10 +11,10 @@ import { TopTechniciansSection } from './sections/TopTechniciansSection';
 import { EmptyStateIllustrationSection } from './sections/EmptyStateIllustrationSection';
 import { ThemedText, ThemedView } from '../../../ui';
 import { theme } from '../../../theme';
-import { useNavigation } from '@react-navigation/native';
+import { ClientTabParamList } from '../../../navigation/types';
 
 export default function HomeClientScreen(): React.ReactElement {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NavigationProp<ClientTabParamList>>();
   const {
     greetingName,
     location,

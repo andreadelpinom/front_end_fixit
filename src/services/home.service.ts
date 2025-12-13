@@ -53,7 +53,7 @@ export interface RequestDetails {
   costoEstimado: number | null;
   costoPromocion: number | null;
   promocion: boolean;
-  estadoSolicitud: 'PENDIENTE' | 'ACEPTADA' | 'COMPLETADA' | 'CANCELADA';
+  estadoSolicitud: 'PENDIENTE' | 'PUBLICADA' | 'ACEPTADA' | 'ASIGNADA' | 'EN_PROCESO' | 'COMPLETADA' | 'CANCELADA';
   fechaProgramada: string | null;
   fechaPublicacion: string;
   fechaInicio: string | null;
@@ -316,7 +316,7 @@ class HomeService {
   }
 
   async getPublishedRequests(
-    estado: 'PENDIENTE' | 'ACEPTADA' | 'COMPLETADA' | 'CANCELADA' = 'PENDIENTE',
+    estado: 'PENDIENTE' | 'PUBLICADA' | 'ACEPTADA' | 'ASIGNADA' | 'EN_PROCESO' | 'COMPLETADA' | 'CANCELADA' = 'PENDIENTE',
     limit: number = 20,
     page: number = 1,
   ): Promise<RequestDetails[]> {

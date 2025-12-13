@@ -16,7 +16,7 @@ import { requestService } from '../../services/request.service';
 interface ActiveRequest {
   idSolicitud: number;
   tituloProblema: string;
-  estadoSolicitud: 'PENDIENTE' | 'ACEPTADA' | 'CANCELADA' | 'COMPLETADA';
+  estadoSolicitud: 'PENDIENTE' | 'PUBLICADA' | 'ACEPTADA' | 'ASIGNADA' | 'EN_PROCESO' | 'CANCELADA' | 'COMPLETADA';
   idTecnicoAsignado?: number | null;
   proposalCount?: number;
 }
@@ -57,10 +57,15 @@ export default function HomeScreen({ navigation }: any): React.ReactElement {
 
     switch (activeRequest.estadoSolicitud) {
       case 'PENDIENTE':
+      case 'PUBLICADA':
         if (activeRequest.idTecnicoAsignado) {
           return 'Técnico asignado';
         }
         return `${activeRequest.proposalCount || 0} propuestas recibidas`;
+      case 'ASIGNADA':
+        return 'Trabajo asignado';
+      case 'EN_PROCESO':
+        return 'Trabajo en progreso';
       case 'ACEPTADA':
         return 'Trabajo aceptado';
       case 'COMPLETADA':
@@ -77,7 +82,10 @@ export default function HomeScreen({ navigation }: any): React.ReactElement {
 
     switch (activeRequest.estadoSolicitud) {
       case 'PENDIENTE':
+      case 'PUBLICADA':
         return activeRequest.idTecnicoAsignado ? '#4CAF50' : '#FF9800';
+      case 'ASIGNADA':
+      case 'EN_PROCESO':
       case 'ACEPTADA':
         return '#4CAF50';
       case 'COMPLETADA':
@@ -99,12 +107,13 @@ export default function HomeScreen({ navigation }: any): React.ReactElement {
 
     switch (activeRequest.estadoSolicitud) {
       case 'PENDIENTE':
+      case 'PUBLICADA':
         if (activeRequest.proposalCount && activeRequest.proposalCount > 0) {
           return {
-            text: `Ver ${activeRequest.proposalCount} propuestas`,
+            text: 'Ver solicitud',
             action: () =>
               navigation.navigate('RequestsTab', {
-                screen: 'Proposals',
+                screen: 'RequestDetails',
                 params: { idSolicitud: activeRequest.idSolicitud },
               }),
           };
@@ -113,6 +122,8 @@ export default function HomeScreen({ navigation }: any): React.ReactElement {
           text: 'Esperando propuestas...',
           action: () => {},
         };
+      case 'ASIGNADA':
+      case 'EN_PROCESO':
       case 'ACEPTADA':
         return {
           text: 'Ir al trabajo',

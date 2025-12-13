@@ -1,7 +1,8 @@
 import { useCallback, useMemo, useState } from 'react';
-import { NavigationProp, ParamListBase, useFocusEffect } from '@react-navigation/native';
+import { NavigationProp, useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../../../context/AuthContext';
 import { homeService, Parroquia, RequestPreview, ServiceType, TechPreview } from '../../../services/home.service';
+import { ClientTabParamList } from '../../../navigation/types';
 
 export type ServiceCardVariant = 'EMPTY' | 'PROPOSALS' | 'IN_PROGRESS' | 'WAITING';
 
@@ -157,7 +158,7 @@ async function resolveParroquias(): Promise<Map<string, Parroquia>> {
 }
 
 export function useHomeClient(
-  navigation: NavigationProp<ParamListBase>,
+  navigation: NavigationProp<ClientTabParamList>,
 ): HomeClientState {
   const { user } = useAuth();
   const [categories, setCategories] = useState<ServiceType[]>([]);
@@ -173,25 +174,26 @@ export function useHomeClient(
   const [error, setError] = useState<string | null>(null);
 
   const handlePrimaryAction = useCallback(() => {
+    navigation.navigate('ClientServices', {
+      screen: 'ClientServicesScreen',
+    });
+
     if (serviceState.variant === 'EMPTY') {
       navigation.navigate('ClientServices', {
         screen: 'CreateRequestStack',
+        params: {
+          screen: 'RequestStepService',
+        },
       });
       return;
     }
 
-    if (serviceState.variant === 'PROPOSALS') {
+    if (serviceState.requestId) {
       navigation.navigate('ClientServices', {
-        screen: 'Proposals',
+        screen: 'RequestDetails',
         params: { idSolicitud: serviceState.requestId },
       });
-      return;
     }
-
-    navigation.navigate('ClientServices', {
-      screen: 'RequestDetails',
-      params: { idSolicitud: serviceState.requestId },
-    });
   }, [navigation, serviceState]);
 
   const loadHomeData = useCallback(async () => {

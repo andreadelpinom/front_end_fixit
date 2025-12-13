@@ -5,21 +5,17 @@ import {
   RefreshControl,
   Text,
   View,
-  GestureResponderEvent,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { RequestPreview } from '../../../../services/home.service';
-import { ClientServicesTab } from '../useClientServices';
 import { servicesListStyles as styles } from './ServicesListSection.styles';
 import { theme } from '../../../../theme';
 
 type ServicesListSectionProps = {
   requests: RequestPreview[];
-  activeTab: ClientServicesTab;
   refreshing: boolean;
   onRefresh: () => void;
   onRequestPress: (request: RequestPreview) => void;
-  onProposalsPress: (request: RequestPreview) => void;
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -73,19 +69,15 @@ const getLocation = (request: RequestPreview): string => {
 
 export const ServicesListSection: React.FC<ServicesListSectionProps> = ({
   requests,
-  activeTab,
   refreshing,
   onRefresh,
   onRequestPress,
-  onProposalsPress,
 }) => {
   const renderItem = ({ item }: { item: RequestPreview }) => {
     const status = normalizeStatus(item.estado);
     const statusLabel = STATUS_LABELS[status] ?? item.estado ?? 'Estado';
     const statusColor = STATUS_COLOR_MAP[status] ?? theme.colors.primary;
     const locationLabel = getLocation(item);
-    const showProposals = activeTab === 'PUBLISHED' && (item.proposalCount ?? 0) > 0;
-
     return (
       <Pressable
         onPress={() => onRequestPress(item)}
@@ -121,23 +113,6 @@ export const ServicesListSection: React.FC<ServicesListSectionProps> = ({
             <Text style={styles.metaText}>{formatDate(item.createdAt)}</Text>
           </View>
         </View>
-
-        {showProposals && (
-          <Pressable
-            onPress={(event: GestureResponderEvent) => {
-              event.stopPropagation();
-              onProposalsPress(item);
-            }}
-            style={({ pressed }) => [
-              styles.proposalsBadge,
-              pressed && styles.proposalsPressed,
-            ]}
-          >
-            <Text style={styles.proposalsText}>
-              Ver propuestas ({item.proposalCount})
-            </Text>
-          </Pressable>
-        )}
       </Pressable>
     );
   };
