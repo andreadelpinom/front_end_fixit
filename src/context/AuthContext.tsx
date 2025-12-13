@@ -142,6 +142,20 @@ export function AuthProvider({
     }
   };
 
+  /**
+   * SWITCH ROLE - Solo para usuarios CLIENTE/TÉCNICO
+   * ============================================
+   * Permite a un usuario con múltiples roles cambiar entre vistas.
+   * 
+   * IMPORTANTE:
+   * - NO cambia el rol permanentemente en la base de datos
+   * - Solo cambia qué vista ve el usuario (Cliente o Técnico)
+   * - Admin NO puede usar esta función (no tiene switch role)
+   * - Usa endpoint: POST /auth/switch-role
+   * 
+   * DIFERENTE DE:
+   * - adminService.updateUserRole() - Que ADMIN usa para cambiar roles permanentemente
+   */
   const switchRole = async (nuevoRol: string) => {
     dispatch({ type: 'SET_LOADING', payload: true });
 

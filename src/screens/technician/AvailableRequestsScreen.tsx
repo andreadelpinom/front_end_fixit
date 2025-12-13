@@ -4,7 +4,6 @@ import {
   Text,
   FlatList,
   StyleSheet,
-  ActivityIndicator,
   TouchableOpacity,
   RefreshControl,
   Alert,
@@ -14,6 +13,8 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { LoadingView } from '../../components/common';
+import { RequestCard } from '../../components/technician';
 import { useAuth } from '../../context/AuthContext';
 import {
   getAvailableRequests,
@@ -131,47 +132,19 @@ export default function AvailableRequestsScreen() {
     }
     
     return (
-      <View style={styles.card}>
-        <Text style={styles.title}>{item.tituloProblema}</Text>
-        <Text style={styles.description} numberOfLines={2}>
-          {item.descripcionProblema}
-        </Text>
-        
-        <View style={styles.infoContainer}>
-          <Text style={styles.infoText}>
-            💰 ${typeof item.costoEstimado === 'string' 
-              ? item.costoEstimado 
-              : item.costoEstimado?.toFixed(2) || 'N/A'}
-          </Text>
-          <Text style={styles.infoText}>
-            ⏱️ {item.duracionEstimadaMin || 'N/A'} min
-          </Text>
-        </View>
-
-        <View style={styles.infoContainer}>
-          <Text style={styles.infoSmall}>📍 {item.codigoParroquia}</Text>
-          <Text style={styles.infoSmall}>
-            📅 {new Date(item.fechaPublicacion).toLocaleDateString()}
-          </Text>
-        </View>
-
-        <TouchableOpacity
-          style={styles.applyButton}
-          onPress={() => handleOpenProposal(item)}
-        >
-          <Text style={styles.applyButtonText}>📤 Enviar Propuesta</Text>
-        </TouchableOpacity>
-      </View>
+      <RequestCard
+        title={item.tituloProblema}
+        description={item.descripcionProblema}
+        cost={item.costoEstimado}
+        duration={item.duracionEstimadaMin}
+        location={item.codigoParroquia}
+        date={item.fechaPublicacion}
+        onAction={() => handleOpenProposal(item)}
+      />
     );
   };
 
-  if (loading) {
-    return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
-      </View>
-    );
-  }
+  if (loading) return <LoadingView />;
 
   return (
     <View style={styles.container}>
@@ -208,10 +181,12 @@ export default function AvailableRequestsScreen() {
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
             >
+              {/* TÍtulo */}
               <Text style={styles.modalTitle}>
                 📤 Nueva Propuesta
               </Text>
               
+              {/* CONTEXTO DEL SERVICIO - PRIMERO */}
               {selectedRequest && (
                 <View style={styles.requestInfo}>
                   <Text style={styles.requestTitle}>{selectedRequest.tituloProblema}</Text>
@@ -221,6 +196,7 @@ export default function AvailableRequestsScreen() {
                 </View>
               )}
 
+              {/* CAMPOS DE ENTRADA - INFORMACIÓN REQUERIDA */}
               <Text style={styles.label}>💰 Tu precio propuesto ($):</Text>
               <TextInput
                 style={styles.input}
@@ -239,6 +215,7 @@ export default function AvailableRequestsScreen() {
                 keyboardType="numeric"
               />
 
+              {/* BOTONES DE ACCIÓN - AL FINAL */}
               <View style={styles.modalButtons}>
                 <TouchableOpacity
                   style={styles.modalCancelButton}

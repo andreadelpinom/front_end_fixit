@@ -1,6 +1,7 @@
 {
   "extends": "expo/tsconfig.base.json",
   "compilerOptions": {
+    "ignoreDeprecations": "6.0",
     "typeRoots": ["./types", "./node_modules/@types"],
     /* ✅ Strict type safety */
     "strict": true,

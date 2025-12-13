@@ -4,11 +4,12 @@ import {
   Text,
   FlatList,
   StyleSheet,
-  ActivityIndicator,
   RefreshControl,
   TouchableOpacity,
   Alert,
 } from 'react-native';
+import { LoadingView } from '../../components/common';
+import { JobCard, RatingCard } from '../../components/technician';
 import { useAuth } from '../../context/AuthContext';
 import {
   getMyProposals,
@@ -89,119 +90,65 @@ export default function MyJobsScreen() {
     );
   };
 
-  const renderStars = (rating: number) => {
-    return '⭐'.repeat(Math.round(rating)) + '☆'.repeat(5 - Math.round(rating));
-  };
-
   const renderJobItem = ({ item }: { item: SolicitudTecnico }) => {
-    // El backend puede retornar solicitud anidada o no
     const solicitud = (item as any).solicitud;
     const estadoSolicitud = solicitud?.estadoSolicitud || EstadoSolicitud.ACEPTADA;
     
+    const statusColor = estadoSolicitud === EstadoSolicitud.COMPLETADA ? '#28A745' : '#007AFF';
+    const cost = typeof item.costoAcordado === 'number' ? item.costoAcordado : parseFloat(String(item.costoAcordado || 0));
+    
     return (
-      <View style={styles.card}>
-        <View style={styles.cardHeader}>
-          <Text style={styles.title}>
-            {solicitud?.tituloProblema || `Solicitud #${item.idSolicitud}`}
-          </Text>
-          <Text style={[
-            styles.statusBadge,
-            estadoSolicitud === EstadoSolicitud.ACEPTADA && styles.statusInProgress,
-            estadoSolicitud === EstadoSolicitud.COMPLETADA && styles.statusCompleted,
-          ]}>
-            {estadoSolicitud}
-          </Text>
-        </View>
-
-        <Text style={styles.description} numberOfLines={2}>
-          {solicitud?.descripcionProblema || 'Sin descripción disponible'}
-        </Text>
-
-        <View style={styles.infoRow}>
-          <Text style={styles.infoText}>💰 ${item.costoAcordado}</Text>
-          <Text style={styles.infoText}>
-            📅 {new Date(item.fechaPropuesta).toLocaleDateString()}
-          </Text>
-        </View>
-
-        {/* Botones de acción según el estado */}
-        <View style={styles.actionButtons}>
-          {estadoSolicitud === EstadoSolicitud.ACEPTADA && (
-            <TouchableOpacity
-              style={styles.completeButton}
-              onPress={() => handleCompleteService(item)}
-            >
-              <Text style={styles.buttonText}>✅ Marcar como completado</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
+      <JobCard
+        title={solicitud?.tituloProblema || `Solicitud #${item.idSolicitud}`}
+        description={solicitud?.descripcionProblema || 'Sin descripción disponible'}
+        cost={cost}
+        date={item.fechaPropuesta}
+        status={estadoSolicitud}
+        statusColor={statusColor}
+        onComplete={() => handleCompleteService(item)}
+        showCompleteButton={estadoSolicitud === EstadoSolicitud.ACEPTADA}
+      />
     );
   };
 
   const renderProposalItem = ({ item }: { item: SolicitudTecnico }) => {
     const solicitud = (item as any).solicitud;
     
+    const statusColor = item.estadoAcuerdo === EstadoAceptacion.ACEPTADO 
+      ? '#28A745' 
+      : item.estadoAcuerdo === EstadoAceptacion.RECHAZADO 
+      ? '#DC3545' 
+      : '#FFC107';
+    
+    const cost = typeof item.costoAcordado === 'number' ? item.costoAcordado : parseFloat(String(item.costoAcordado || 0));
+    
     return (
-      <View style={styles.card}>
-        <View style={styles.cardHeader}>
-          <Text style={styles.title}>
-            {solicitud?.tituloProblema || `Solicitud #${item.idSolicitud}`}
-          </Text>
-        <Text style={[
-          styles.statusBadge,
-          item.estadoAcuerdo === EstadoAceptacion.ACEPTADO && styles.statusAccepted,
-          item.estadoAcuerdo === EstadoAceptacion.RECHAZADO && styles.statusRejected,
-        ]}>
-          {item.estadoAcuerdo}
-        </Text>
-        </View>
-
-        <Text style={styles.description} numberOfLines={2}>
-          {solicitud?.descripcionProblema || 'Sin descripción disponible'}
-        </Text>
-
-        <View style={styles.infoRow}>
-          <Text style={styles.infoText}>💰 ${item.costoAcordado}</Text>
-          <Text style={styles.infoText}>
-            📅 {new Date(item.fechaPropuesta).toLocaleDateString()}
-          </Text>
-        </View>
-
-        {item.notas && (
-          <Text style={styles.notes}>📝 {item.notas}</Text>
-        )}
-      </View>
+      <JobCard
+        title={solicitud?.tituloProblema || `Solicitud #${item.idSolicitud}`}
+        description={solicitud?.descripcionProblema || 'Sin descripción disponible'}
+        cost={cost}
+        date={item.fechaPropuesta}
+        status={item.estadoAcuerdo}
+        statusColor={statusColor}
+        notes={item.notas}
+      />
     );
   };
 
   const renderRatingItem = ({ item }: { item: CalificacionTecnico }) => {
     const solicitud = (item as any).solicitud;
+    const clientName = item.cliente 
+      ? `${item.cliente.nombre} ${item.cliente.apellido}` 
+      : undefined;
     
     return (
-      <View style={styles.card}>
-        <View style={styles.cardHeader}>
-          <Text style={styles.title}>
-            {solicitud?.tipoServicio?.nombre || 'Servicio'}
-          </Text>
-        <Text style={styles.stars}>{renderStars(item.puntuacion)}</Text>
-      </View>
-
-      <Text style={styles.ratingScore}>{item.puntuacion.toFixed(1)} / 5.0</Text>
-
-      {item.comentario && (
-        <Text style={styles.comment}>💬 "{item.comentario}"</Text>
-      )}
-
-      <View style={styles.infoRow}>
-        <Text style={styles.infoSmall}>
-          👤 {item.cliente?.nombre} {item.cliente?.apellido}
-        </Text>
-        <Text style={styles.infoSmall}>
-          📅 {new Date(item.fechaCalificacion).toLocaleDateString()}
-          </Text>
-        </View>
-      </View>
+      <RatingCard
+        serviceName={solicitud?.tipoServicio?.nombre || 'Servicio'}
+        rating={item.puntuacion}
+        comment={item.comentario}
+        clientName={clientName}
+        date={item.fechaCalificacion}
+      />
     );
   };
 
@@ -221,13 +168,7 @@ export default function MyJobsScreen() {
     }
   };
 
-  if (loading) {
-    return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
-      </View>
-    );
-  }
+  if (loading) return <LoadingView />;
 
   const data = getFilteredData();
 

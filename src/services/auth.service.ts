@@ -51,7 +51,7 @@ class AuthService {
   }
 
   async register(payload: RegisterDto): Promise<any> {
-    const url = getApiUrl(API_CONFIG.ENDPOINTS.USERS.CREATE);
+    const url = getApiUrl(API_CONFIG.ENDPOINTS.AUTH.REGISTER);
 
     try {
       const response = await apiClient.post(url, payload);

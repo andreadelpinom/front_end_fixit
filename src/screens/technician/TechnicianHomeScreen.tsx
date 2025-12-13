@@ -4,11 +4,11 @@ import {
   Text,
   ScrollView,
   StyleSheet,
-  ActivityIndicator,
-  TouchableOpacity,
   RefreshControl,
   Alert,
 } from 'react-native';
+import { LoadingView, ErrorView } from '../../components/common';
+import { StatCard, CertificationCard, ActionButton } from '../../components/technician';
 import { useAuth } from '../../context/AuthContext';
 import {
   getTechnicianByUser,
@@ -166,25 +166,8 @@ export default function TechnicianHomeScreen({ navigation }: any) {
     loadData();
   };
 
-  if (loading) {
-    return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
-        <Text style={styles.loadingText}>Cargando...</Text>
-      </View>
-    );
-  }
-
-  if (error) {
-    return (
-      <View style={styles.centerContainer}>
-        <Text style={styles.errorText}>⚠️ {error}</Text>
-        <TouchableOpacity style={styles.retryButton} onPress={loadData}>
-          <Text style={styles.retryButtonText}>Reintentar</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
+  if (loading) return <LoadingView />;
+  if (error) return <ErrorView message={error} onRetry={loadData} />;
 
   // Verificar si el técnico no está verificado
   const isNotVerified = technician && technician.status !== 'VERIFICADO';
@@ -201,7 +184,13 @@ export default function TechnicianHomeScreen({ navigation }: any) {
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
       }
     >
-      {/* Banner de no verificado */}
+      {/* Header con bienvenida */}
+      <View style={styles.header}>
+        <Text style={styles.greeting}>¡Hola, {user?.nombres}!</Text>
+        <Text style={styles.subtitle}>Bienvenido a tu panel de técnico</Text>
+      </View>
+
+      {/* Banner de no verificado - CRÍTICO PRIMERO */}
       {isNotVerified && (
         <View style={styles.warningBanner}>
           <Text style={styles.warningIcon}>⚠️</Text>
@@ -214,54 +203,50 @@ export default function TechnicianHomeScreen({ navigation }: any) {
         </View>
       )}
 
-      {/* Header con bienvenida */}
-      <View style={styles.header}>
-        <Text style={styles.greeting}>¡Hola, {user?.nombres}!</Text>
-        <Text style={styles.subtitle}>Bienvenido a tu panel de técnico</Text>
-      </View>
-
-      {/* Estadísticas principales */}
+      {/* Estadísticas principales - INFORMACIÓN CLAVE */}
       {stats && (
         <View style={styles.statsContainer}>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{stats.totalProposals}</Text>
-            <Text style={styles.statLabel}>Propuestas</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{stats.acceptedJobs}</Text>
-            <Text style={styles.statLabel}>Aceptados</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{stats.completedJobs}</Text>
-            <Text style={styles.statLabel}>Completados</Text>
-          </View>
+          <StatCard number={stats.totalProposals} label="Propuestas" />
+          <StatCard number={stats.acceptedJobs} label="Aceptados" color="#28A745" />
+          <StatCard number={stats.completedJobs} label="Completados" color="#FFC107" />
         </View>
       )}
 
-      {/* Acciones rápidas */}
+      {/* Acciones rápidas - ACCIONES PRINCIPALES VISIBLES */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Acciones Rápidas</Text>
-        <TouchableOpacity 
-          style={styles.actionButton}
+        <ActionButton 
+          label="📋 Ver Solicitudes Disponibles"
           onPress={() => navigation.navigate('AvailableRequests')}
-        >
-          <Text style={styles.actionButtonText}>📋 Ver Solicitudes Disponibles</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={styles.actionButton}
+        />
+        <ActionButton 
+          label="💼 Mis Trabajos Activos"
           onPress={() => navigation.navigate('MyJobs')}
-        >
-          <Text style={styles.actionButtonText}>💼 Mis Trabajos Activos</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={styles.actionButton}
+          variant="success"
+        />
+        <ActionButton 
+          label="⚙️ Configurar Servicios"
           onPress={() => navigation.navigate('TechnicianProfile')}
-        >
-          <Text style={styles.actionButtonText}>⚙️ Configurar Servicios</Text>
-        </TouchableOpacity>
+          variant="secondary"
+        />
       </View>
 
-      {/* Certificaciones disponibles */}
+      {/* Mis certificaciones - CREDENCIALES ACTIVAS */}
+      {myCerts.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Mis Certificaciones</Text>
+          {myCerts.map((cert) => (
+            <CertificationCard
+              key={cert.idCertificacion}
+              name={cert.certificacion?.nombre || 'Certificación'}
+              status="ACTIVE"
+              expirationDate={cert.fechaVencimiento}
+            />
+          ))}
+        </View>
+      )}
+
+      {/* Certificaciones disponibles - OPCIONALES AL FINAL */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Certificaciones Disponibles</Text>
         {availableForMe.length === 0 ? (
@@ -272,75 +257,18 @@ export default function TechnicianHomeScreen({ navigation }: any) {
           </View>
         ) : (
           availableForMe.map((cert) => (
-            <View key={cert.idCertificacion} style={styles.certCard}>
-              <View style={styles.certInfo}>
-                <Text style={styles.certName}>🏆 {cert.nombre}</Text>
-                {cert.descripcion && (
-                  <Text style={styles.certDescription} numberOfLines={2}>
-                    {cert.descripcion}
-                  </Text>
-                )}
-              </View>
-              <TouchableOpacity
-                style={styles.certButton}
-                onPress={() => handleApplyCertification(cert)}
-              >
-                <Text style={styles.certButtonText}>Solicitar</Text>
-              </TouchableOpacity>
-            </View>
+            <CertificationCard
+              key={cert.idCertificacion}
+              name={cert.nombre}
+              description={cert.descripcion}
+              status="AVAILABLE"
+              onApply={() => handleApplyCertification(cert)}
+            />
           ))
         )}
       </View>
-
-      {/* Mis certificaciones */}
-      {myCerts.length > 0 && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Mis Certificaciones</Text>
-          {myCerts.map((cert) => (
-            <View key={cert.idCertificacion} style={styles.myCertCard}>
-              <Text style={styles.certName}>
-                {cert.certificacion?.nombre || 'Certificación'}
-              </Text>
-              <Text style={styles.certStatus}>
-                Estado: ACTIVA
-              </Text>
-              {cert.fechaVencimiento && (
-                <Text style={styles.certDate}>
-                  Vence: {new Date(cert.fechaVencimiento).toLocaleDateString()}
-                </Text>
-              )}
-            </View>
-          ))}
-        </View>
-      )}
     </ScrollView>
   );
-}
-
-// Componente auxiliar
-function InfoRow({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={styles.infoRow}>
-      <Text style={styles.infoLabel}>{label}:</Text>
-      <Text style={styles.infoValue}>{value}</Text>
-    </View>
-  );
-}
-
-// Función para mostrar el estado de forma legible
-function getStatusDisplay(status: string): string {
-  switch (status) {
-    case 'REGISTRADO':
-      return '🟡 No Verificado';
-    case 'VERIFICACION_PENDIENTE':
-      return '🟠 En Revisión';
-    case 'VERIFICADO':
-      return '✅ Verificado';
-    case 'BLOQUEADO':
-      return '🔴 Bloqueado';
-    default:
-      return '🟡 No Verificado';
-  }
 }
 
 const styles = StyleSheet.create({

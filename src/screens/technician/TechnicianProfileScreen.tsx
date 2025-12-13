@@ -4,12 +4,13 @@ import {
   Text,
   ScrollView,
   StyleSheet,
-  ActivityIndicator,
   TouchableOpacity,
   Alert,
   Modal,
   FlatList,
+  ActivityIndicator,
 } from 'react-native';
+import { LoadingView } from '../../components/common';
 import { useAuth } from '../../context/AuthContext';
 import {
   getTechnicianByUser,
@@ -35,7 +36,7 @@ export default function TechnicianProfileScreen() {
   const [zones, setZones] = useState<TecnicoZona[]>([]);
   const [certifications, setCertifications] = useState<TecnicoCertificacion[]>([]);
   const [showServiceModal, setShowServiceModal] = useState(false);
-  const [availableServices, setAvailableServices] = useState<any[]>([]);
+  const [availableServices] = useState<any[]>([]); // TODO: Cargar desde API
 
   const loadProfile = async () => {
     if (!user) return;
@@ -204,16 +205,11 @@ export default function TechnicianProfileScreen() {
     );
   };
 
-  if (loading) {
-    return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
-      </View>
-    );
-  }
+  if (loading) return <LoadingView />;
 
   return (
     <ScrollView style={styles.container}>
+      {/* INFORMACIÓN PRINCIPAL - PRIMERO */}
       {/* Información personal */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Información Personal</Text>
@@ -267,6 +263,36 @@ export default function TechnicianProfileScreen() {
         </View>
       )}
 
+      {/* CAMBIO DE ROL - ACCIÓN CRÍTICA VISIBLE */}
+      <View style={styles.section}>
+        <View style={styles.switchRoleCard}>
+          <Text style={styles.switchRoleTitle}>
+            👤 Ver Perfil de Cliente
+          </Text>
+          <Text style={styles.switchRoleDescription}>
+            Cambia a tu vista de cliente para solicitar servicios, ver tu historial y gestionar tus solicitudes.
+          </Text>
+          <TouchableOpacity
+            style={[
+              styles.switchRoleButton,
+              switchingRole && styles.switchRoleButtonDisabled,
+            ]}
+            onPress={handleSwitchToClient}
+            disabled={switchingRole || isLoading}
+            activeOpacity={0.7}
+          >
+            {switchingRole ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <Text style={styles.switchRoleButtonText}>
+                Cambiar a Vista de Cliente
+              </Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* GESTIÓN DE SERVICIOS - CONFIGURACIÓN */}
       {/* Servicios que ofrece */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
@@ -385,37 +411,7 @@ export default function TechnicianProfileScreen() {
         </View>
       </View>
 
-      {/* Botones de acción */}
-      <View style={styles.section}>
-        {/* Cambiar a Cliente */}
-        <View style={styles.switchRoleCard}>
-          <Text style={styles.switchRoleTitle}>
-            👤 Ver Perfil de Cliente
-          </Text>
-          <Text style={styles.switchRoleDescription}>
-            Cambia a tu vista de cliente para solicitar servicios, ver tu historial y gestionar tus solicitudes.
-          </Text>
-          <TouchableOpacity
-            style={[
-              styles.switchRoleButton,
-              switchingRole && styles.switchRoleButtonDisabled,
-            ]}
-            onPress={handleSwitchToClient}
-            disabled={switchingRole || isLoading}
-            activeOpacity={0.7}
-          >
-            {switchingRole ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
-            ) : (
-              <Text style={styles.switchRoleButtonText}>
-                Cambiar a Vista de Cliente
-              </Text>
-            )}
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Cerrar sesión */}
+      {/* Cerrar sesión - AL FINAL */}
       <View style={styles.section}>
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <Text style={styles.logoutButtonText}>🚪 Cerrar Sesión</Text>

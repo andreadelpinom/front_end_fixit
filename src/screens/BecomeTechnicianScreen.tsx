@@ -35,7 +35,8 @@ export default function BecomeTechnicianScreen({
       
       // Obtener el técnico actual para obtener su ID
       const getTechUrl = getApiUrl(`/technician/tecnicos/user/${currentUser.idUser}`);
-      const technicianData = await apiClient.get(getTechUrl);
+      const response = await apiClient.get(getTechUrl);
+      const technicianData: { idTecnico?: number } = response as any;
       
       if (!technicianData || !technicianData.idTecnico) {
         throw new Error('No se encontró el registro de técnico. Por favor intenta convertirte en técnico primero.');
@@ -91,8 +92,8 @@ export default function BecomeTechnicianScreen({
           </Text>
         </View>
 
-        <View style={RegisterStyle.infoBox}>
-          <Text style={RegisterStyle.infoText}>
+        <View style={{ backgroundColor: '#e3f2fd', padding: 15, borderRadius: 8, marginVertical: 20 }}>
+          <Text style={{ fontSize: 14, color: '#1976d2', lineHeight: 20 }}>
             ℹ️ La verificación ayuda a los clientes a confiar más en tus servicios.
             Un equipo especializado revisará tu solicitud.
           </Text>

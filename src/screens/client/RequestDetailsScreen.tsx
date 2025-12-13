@@ -301,7 +301,7 @@ export default function RequestDetailsScreen({ navigation, route }: Props) {
             <Text style={styles.cardTitle}>
               📬 Propuestas Recibidas ({details.propuestas.length})
             </Text>
-            {details.propuestas.map((proposal, index) => (
+            {details.propuestas.map((proposal) => (
               <View key={proposal.idSolTec} style={styles.proposalCard}>
                 <View style={styles.proposalHeader}>
                   <Text style={styles.proposalTechName}>

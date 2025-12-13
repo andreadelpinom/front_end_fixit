@@ -11,6 +11,7 @@ export interface User {
   apellidos: string;
   email: string;
   roles: RolUsuario[];  // Array of roles supporting multi-role system
+  rol?: 'ADMIN' | 'CLIENTE' | 'TECNICO'; // Single role for backward compatibility
   createdAt: string;
 }
 
