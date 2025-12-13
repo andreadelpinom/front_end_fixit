@@ -1,35 +1,42 @@
 import React, { useEffect, useState } from 'react';
+import { ActivityIndicator } from 'react-native';
 import { useAuth } from '../context/AuthContext';
-import { RolUsuario } from '../types/auth.types';
 import { storageService } from '../services/storage.service';
 import AuthNavigator from './AuthNavigator';
 import ClientNavigator from './ClientNavigator';
 import TechnicianNavigator from './TechnicianNavigator';
 import AdminNavigator from './AdminNavigator';
 import { RequestProvider } from '../context/RequestContext';
-import { ActivityIndicator, View } from 'react-native';
+import { appNavigatorStyles } from './AppNavigator.styles';
+import { theme } from '../theme';
+import { ThemedView } from '../ui';
+import { subscribeToRoleChange } from './roleChangeEmitter';
 
 export default function AppNavigator() {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, isRoleSelectionNeeded } = useAuth();
   const [activeRole, setActiveRole] = useState<'CLIENTE' | 'TECNICO' | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Escuchar cambios de rol desde switchRole
+  useEffect(() => {
+    const unsubscribe = subscribeToRoleChange((role) => {
+      setActiveRole(role);
+      console.log('[AppNavigator] Role changed to:', role);
+    });
+
+    return unsubscribe;
+  }, []);
+
+  // Cargar rol inicial cuando auth cambia
   useEffect(() => {
     const loadActiveRole = async () => {
       if (isAuthenticated && user) {
         try {
-          // Admin NO usa activeRole - siempre va directo a AdminNavigator
-          if (user?.rol === 'ADMIN' || user?.roles?.includes('ADMIN')) {
-            setLoading(false);
-            return;
-          }
-
-          // Solo Cliente/Técnico usan activeRole para switch
           const role = await storageService.getActiveRole();
           setActiveRole(role);
+          console.log('[AppNavigator] Loaded initial active role:', role);
         } catch (error) {
           console.error('Error loading active role:', error);
-          // Por defecto, todos empiezan como CLIENTE
           setActiveRole('CLIENTE');
         }
       }
@@ -43,34 +50,38 @@ export default function AppNavigator() {
     return <AuthNavigator />;
   }
 
+  // Si estamos en el flujo de selección de rol, no mostrar navegador
+  // El modal se muestra en LoginScreen
+  if (isRoleSelectionNeeded) {
+    return <AuthNavigator />;
+  }
+
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="#007AFF" />
-      </View>
+      <ThemedView style={appNavigatorStyles.loadingContainer}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+      </ThemedView>
     );
   }
 
-  // ==================== ADMIN: COMPLETAMENTE SEPARADO ====================
-  // Admin NO puede hacer switch role - solo tiene acceso al panel admin
-  // Si user.rol === 'ADMIN' o user.roles incluye 'ADMIN', SIEMPRE va al AdminNavigator (no importa activeRole)
+  // === ADMIN: mantener acceso exclusivo al panel admin ===
   if (user?.rol === 'ADMIN' || user?.roles?.includes('ADMIN')) {
     return <AdminNavigator />;
   }
 
-  // ==================== CLIENTE/TÉCNICO: PUEDEN HACER SWITCH ROLE ====================
-  // Estos usuarios comparten el mismo login y pueden cambiar entre vistas
-  
-  // Técnico - verificar que el usuario tenga el rol TECNICO en su array de roles
-  const hasTechnicianRole = user?.roles?.includes(RolUsuario.TECNICO);
+  // Verificar que el usuario tenga el rol TÉCNICO en su array de roles
+  const hasTechnicianRole = user?.roles?.includes('TECNICO' as any);
+
+  // Si el rol activo es TECNICO y el usuario tiene ese rol, mostrar TechnicianNavigator
   if (activeRole === 'TECNICO' && hasTechnicianRole) {
     return <TechnicianNavigator />;
   }
 
-  // Cliente - navegador por defecto (todos los usuarios pueden ser clientes)
+  // Default: client navigator
   return (
     <RequestProvider>
       <ClientNavigator />
     </RequestProvider>
   );
 }
+

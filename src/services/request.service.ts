@@ -1,58 +1,80 @@
 import { apiClient } from './api-client.service';
 import { getApiUrl } from '../config/api.config';
+import { PaginatedSolicitudes } from '../types/api';
+import { extractCollection, extractData } from './response-helpers';
+import { ErrorUtils } from '../utils/error.utils';
+import type { RequestDetails } from './home.service';
 
-/**
- * Interface para una solicitud de servicio completada
- */
-export interface Solicitud {
-  idSolicitud: number;
-  idUser: number;
-  idTipoServicio: number;
-  codigoParroquia: string;
-  tituloProblema: string;
-  descripcionProblema: string;
-  costoEstimado: number | null;
-  costoPromocion: number | null;
-  promocion: boolean;
-  estadoSolicitud: 'PENDIENTE' | 'ACEPTADA' | 'COMPLETADA' | 'CANCELADA';
-  fechaProgramada: string | null;
-  fechaPublicacion: string;
-  fechaInicio: string | null;
-  fechaFinalizacion: string | null;
-  duracionEstimadaMin: number | null;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-  createdBy: number | null;
-  updatedBy: number | null;
-  _count: {
-    solicitudesTecnico: number;
-    calificaciones: number;
-  };
-}
+const COLLECTION_KEYS = ['solicitudes', 'items', 'data', 'rows'];
 
-/**
- * Interface para la respuesta del servidor
- */
-export interface SolicitudResponse {
-  solicitudes: Solicitud[];
+const buildEmptyPaginated = (page: number, limit: number): PaginatedSolicitudes => ({
+  solicitudes: [],
   pagination: {
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
-  };
-}
+    total: 0,
+    page,
+    limit,
+    totalPages: 0,
+  },
+});
 
-/**
- * Interface para la respuesta completa del API
- */
-interface ApiResponse {
-  success: boolean;
-  data: SolicitudResponse;
-  error?: string;
-  statusCode?: number;
-}
+const normalizePaginatedSolicitudes = (
+  payload: unknown,
+  page: number,
+  limit: number,
+): PaginatedSolicitudes => {
+  const data = extractData<Record<string, unknown>>(payload);
+  const solicitudes = extractCollection<any>(data, COLLECTION_KEYS);
+  const rawPagination =
+    data && typeof data === 'object' && data.pagination && typeof data.pagination === 'object'
+      ? (data.pagination as Record<string, unknown>)
+      : {};
+
+  const safeNumber = (value: unknown, fallback: number): number => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  };
+
+  const total = safeNumber(rawPagination.total, solicitudes.length);
+  const normalizedLimit = Math.max(1, safeNumber(rawPagination.limit, limit));
+  const normalizedPage = Math.max(1, safeNumber(rawPagination.page, page));
+  const totalPages = safeNumber(
+    rawPagination.totalPages,
+    normalizedLimit > 0 ? Math.ceil(total / normalizedLimit) : 0,
+  );
+
+  return {
+    solicitudes,
+    pagination: {
+      total,
+      page: normalizedPage,
+      limit: normalizedLimit,
+      totalPages,
+    },
+  };
+};
+
+const mapRequestDetails = (item: any): RequestDetails => ({
+  idSolicitud: Number(item.idSolicitud ?? 0),
+  idUser: Number(item.idUser ?? item.usuario?.idUser ?? 0),
+  idTipoServicio: Number(item.idTipoServicio ?? item.tipoServicioId ?? 0),
+  codigoParroquia: item.codigoParroquia ?? '',
+  tituloProblema: item.tituloProblema ?? item.titulo ?? '',
+  descripcionProblema: item.descripcionProblema ?? item.descripcion ?? '',
+  costoEstimado: item.costoEstimado ?? null,
+  costoPromocion: item.costoPromocion ?? null,
+  promocion: Boolean(item.promocion),
+  estadoSolicitud: item.estadoSolicitud,
+  fechaProgramada: item.fechaProgramada ?? null,
+  fechaPublicacion: item.fechaPublicacion ?? item.createdAt ?? '',
+  fechaInicio: item.fechaInicio ?? null,
+  fechaFinalizacion: item.fechaFinalizacion ?? null,
+  duracionEstimadaMin: item.duracionEstimadaMin ?? null,
+  isActive: Boolean(item.isActive ?? true),
+  createdAt: item.createdAt ?? item.fechaPublicacion ?? '',
+  updatedAt: item.updatedAt ?? item.modifiedAt ?? item.createdAt ?? item.fechaPublicacion ?? '',
+  createdBy: item.createdBy ?? null,
+  updatedBy: item.updatedBy ?? null,
+});
 
 /**
  * Servicio para obtener solicitudes de servicio del cliente
@@ -67,7 +89,7 @@ export const requestService = {
   async getCompletedRequests(
     limit: number = 20,
     page: number = 1
-  ): Promise<SolicitudResponse> {
+  ): Promise<PaginatedSolicitudes> {
     try {
       const parsedLimit = Number.parseInt(String(limit), 10);
       const parsedPage = Number.parseInt(String(page), 10);
@@ -75,28 +97,18 @@ export const requestService = {
       const sanitizedPage = Number.isNaN(parsedPage) ? 1 : Math.max(1, parsedPage);
       const url = getApiUrl('/request/solicitudes');
       const params = {
-        estadoSolicitud: 'COMPLETADA',
+        estado: 'COMPLETADA',
         limit: sanitizedLimit,
         page: sanitizedPage,
       };
 
       console.log('[requestService] Fetching completed requests', { url, params });
 
-      const response = await apiClient.get<ApiResponse>(
-        url,
-        {
-          params,
-        }
-      );
-
-      if (!response.success) {
-        throw new Error('Error fetching completed requests');
-      }
-
-      return response.data;
+      const response = await apiClient.get<unknown>(url, { params });
+      return normalizePaginatedSolicitudes(response, sanitizedPage, sanitizedLimit);
     } catch (error) {
       console.error('[requestService] Error fetching completed requests:', error);
-      throw error;
+      return buildEmptyPaginated(1, 20);
     }
   },
 
@@ -109,23 +121,19 @@ export const requestService = {
   async getAllRequests(
     limit: number = 20,
     page: number = 1
-  ): Promise<SolicitudResponse> {
+  ): Promise<PaginatedSolicitudes> {
     try {
-      const response = await apiClient.get<ApiResponse>(
-        '/request/solicitudes/my/solicitudes',
+      const response = await apiClient.get<unknown>(
+        getApiUrl('/request/solicitudes/my/solicitudes'),
         {
           params: {
             limit,
             page,
           },
-        }
+        },
       );
 
-      if (!response.success) {
-        throw new Error('Error fetching all requests');
-      }
-
-      return response.data;
+      return normalizePaginatedSolicitudes(response, page, limit);
     } catch (error) {
       console.error('[requestService] Error fetching all requests:', error);
       throw error;
@@ -134,35 +142,44 @@ export const requestService = {
 
   /**
    * Obtiene las solicitudes por estado específico
-   * @param status - Estado de la solicitud (PENDIENTE, ACEPTADA, COMPLETADA, CANCELADA)
+  * @param status - Estado de la solicitud (PENDIENTE, PUBLICADA, ACEPTADA, ASIGNADA, EN_PROCESO, COMPLETADA, CANCELADA)
    * @param limit - Límite de resultados por página (default: 20)
    * @param page - Página a obtener (default: 1)
    * @returns Array de solicitudes del estado especificado
    */
   async getRequestsByStatus(
-    status: 'PENDIENTE' | 'ACEPTADA' | 'COMPLETADA' | 'CANCELADA',
+    status: 'PENDIENTE' | 'PUBLICADA' | 'ACEPTADA' | 'ASIGNADA' | 'EN_PROCESO' | 'COMPLETADA' | 'CANCELADA',
     limit: number = 20,
     page: number = 1
-  ): Promise<SolicitudResponse> {
+  ): Promise<PaginatedSolicitudes> {
     try {
-      const response = await apiClient.get<ApiResponse>(
-        '/request/solicitudes/my/solicitudes',
+      const response = await apiClient.get<unknown>(
+        getApiUrl('/request/solicitudes'),
         {
           params: {
-            estadoSolicitud: status,
+            estado: status,
             limit,
             page,
           },
         }
       );
-
-      if (!response.success) {
-        throw new Error(`Error fetching requests with status ${status}`);
-      }
-
-      return response.data;
+      return normalizePaginatedSolicitudes(response, page, limit);
     } catch (error) {
       console.error('[requestService] Error fetching requests by status:', error);
+      return buildEmptyPaginated(1, limit);
+    }
+  },
+
+  async getRequestDetails(idSolicitud: number): Promise<RequestDetails> {
+    try {
+      const response = await apiClient.get<unknown>(
+        getApiUrl(`/request/solicitudes/${idSolicitud}`),
+      );
+      const data = extractData<any>(response);
+      return mapRequestDetails(data);
+    } catch (error) {
+      console.error('[requestService] Error fetching request details:', error);
+      ErrorUtils.logError(error, `requestService.getRequestDetails(${idSolicitud})`);
       throw error;
     }
   },

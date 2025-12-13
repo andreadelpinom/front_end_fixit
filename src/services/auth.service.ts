@@ -3,6 +3,7 @@ import { storageService } from './storage.service';
 import { getApiUrl, API_CONFIG } from '../config/api.config';
 import { AuthResponse, LoginDto, User, RegisterDto } from '../types/auth.types';
 import { ErrorUtils } from '../utils/error.utils';
+import { extractData } from './response-helpers';
 
 class AuthService {
   async login(
@@ -15,7 +16,9 @@ class AuthService {
       // LoginDto is union type, safely access either email or cedula
       const identifier = 'email' in credentials ? credentials.email : ('cedula' in credentials ? credentials.cedula : 'unknown');
       console.log('[AuthService] Login attempt with:', { identifier });
-      const response = await apiClient.post<AuthResponse>(url, credentials);
+      const response = extractData<AuthResponse>(
+        await apiClient.post<unknown>(url, credentials),
+      );
       
       console.log('[AuthService] Login response received:', {
         hasAccessToken: !!response.access_token,
@@ -54,8 +57,8 @@ class AuthService {
     const url = getApiUrl(API_CONFIG.ENDPOINTS.AUTH.REGISTER);
 
     try {
-      const response = await apiClient.post(url, payload);
-      return response;
+      const response = await apiClient.post<unknown>(url, payload);
+      return extractData(response);
     } catch (error) {
       ErrorUtils.logError(error, 'Register');
       throw new Error(ErrorUtils.getErrorMessage(error));
@@ -72,9 +75,11 @@ class AuthService {
     const url = getApiUrl(API_CONFIG.ENDPOINTS.AUTH.REFRESH);
 
     try {
-      const response = await apiClient.post<AuthResponse>(url, {
+      const response = extractData<AuthResponse>(
+        await apiClient.post<unknown>(url, {
         refresh_token: refreshToken,
-      });
+        }),
+      );
 
       await storageService.saveTokens({
         access_token: response.access_token,
@@ -115,9 +120,15 @@ class AuthService {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000);
       
-      const response = await apiClient.post<AuthResponse>(url, { nuevoRol }, {
-        signal: controller.signal as any,
-      });
+      const response = extractData<AuthResponse>(
+        await apiClient.post<unknown>(
+          url,
+          { nuevoRol },
+          {
+            signal: controller.signal as any,
+          },
+        ),
+      );
       clearTimeout(timeoutId);
 
       // ✅ VALIDACIÓN: Verificar que backend devolvió los tokens requeridos
@@ -155,50 +166,9 @@ class AuthService {
         });
       }
 
-      // 🚀 Si se está cambiando a TECNICO, crear el registro de técnico automáticamente en el frontend
-      // como fallback en caso de que el backend no lo haya hecho
-      if (nuevoRol === 'TECNICO' && response.user) {
-        console.log('[AuthService] Attempting to create technician record for user:', response.user.idUser);
-        try {
-          const technicianUrl = getApiUrl('/technician/tecnicos');
-          const payload = { idUser: response.user.idUser, isActive: true };
-          
-          console.log('[AuthService] Technician creation request:', { url: technicianUrl, payload });
-          
-          // Usar el nuevo token directamente en el header (ya fue guardado)
-          const headers = {
-            'Authorization': `Bearer ${response.access_token}`,
-            'Content-Type': 'application/json',
-          };
-          
-          // Timeout de 5 segundos para creación de técnico
-          const techController = new AbortController();
-          const techTimeoutId = setTimeout(() => techController.abort(), 5000);
-          
-          await apiClient.post(technicianUrl, payload, { 
-            headers,
-            signal: techController.signal as any,
-          });
-          clearTimeout(techTimeoutId);
-          
-          console.log('[AuthService] ✅ Technician record created successfully');
-        } catch (techError: any) {
-          // No bloquear si falla - el usuario puede seguir pero sin técnico
-          if (techError?.response?.status === 409) {
-            // Técnico ya existe
-            console.log('[AuthService] Technician already exists for this user');
-          } else if (techError?.name === 'AbortError') {
-            console.warn('[AuthService] Technician creation timed out (>5s), but continuing');
-          } else {
-            console.warn('[AuthService] Warning creating technician record:', {
-              message: techError?.message,
-              status: techError?.response?.status,
-              error: techError,
-            });
-          }
-          // Continuar sin lanzar error
-        }
-      }
+      // ✅ switchRole solo cambia tokens y rol activo
+      // NO intenta crear técnico aquí - eso es responsabilidad del onboarding inicial
+      // El perfil técnico se crea una sola vez en BecomeTechnicianScreen o registro
 
       return response;
     } catch (error: any) {
@@ -216,20 +186,41 @@ class AuthService {
     }
   }
 
+  /**
+   * Chequea si la sesión actual es válida
+   * Se enfoca solo en si hay token + usuario, no en rememberMe
+   * (rememberMe es solo para persistencia entre sesiones)
+   */
   async checkAuthStatus() {
+    const token = await storageService.getAccessToken();
+    const user = await storageService.getUserData();
+
+    // La sesión es válida si hay token Y usuario
+    if (token && user) {
+      return { isAuthenticated: true, user };
+    }
+
+    return { isAuthenticated: false, user: null };
+  }
+
+  /**
+   * Chequea si la sesión debe ser restaurada al iniciar la app
+   * Esto SÍ considera rememberMe
+   */
+  async checkSessionPersistence() {
     const rememberMe = await storageService.getRememberMe();
     if (!rememberMe) {
-      return { isAuthenticated: false, user: null };
+      return { shouldRestore: false, user: null };
     }
 
     const token = await storageService.getAccessToken();
     const user = await storageService.getUserData();
 
     if (token && user) {
-      return { isAuthenticated: true, user };
+      return { shouldRestore: true, user };
     }
 
-    return { isAuthenticated: false, user: null };
+    return { shouldRestore: false, user: null };
   }
 
   async getStoredUser(): Promise<User | null> {

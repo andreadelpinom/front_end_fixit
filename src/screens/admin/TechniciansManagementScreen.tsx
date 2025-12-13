@@ -112,6 +112,33 @@ export default function TechniciansManagementScreen() {
     );
   };
 
+  const handleRejectTechnician = async (tech: TechnicianApproval) => {
+    Alert.alert(
+      'Rechazar Técnico',
+      `¿Rechazar a ${tech.nombres} ${tech.apellidos}?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Rechazar',
+          onPress: async () => {
+            try {
+              await adminService.rejectTechnician(tech.idTecnico);
+              await adminService.logAdminAction(
+                'TECHNICIAN_REJECTED',
+                `Técnico ${tech.idTecnico} - ${tech.nombres} ${tech.apellidos}`
+              );
+              Alert.alert('Éxito', '✅ Técnico rechazado');
+              loadData();
+            } catch (err: any) {
+              Alert.alert('Error', err?.message || 'No se pudo rechazar el técnico');
+            }
+          },
+          style: 'destructive' as const,
+        },
+      ]
+    );
+  };
+
   const renderTechnician = ({ item }: { item: TechnicianApproval }) => (
     <View style={styles.technicianRow}>
       <View style={styles.technicianInfo}>
@@ -184,16 +211,16 @@ export default function TechniciansManagementScreen() {
           {(['ALL', 'ACTIVE', 'INACTIVE'] as const).map(status => (
             <TouchableOpacity
               key={status}
-              style={[
-                AdminStyles.filterBtn,
-                filterStatus === status && AdminStyles.filterBtnActive,
-              ]}
+                  style={[
+                    AdminStyles.tabBtn,
+                    filterStatus === status && AdminStyles.tabBtnActive,
+                  ]}
               onPress={() => setFilterStatus(status)}
             >
-              <Text style={[
-                AdminStyles.filterBtnText,
-                filterStatus === status && AdminStyles.filterBtnTextActive,
-              ]}>
+                  <Text style={[
+                    AdminStyles.tabBtnText,
+                    filterStatus === status && AdminStyles.tabBtnTextActive,
+                  ]}>
                 {status === 'ALL' ? 'Todos' : status === 'ACTIVE' ? 'Activos' : 'Inactivos'}
               </Text>
             </TouchableOpacity>

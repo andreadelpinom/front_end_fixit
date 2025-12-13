@@ -1,227 +1,188 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   FlatList,
   StyleSheet,
+  ActivityIndicator,
   RefreshControl,
   TouchableOpacity,
-  Alert,
 } from 'react-native';
-import { LoadingView } from '../../components/common';
-import { JobCard, RatingCard } from '../../components/technician';
+import { useFocusEffect } from '@react-navigation/native';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useAuth } from '../../context/AuthContext';
 import {
   getMyProposals,
-  getTechnicianByUser,
-  getTechnicianRatings,
-  completeService,
   SolicitudTecnico,
-  CalificacionTecnico,
 } from '../../services/technician.service';
-import { EstadoAceptacion, EstadoSolicitud } from '../../types/api';
+import { formatCurrency } from '../../utils/currency.utils';
 
-type TabType = 'jobs' | 'proposals' | 'ratings';
+type Props = NativeStackScreenProps<any>;
+type SubTab = 'EN_CURSO' | 'HISTORIAL';
 
-export default function MyJobsScreen() {
+export default function MyJobsScreen({ navigation }: Props) {
   const { user } = useAuth();
+  const [subTab, setSubTab] = useState<SubTab>('EN_CURSO');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabType>('jobs');
   const [proposals, setProposals] = useState<SolicitudTecnico[]>([]);
-  const [ratings, setRatings] = useState<CalificacionTecnico[]>([]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      loadData();
+    }, [user])
+  );
 
   const loadData = async () => {
     if (!user) return;
+    setLoading(true);
 
     try {
-      console.log('[MyJobsScreen] 🔍 Cargando datos del técnico...');
-      
-      // Obtener ID del técnico
-      const techData = await getTechnicianByUser(user.idUser);
-      
-      // Cargar propuestas y calificaciones en paralelo
-      const [proposalsData, ratingsData] = await Promise.all([
-        getMyProposals(),
-        getTechnicianRatings(techData.idTecnico),
-      ]);
-      
-      console.log('[MyJobsScreen] ✅ Propuestas:', proposalsData.length);
-      console.log('[MyJobsScreen] ✅ Calificaciones:', ratingsData.length);
-      
-      setProposals(proposalsData);
-      setRatings(ratingsData);
-    } catch (err: any) {
-      console.error('[MyJobsScreen] ❌ Error loading data:', err);
+      const data = await getMyProposals();
+      setProposals(data);
+    } catch (err) {
+      console.error('Error loading proposals:', err);
+      setProposals([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
 
-  useEffect(() => {
-    loadData();
-  }, [user]);
-
   const onRefresh = () => {
     setRefreshing(true);
     loadData();
   };
 
-  const handleCompleteService = async (proposal: SolicitudTecnico) => {
-    Alert.alert(
-      'Completar Servicio',
-      '¿Marcar este trabajo como completado?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Completar',
-          onPress: async () => {
-            try {
-              await completeService(proposal.idSolicitud);
-              Alert.alert('Éxito', '✅ Servicio completado');
-              loadData();
-            } catch (err: any) {
-              Alert.alert('Error', err.message || 'No se pudo completar el servicio');
-            }
-          },
-        },
-      ]
-    );
+  // Filter proposals by subtab
+  const getFilteredProposals = (): SolicitudTecnico[] => {
+    return proposals.filter((p) => {
+      if (subTab === 'EN_CURSO') {
+        // Only show ACCEPTED jobs
+        return p.estadoAcuerdo === 'ACEPTADO';
+      } else {
+        // Show REJECTED or completed
+        return p.estadoAcuerdo === 'RECHAZADO' || (p.estadoAcuerdo === 'ACEPTADO' && p.fechaConfirmada);
+      }
+    });
   };
 
-  const renderJobItem = ({ item }: { item: SolicitudTecnico }) => {
-    const solicitud = (item as any).solicitud;
-    const estadoSolicitud = solicitud?.estadoSolicitud || EstadoSolicitud.ACEPTADA;
-    
-    const statusColor = estadoSolicitud === EstadoSolicitud.COMPLETADA ? '#28A745' : '#007AFF';
-    const cost = typeof item.costoAcordado === 'number' ? item.costoAcordado : parseFloat(String(item.costoAcordado || 0));
-    
-    return (
-      <JobCard
-        title={solicitud?.tituloProblema || `Solicitud #${item.idSolicitud}`}
-        description={solicitud?.descripcionProblema || 'Sin descripción disponible'}
-        cost={cost}
-        date={item.fechaPropuesta}
-        status={estadoSolicitud}
-        statusColor={statusColor}
-        onComplete={() => handleCompleteService(item)}
-        showCompleteButton={estadoSolicitud === EstadoSolicitud.ACEPTADA}
-      />
-    );
-  };
-
-  const renderProposalItem = ({ item }: { item: SolicitudTecnico }) => {
-    const solicitud = (item as any).solicitud;
-    
-    const statusColor = item.estadoAcuerdo === EstadoAceptacion.ACEPTADO 
-      ? '#28A745' 
-      : item.estadoAcuerdo === EstadoAceptacion.RECHAZADO 
-      ? '#DC3545' 
-      : '#FFC107';
-    
-    const cost = typeof item.costoAcordado === 'number' ? item.costoAcordado : parseFloat(String(item.costoAcordado || 0));
-    
-    return (
-      <JobCard
-        title={solicitud?.tituloProblema || `Solicitud #${item.idSolicitud}`}
-        description={solicitud?.descripcionProblema || 'Sin descripción disponible'}
-        cost={cost}
-        date={item.fechaPropuesta}
-        status={item.estadoAcuerdo}
-        statusColor={statusColor}
-        notes={item.notas}
-      />
-    );
-  };
-
-  const renderRatingItem = ({ item }: { item: CalificacionTecnico }) => {
-    const solicitud = (item as any).solicitud;
-    const clientName = item.cliente 
-      ? `${item.cliente.nombre} ${item.cliente.apellido}` 
-      : undefined;
-    
-    return (
-      <RatingCard
-        serviceName={solicitud?.tipoServicio?.nombre || 'Servicio'}
-        rating={item.puntuacion}
-        comment={item.comentario}
-        clientName={clientName}
-        date={item.fechaCalificacion}
-      />
-    );
-  };
-
-  const getFilteredData = () => {
-    switch (activeTab) {
-      case 'jobs':
-        // Mostrar solo trabajos ACEPTADOS
-        return proposals.filter(p => p.estadoAcuerdo === EstadoAceptacion.ACEPTADO);
-      case 'proposals':
-        // Mostrar todas las propuestas
-        return proposals;
-      case 'ratings':
-        // Mostrar calificaciones
-        return ratings;
+  const getStatusColor = (status: string): string => {
+    switch (status) {
+      case 'ACEPTADO':
+        return '#34C759';
+      case 'RECHAZADO':
+        return '#FF3B30';
+      case 'PROPUESTO':
+        return '#FF9500';
       default:
-        return [];
+        return '#8E8E93';
     }
   };
 
-  if (loading) return <LoadingView />;
+  const getStatusLabel = (status: string): string => {
+    switch (status) {
+      case 'ACEPTADO':
+        return '✅ EN CURSO';
+      case 'RECHAZADO':
+        return '❌ RECHAZADO';
+      case 'PROPUESTO':
+        return '⏳ PROPUESTO';
+      default:
+        return status;
+    }
+  };
 
-  const data = getFilteredData();
+  const renderItem = ({ item }: { item: SolicitudTecnico }) => (
+    <View style={styles.card}>
+      <View style={styles.header}>
+        <Text style={styles.id}>Solicitud #{item.idSolicitud}</Text>
+        <View
+          style={[
+            styles.statusBadge,
+            { backgroundColor: getStatusColor(item.estadoAcuerdo) },
+          ]}
+        >
+          <Text style={styles.statusText}>
+            {getStatusLabel(item.estadoAcuerdo)}
+          </Text>
+        </View>
+      </View>
+
+      <Text style={styles.cost}>
+        ${formatCurrency(item.costoAcordado)}
+      </Text>
+      
+      {item.notas && (
+        <Text style={styles.notes} numberOfLines={2}>
+          📝 {item.notas}
+        </Text>
+      )}
+
+      <View style={styles.dateContainer}>
+        <Text style={styles.date}>
+          📅 Propuesta: {new Date(item.fechaPropuesta).toLocaleDateString()}
+        </Text>
+        {item.fechaConfirmada && (
+          <Text style={styles.date}>
+            ✅ Confirmada: {new Date(item.fechaConfirmada).toLocaleDateString()}
+          </Text>
+        )}
+      </View>
+
+      {item.estadoAcuerdo === 'ACEPTADO' && subTab === 'EN_CURSO' && (
+        <TouchableOpacity
+          style={styles.ctaButton}
+          onPress={() => {
+            navigation.navigate('Dashboard', { 
+              screen: 'ActiveJobs', 
+              params: { idSolicitud: item.idSolicitud } 
+            });
+          }}
+        >
+          <Text style={styles.ctaButtonText}>Ir al trabajo →</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+
+  if (loading) {
+    return (
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" color="#007AFF" />
+      </View>
+    );
+  }
+
+  const filteredProposals = getFilteredProposals();
 
   return (
     <View style={styles.container}>
-      {/* Tabs */}
-      <View style={styles.tabsContainer}>
+      {/* Subtabs */}
+      <View style={styles.subtabsContainer}>
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'jobs' && styles.activeTab]}
-          onPress={() => setActiveTab('jobs')}
+          style={[styles.subtab, subTab === 'EN_CURSO' && styles.subtabActive]}
+          onPress={() => setSubTab('EN_CURSO')}
         >
-          <Text style={[styles.tabText, activeTab === 'jobs' && styles.activeTabText]}>
-            Trabajos
+          <Text style={[styles.subtabText, subTab === 'EN_CURSO' && styles.subtabTextActive]}>
+            En curso ({proposals.filter(p => p.estadoAcuerdo === 'ACEPTADO').length})
           </Text>
         </TouchableOpacity>
-        
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'proposals' && styles.activeTab]}
-          onPress={() => setActiveTab('proposals')}
+          style={[styles.subtab, subTab === 'HISTORIAL' && styles.subtabActive]}
+          onPress={() => setSubTab('HISTORIAL')}
         >
-          <Text style={[styles.tabText, activeTab === 'proposals' && styles.activeTabText]}>
-            Propuestas
-          </Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'ratings' && styles.activeTab]}
-          onPress={() => setActiveTab('ratings')}
-        >
-          <Text style={[styles.tabText, activeTab === 'ratings' && styles.activeTabText]}>
-            Calificaciones
+          <Text style={[styles.subtabText, subTab === 'HISTORIAL' && styles.subtabTextActive]}>
+            Historial
           </Text>
         </TouchableOpacity>
       </View>
 
-      {/* Lista según el tab activo */}
+      {/* Content */}
       <FlatList
-        data={data as any[]}
-        renderItem={({ item }) => {
-          if (activeTab === 'ratings') {
-            return renderRatingItem({ item: item as CalificacionTecnico });
-          } else if (activeTab === 'jobs') {
-            return renderJobItem({ item: item as SolicitudTecnico });
-          } else {
-            return renderProposalItem({ item: item as SolicitudTecnico });
-          }
-        }}
-        keyExtractor={(item) => {
-          if (activeTab === 'ratings') {
-            return (item as any).idCalificacion?.toString() || Math.random().toString();
-          }
-          return (item as any).idSolTec?.toString() || Math.random().toString();
-        }}
+        data={filteredProposals}
+        renderItem={renderItem}
+        keyExtractor={(item) => item.idSolTec.toString()}
         contentContainerStyle={styles.listContent}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -229,9 +190,9 @@ export default function MyJobsScreen() {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>
-              {activeTab === 'jobs' && '📭 No tienes trabajos aceptados'}
-              {activeTab === 'proposals' && '📭 No tienes propuestas enviadas'}
-              {activeTab === 'ratings' && '📭 No tienes calificaciones todavía'}
+              {subTab === 'EN_CURSO' 
+                ? '📭 No tienes trabajos en curso' 
+                : '📭 No hay historial'}
             </Text>
           </View>
         }
@@ -243,38 +204,36 @@ export default function MyJobsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: '#F5F5F5',
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  tabsContainer: {
+  subtabsContainer: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    paddingTop: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
+    borderBottomColor: '#E0E0E0',
+    backgroundColor: '#FFFFFF',
   },
-  tab: {
+  subtab: {
     flex: 1,
     paddingVertical: 12,
     alignItems: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
   },
-  activeTab: {
+  subtabActive: {
+    borderBottomWidth: 2,
     borderBottomColor: '#007AFF',
   },
-  tabText: {
+  subtabText: {
     fontSize: 14,
+    color: '#757575',
     fontWeight: '500',
-    color: '#8E8E93',
   },
-  activeTabText: {
+  subtabTextActive: {
     color: '#007AFF',
-    fontWeight: '600',
+    fontWeight: '700',
   },
   listContent: {
     padding: 16,
@@ -290,112 +249,67 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  cardHeader: {
+  header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
   },
-  title: {
+  id: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#000000',
-    flex: 1,
   },
   statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: 12,
-    backgroundColor: '#FF9500',
   },
-  statusAccepted: {
-    backgroundColor: '#34C759',
+  statusText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
   },
-  statusRejected: {
-    backgroundColor: '#FF3B30',
-  },
-  statusInProgress: {
-    backgroundColor: '#007AFF',
-  },
-  statusCompleted: {
-    backgroundColor: '#34C759',
-  },
-  description: {
-    fontSize: 14,
-    color: '#8E8E93',
+  cost: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#007AFF',
     marginBottom: 8,
   },
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 8,
-  },
-  infoText: {
-    fontSize: 14,
-    color: '#000000',
-  },
-  infoSmall: {
-    fontSize: 12,
-    color: '#8E8E93',
-  },
   notes: {
+    fontSize: 14,
+    color: '#8E8E93',
+    marginBottom: 12,
+    fontStyle: 'italic',
+  },
+  dateContainer: {
+    borderTopWidth: 1,
+    borderTopColor: '#E5E5EA',
+    paddingTop: 8,
+    marginBottom: 12,
+  },
+  date: {
     fontSize: 12,
     color: '#8E8E93',
-    fontStyle: 'italic',
+    marginTop: 4,
+  },
+  ctaButton: {
+    backgroundColor: '#34C759',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
     marginTop: 8,
   },
-  actionButtons: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 12,
-  },
-  startButton: {
-    flex: 1,
-    backgroundColor: '#007AFF',
-    padding: 10,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  completeButton: {
-    flex: 1,
-    backgroundColor: '#34C759',
-    padding: 10,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  cancelButton: {
-    flex: 1,
-    backgroundColor: '#FF3B30',
-    padding: 10,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  buttonText: {
-    color: '#FFFFFF',
+  ctaButtonText: {
     fontSize: 14,
     fontWeight: '600',
-  },
-  stars: {
-    fontSize: 16,
-  },
-  ratingScore: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#FF9500',
-    marginVertical: 8,
-  },
-  comment: {
-    fontSize: 14,
-    color: '#000000',
-    fontStyle: 'italic',
-    marginTop: 8,
-    padding: 12,
-    backgroundColor: '#F2F2F7',
-    borderRadius: 8,
+    color: '#fff',
   },
   emptyContainer: {
     padding: 32,
     alignItems: 'center',
+    minHeight: 200,
   },
   emptyText: {
     fontSize: 16,

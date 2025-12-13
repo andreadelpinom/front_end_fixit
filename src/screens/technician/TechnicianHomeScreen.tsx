@@ -1,63 +1,88 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   ScrollView,
   StyleSheet,
+  ActivityIndicator,
+  TouchableOpacity,
   RefreshControl,
-  Alert,
 } from 'react-native';
-import { LoadingView, ErrorView } from '../../components/common';
-import { StatCard, CertificationCard, ActionButton } from '../../components/technician';
+import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../../context/AuthContext';
 import {
   getTechnicianByUser,
   getTechnicianStats,
-  getAvailableCertifications,
-  getTechnicianCertifications,
-  addTechnicianCertification,
   TechnicianStats,
-  Certificacion,
-  TecnicoCertificacion,
-  TecnicoWithDetails,
+  getMyProposals,
 } from '../../services/technician.service';
-import * as Notifications from 'expo-notifications';
-import {
-  registerForPushNotifications,
-  addNotificationReceivedListener,
-  addNotificationResponseReceivedListener,
-} from '../../services/notification.service';
+import { TecnicoWithDetails, SolicitudTecnico } from '../../types/api';
+import { formatCurrency } from '../../utils/currency.utils';
+
+interface PendingOffer {
+  idSolTec: number;
+  tituloProblema: string;
+  costoAcordado: number;
+  fechaPropuesta: string;
+}
+
+interface ActiveJob {
+  idSolicitud: number;
+  tituloProblema: string;
+  direccion: string;
+  fechaProgramada?: string;
+}
 
 export default function TechnicianHomeScreen({ navigation }: any) {
   const { user } = useAuth();
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [technician, setTechnician] = useState<TecnicoWithDetails | null>(null);
   const [stats, setStats] = useState<TechnicianStats | null>(null);
+  const [pendingOffer, setPendingOffer] = useState<PendingOffer | null>(null);
+  const [activeJob, setActiveJob] = useState<ActiveJob | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [availableCerts, setAvailableCerts] = useState<Certificacion[]>([]);
-  const [myCerts, setMyCerts] = useState<TecnicoCertificacion[]>([]);
-  const notificationListener = useRef<Notifications.Subscription | null>(null);
-  const responseListener = useRef<Notifications.Subscription | null>(null);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      loadData();
+    }, [user])
+  );
 
   const loadData = async () => {
     if (!user) return;
 
     try {
       setError(null);
+      // Load technician data
       const techData = await getTechnicianByUser(user.idUser);
       setTechnician(techData);
 
-      // Cargar datos en paralelo
-      const [statsData, certsData, myCertsData] = await Promise.all([
-        getTechnicianStats(),
-        getAvailableCertifications(),
-        getTechnicianCertifications(techData.idTecnico),
-      ]);
-      
+      // Load stats
+      const statsData = await getTechnicianStats();
       setStats(statsData);
-      setAvailableCerts(certsData);
-      setMyCerts(myCertsData);
+
+      // Try to load pending offer (first proposal in PROPUESTO state)
+      try {
+        const proposals = await getMyProposals();
+        const pending = proposals.find(
+          (p: any) => p.estadoAcuerdo === 'PROPUESTO'
+        ) as any;
+        setPendingOffer(pending || null);
+      } catch {
+        setPendingOffer(null);
+      }
+
+      // Try to load active job
+      try {
+        const jobs = await getMyProposals();
+        const active = jobs.find(
+          (j: any) => j.estadoAcuerdo === 'ACEPTADO'
+        ) as any;
+        setActiveJob(active || null);
+      } catch {
+        setActiveJob(null);
+      }
     } catch (err: any) {
       console.error('Error loading technician data:', err);
       setError(err?.message || 'Error al cargar datos');
@@ -67,115 +92,79 @@ export default function TechnicianHomeScreen({ navigation }: any) {
     }
   };
 
-  const handleApplyCertification = async (cert: Certificacion) => {
-    if (!technician) return;
-    
-    // Verificar si ya tiene esta certificación
-    const hasCert = myCerts.some(c => c.idCertificacion === cert.idCertificacion);
-    if (hasCert) {
-      Alert.alert('Info', 'Ya tienes esta certificación');
-      return;
-    }
-    
-    Alert.alert(
-      'Solicitar Certificación',
-      `¿Deseas solicitar la certificación "${cert.nombre}"?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Solicitar',
-          onPress: async () => {
-            try {
-              await addTechnicianCertification({
-                idTecnico: technician.idTecnico,
-                idCertificacion: cert.idCertificacion,
-              });
-              Alert.alert('Éxito', '✅ Solicitud de certificación enviada');
-              loadData();
-            } catch (err: any) {
-              Alert.alert('Error', err.message || 'No se pudo solicitar la certificación');
-            }
-          },
-        },
-      ]
-    );
-  };
-
-  const setupNotifications = async () => {
-    try {
-      if (!user) return;
-
-      // Solicitar permisos y obtener token para TECNICO
-      const token = await registerForPushNotifications(user.idUser, 'TECNICO');
-      
-      if (token) {
-        console.log('✅ Notificaciones configuradas para técnico');
-      }
-
-      // Listener para notificaciones recibidas mientras la app está abierta
-      const receivedSubscription = addNotificationReceivedListener((notification) => {
-        console.log('[TechnicianHome] 📩 Notificación recibida:', notification);
-        // Recargar datos cuando llega notificación
-        loadData();
-      });
-      notificationListener.current = receivedSubscription;
-
-      // Listener para cuando el usuario toca una notificación
-      const responseSubscription = addNotificationResponseReceivedListener((response) => {
-        console.log('[TechnicianHome] 👆 Notificación tocada:', response);
-        const data = response.notification.request.content.data;
-        
-        // Recargar datos
-        if (data) {
-          loadData();
-        }
-      });
-      responseListener.current = responseSubscription;
-    } catch (err) {
-      console.error('Error setting up notifications:', err);
-    }
-  };
-
-  useEffect(() => {
-    loadData();
-    setupNotifications();
-
-    return () => {
-      // Cleanup listeners
-      if (notificationListener.current) {
-        try {
-          notificationListener.current.remove();
-          notificationListener.current = null;
-        } catch (e) {
-          console.log('[TechnicianHome] Cleanup listener error:', e);
-        }
-      }
-      if (responseListener.current) {
-        try {
-          responseListener.current.remove();
-          responseListener.current = null;
-        } catch (e) {
-          console.log('[TechnicianHome] Cleanup response listener error:', e);
-        }
-      }
-    };
-  }, [user?.idUser]); // Solo depende del ID del usuario
-
   const onRefresh = () => {
     setRefreshing(true);
     loadData();
   };
 
-  if (loading) return <LoadingView />;
-  if (error) return <ErrorView message={error} onRetry={loadData} />;
+  const getMainStatusContent = () => {
+    // Priority 1: Active job
+    if (activeJob) {
+      return {
+        title: activeJob.tituloProblema,
+        status: '✅ TRABAJO ACTIVO',
+        statusColor: '#4CAF50',
+        details: activeJob.direccion,
+        cta: {
+          text: 'Ir al trabajo',
+          action: () =>
+            navigation.navigate('MyJobs', {
+              screen: 'JobDetails',
+              params: { idSolicitud: activeJob.idSolicitud },
+            }),
+        },
+      };
+    }
 
-  // Verificar si el técnico no está verificado
+    // Priority 2: Pending offer
+    if (pendingOffer) {
+      return {
+        title: pendingOffer.tituloProblema,
+        status: '⏳ PROPUESTA ENVIADA',
+        statusColor: '#FF9800',
+        details: `Propuesta de $${formatCurrency(pendingOffer.costoAcordado)}`,
+        cta: {
+          text: 'Ver mis propuestas',
+          action: () => navigation.navigate('MyJobs'),
+        },
+      };
+    }
+
+    // Default: no active work
+    return {
+      title: 'Sin trabajos activos',
+      status: null,
+      statusColor: null,
+      details: 'Explora solicitudes disponibles',
+      cta: {
+        text: 'Explorar solicitudes',
+        action: () => navigation.navigate('AvailableRequests'),
+      },
+    };
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" color="#007AFF" />
+        <Text style={styles.loadingText}>Cargando...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.centerContainer}>
+        <Text style={styles.errorText}>⚠️ {error}</Text>
+        <TouchableOpacity style={styles.retryButton} onPress={loadData}>
+          <Text style={styles.retryButtonText}>Reintentar</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  const mainStatus = getMainStatusContent();
   const isNotVerified = technician && technician.status !== 'VERIFICADO';
-
-  // Filtrar certificaciones disponibles (las que no tiene)
-  const availableForMe = availableCerts.filter(
-    (cert) => !myCerts.find((mc) => mc.idCertificacion === cert.idCertificacion)
-  );
 
   return (
     <ScrollView
@@ -184,13 +173,7 @@ export default function TechnicianHomeScreen({ navigation }: any) {
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
       }
     >
-      {/* Header con bienvenida */}
-      <View style={styles.header}>
-        <Text style={styles.greeting}>¡Hola, {user?.nombres}!</Text>
-        <Text style={styles.subtitle}>Bienvenido a tu panel de técnico</Text>
-      </View>
-
-      {/* Banner de no verificado - CRÍTICO PRIMERO */}
+      {/* Verification Banner */}
       {isNotVerified && (
         <View style={styles.warningBanner}>
           <Text style={styles.warningIcon}>⚠️</Text>
@@ -203,70 +186,65 @@ export default function TechnicianHomeScreen({ navigation }: any) {
         </View>
       )}
 
-      {/* Estadísticas principales - INFORMACIÓN CLAVE */}
+      {/* Main Status Card */}
+      <View style={styles.statusCard}>
+        {mainStatus.status && (
+          <View
+            style={[
+              styles.statusBadge,
+              { backgroundColor: mainStatus.statusColor },
+            ]}
+          >
+            <Text style={styles.statusBadgeText}>{mainStatus.status}</Text>
+          </View>
+        )}
+        <Text style={styles.mainTitle}>{mainStatus.title}</Text>
+        <Text style={styles.statusDetails}>{mainStatus.details}</Text>
+      </View>
+
+      {/* Primary CTA */}
+      <TouchableOpacity
+        style={styles.ctaButton}
+        onPress={mainStatus.cta.action}
+      >
+        <Text style={styles.ctaButtonText}>{mainStatus.cta.text}</Text>
+      </TouchableOpacity>
+
+      {/* Stats Row */}
       {stats && (
         <View style={styles.statsContainer}>
-          <StatCard number={stats.totalProposals} label="Propuestas" />
-          <StatCard number={stats.acceptedJobs} label="Aceptados" color="#28A745" />
-          <StatCard number={stats.completedJobs} label="Completados" color="#FFC107" />
-        </View>
-      )}
-
-      {/* Acciones rápidas - ACCIONES PRINCIPALES VISIBLES */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Acciones Rápidas</Text>
-        <ActionButton 
-          label="📋 Ver Solicitudes Disponibles"
-          onPress={() => navigation.navigate('AvailableRequests')}
-        />
-        <ActionButton 
-          label="💼 Mis Trabajos Activos"
-          onPress={() => navigation.navigate('MyJobs')}
-          variant="success"
-        />
-        <ActionButton 
-          label="⚙️ Configurar Servicios"
-          onPress={() => navigation.navigate('TechnicianProfile')}
-          variant="secondary"
-        />
-      </View>
-
-      {/* Mis certificaciones - CREDENCIALES ACTIVAS */}
-      {myCerts.length > 0 && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Mis Certificaciones</Text>
-          {myCerts.map((cert) => (
-            <CertificationCard
-              key={cert.idCertificacion}
-              name={cert.certificacion?.nombre || 'Certificación'}
-              status="ACTIVE"
-              expirationDate={cert.fechaVencimiento}
-            />
-          ))}
-        </View>
-      )}
-
-      {/* Certificaciones disponibles - OPCIONALES AL FINAL */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Certificaciones Disponibles</Text>
-        {availableForMe.length === 0 ? (
-          <View style={styles.card}>
-            <Text style={styles.emptyText}>
-              ✅ Ya tienes todas las certificaciones disponibles o no hay certificaciones nuevas
-            </Text>
+          <View style={styles.statBox}>
+            <Text style={styles.statNumber}>{stats.completedJobs}</Text>
+            <Text style={styles.statLabel}>Trabajos</Text>
           </View>
-        ) : (
-          availableForMe.map((cert) => (
-            <CertificationCard
-              key={cert.idCertificacion}
-              name={cert.nombre}
-              description={cert.descripcion}
-              status="AVAILABLE"
-              onApply={() => handleApplyCertification(cert)}
-            />
-          ))
-        )}
-      </View>
+          <View style={styles.statBox}>
+            <Text style={styles.statNumber}>
+              {stats.averageRating?.toFixed(1) || '—'}
+            </Text>
+            <Text style={styles.statLabel}>Calificación</Text>
+          </View>
+          <View style={styles.statBox}>
+            <Text style={styles.statNumber}>{stats.totalEarnings || '$0'}</Text>
+            <Text style={styles.statLabel}>Ganancias</Text>
+          </View>
+        </View>
+      )}
+
+      {/* Profile Completion Banner */}
+      {technician && (
+        <View style={styles.infoCard}>
+          <Text style={styles.infoTitle}>📋 Completa tu Perfil</Text>
+          <Text style={styles.infoText}>
+            Los clientes ven mejor tu perfil cuando está 100% completo
+          </Text>
+          <TouchableOpacity
+            style={styles.infoButton}
+            onPress={() => navigation.navigate('Profile')}
+          >
+            <Text style={styles.infoButtonText}>Editar Perfil</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </ScrollView>
   );
 }
@@ -274,221 +252,165 @@ export default function TechnicianHomeScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: '#F5F5F5',
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F2F2F7',
   },
   loadingText: {
     marginTop: 12,
     fontSize: 16,
-    color: '#8E8E93',
+    color: '#757575',
   },
   errorText: {
     fontSize: 16,
-    color: '#FF3B30',
+    color: '#C62828',
+    marginBottom: 16,
     textAlign: 'center',
-    marginHorizontal: 32,
-    marginBottom: 20,
   },
   retryButton: {
     backgroundColor: '#007AFF',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 6,
   },
   retryButtonText: {
     color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  header: {
-    backgroundColor: '#007AFF',
-    padding: 24,
-    paddingTop: 16,
-  },
-  greeting: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 4,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#FFFFFF',
-    opacity: 0.9,
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    padding: 16,
-    gap: 12,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  statNumber: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#007AFF',
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#8E8E93',
-    textAlign: 'center',
-  },
-  section: {
-    padding: 16,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#000000',
-    marginBottom: 12,
-  },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-  },
-  infoLabel: {
-    fontSize: 16,
-    color: '#8E8E93',
-  },
-  infoValue: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000000',
-  },
-  actionButton: {
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  actionButtonText: {
-    fontSize: 16,
-    color: '#007AFF',
     fontWeight: '600',
   },
   warningBanner: {
-    backgroundColor: '#FFF3CD',
+    backgroundColor: '#FFF3E0',
+    borderLeftColor: '#FF9800',
     borderLeftWidth: 4,
-    borderLeftColor: '#FFC107',
+    padding: 12,
+    margin: 12,
+    borderRadius: 6,
     flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    marginHorizontal: 16,
-    marginTop: 16,
-    borderRadius: 8,
+    alignItems: 'flex-start',
   },
   warningIcon: {
-    fontSize: 24,
-    marginRight: 12,
+    fontSize: 20,
+    marginRight: 8,
   },
   warningContent: {
     flex: 1,
   },
   warningTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
-    color: '#856404',
-    marginBottom: 4,
+    color: '#E65100',
   },
   warningText: {
-    fontSize: 14,
-    color: '#856404',
+    fontSize: 12,
+    color: '#BF360C',
+    marginTop: 4,
   },
-  certCard: {
+  statusCard: {
     backgroundColor: '#FFFFFF',
+    marginHorizontal: 12,
+    marginTop: 12,
+    marginBottom: 16,
+    padding: 20,
     borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 3,
+    elevation: 2,
   },
-  certInfo: {
-    flex: 1,
-    marginRight: 12,
+  statusBadge: {
+    alignSelf: 'flex-start',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    marginBottom: 12,
   },
-  certName: {
+  statusBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  mainTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#212121',
+    marginBottom: 8,
+  },
+  statusDetails: {
+    fontSize: 14,
+    color: '#757575',
+  },
+  ctaButton: {
+    backgroundColor: '#007AFF',
+    marginHorizontal: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  ctaButtonText: {
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
-    color: '#000000',
-    marginBottom: 4,
   },
-  certDescription: {
-    fontSize: 13,
-    color: '#8E8E93',
+  statsContainer: {
+    flexDirection: 'row',
+    marginHorizontal: 12,
+    marginBottom: 20,
+    gap: 12,
   },
-  certButton: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+  statBox: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  statNumber: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#007AFF',
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#757575',
+    marginTop: 4,
+  },
+  infoCard: {
+    backgroundColor: '#E3F2FD',
+    marginHorizontal: 12,
+    marginBottom: 20,
+    padding: 16,
     borderRadius: 8,
   },
-  certButtonText: {
+  infoTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1565C0',
+    marginBottom: 8,
+  },
+  infoText: {
+    fontSize: 13,
+    color: '#0D47A1',
+    lineHeight: 18,
+    marginBottom: 12,
+  },
+  infoButton: {
+    backgroundColor: '#1976D2',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  infoButtonText: {
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '600',
-  },
-  myCertCard: {
-    backgroundColor: '#E8F5E9',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderLeftWidth: 4,
-    borderLeftColor: '#34C759',
-  },
-  certStatus: {
-    fontSize: 13,
-    color: '#2E7D32',
-    marginTop: 4,
-    fontWeight: '600',
-  },
-  certDate: {
-    fontSize: 12,
-    color: '#8E8E93',
-    marginTop: 2,
-  },
-  emptyText: {
-    fontSize: 14,
-    color: '#8E8E93',
-    textAlign: 'center',
-    paddingVertical: 20,
   },
 });

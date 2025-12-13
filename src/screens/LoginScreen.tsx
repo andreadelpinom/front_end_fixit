@@ -11,8 +11,8 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
+import { RoleSelectionModal } from '../components/RoleSelectionModal';
 import { ValidationUtils } from '../utils/validation.utils';
 import { ErrorUtils } from '../utils/error.utils';
 import { LoginStyle } from 'styles';
@@ -42,11 +42,10 @@ const mapValidationErrors = (
   return errorMap;
 };
 
-export function LoginScreen() {
-  const navigation = useNavigation();
-  const { login, isLoading, error, clearError } = useAuth();
-
-  console.log('[LoginScreen] 🎬 Componente renderizado, isLoading:', isLoading);
+export function LoginScreen({
+  onRegister,
+}: Readonly<{ onRegister: () => void }>) {
+  const { login, isLoading, error, clearError, switchRole, user, isRoleSelectionNeeded, completeRoleSelection } = useAuth();
 
   const [loginMode, setLoginMode] = useState<'email' | 'cedula'>('email');
 
@@ -57,6 +56,7 @@ export function LoginScreen() {
     Record<string, string>
   >({});
   const [showPassword, setShowPassword] = useState(false);
+  const [roleSelectionLoading, setRoleSelectionLoading] = useState(false);
 
   useEffect(() => {
     if (error) {
@@ -66,9 +66,6 @@ export function LoginScreen() {
   }, [error, clearError]);
 
   const handleLogin = async () => {
-    console.log('[LoginScreen] 🔘 Botón presionado - iniciando login...');
-    console.log('[LoginScreen] 📝 Datos ingresados:', { identifier, password: '***', loginMode });
-    
     setValidationErrors({});
 
     const errors = ValidationUtils.validateLoginForm(
@@ -78,25 +75,18 @@ export function LoginScreen() {
     );
 
     if (errors.length > 0) {
-      console.log('[LoginScreen] ❌ Errores de validación:', errors);
       setValidationErrors(mapValidationErrors(errors));
-      Alert.alert('Error de validación', errors.map(e => e.message).join('\n'));
       return;
     }
-
-    console.log('[LoginScreen] ✅ Validación exitosa, enviando credenciales...');
 
     try {
       const selectedBuilder =
         credentialBuilders[loginMode] ?? credentialBuilders.email;
 
       const credentials = selectedBuilder(identifier, password);
-      console.log('[LoginScreen] 📤 Credenciales construidas:', { ...credentials, password: '***' });
 
       await login(credentials, rememberMe);
-      console.log('[LoginScreen] ✅ Login exitoso!');
     } catch (err) {
-      console.error('[LoginScreen] ❌ Error en handleLogin:', err);
       ErrorUtils.logError(err, 'LoginScreen');
     }
   };
@@ -107,16 +97,46 @@ export function LoginScreen() {
     setValidationErrors({});
   };
 
+  /**
+   * Maneja la selección de rol cuando el usuario tiene múltiples roles
+   */
+  const handleRoleSelection = async (selectedRole: 'CLIENTE' | 'TECNICO') => {
+    setRoleSelectionLoading(true);
+    try {
+      // Cambiar el rol activo
+      await switchRole(selectedRole);
+      completeRoleSelection();
+    } catch (err) {
+      ErrorUtils.logError(err, 'LoginScreen - handleRoleSelection');
+      Alert.alert(
+        'Error al cambiar rol',
+        'No pudimos cambiar a tu rol seleccionado. Intenta nuevamente.',
+      );
+    } finally {
+      setRoleSelectionLoading(false);
+    }
+  };
+
   const identifierField = loginMode === 'email' ? 'email' : 'cedula';
 
   return (
-    <KeyboardAvoidingView
-      style={LoginStyle.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScrollView
-        contentContainerStyle={LoginStyle.scrollContent}
-        keyboardShouldPersistTaps="handled">
-        <View style={LoginStyle.formContainer}>
+    <>
+      {/* Modal de selección de rol */}
+      <RoleSelectionModal
+        visible={isRoleSelectionNeeded}
+        loading={roleSelectionLoading}
+        onSelectRole={handleRoleSelection}
+        userName={user?.nombres}
+      />
+
+      <KeyboardAvoidingView
+        style={LoginStyle.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <ScrollView
+          contentContainerStyle={LoginStyle.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          scrollEnabled={!isRoleSelectionNeeded}>
+          <View style={LoginStyle.formContainer}>
           <Text style={LoginStyle.title}>Bienvenido a FixIt</Text>
           <Text style={LoginStyle.subtitle}>Inicia sesión para continuar</Text>
 
@@ -234,11 +254,7 @@ export function LoginScreen() {
               LoginStyle.loginButton,
               isLoading && LoginStyle.loginButtonDisabled,
             ]}
-            onPress={() => {
-              console.log('[LoginScreen] ⚡ TouchableOpacity presionado!');
-              handleLogin();
-            }}
-            activeOpacity={0.7}
+            onPress={handleLogin}
             disabled={isLoading}>
             {isLoading ? (
               <ActivityIndicator color="#fff" />
@@ -256,7 +272,7 @@ export function LoginScreen() {
 
           {/* --- Register Button --- */}
           <TouchableOpacity
-            onPress={() => navigation.navigate('Register' as never)}
+            onPress={onRegister}
             style={LoginStyle.registerContainer}>
             <Text style={LoginStyle.registerText}>
               ¿No tienes cuenta? Crear una
@@ -265,5 +281,6 @@ export function LoginScreen() {
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
+    </>
   );
 }
