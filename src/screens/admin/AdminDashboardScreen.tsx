@@ -120,7 +120,7 @@ export default function AdminDashboardScreen() {
               <Text style={styles.statusLabel}>Estado del sistema:</Text>
               <Text style={[
                 styles.statusValue,
-                { color: (stats?.pendingCertifications || 0) === 0 ? '#27AE60' : '#E74C3C' }
+                { color: (stats?.pendingCertifications || 0) === 0 ? AdminColors.success : AdminColors.danger }
               ]}>
                 {(stats?.pendingCertifications || 0) === 0 ? 'Normal' : 'Alerta'}
               </Text>
@@ -160,11 +160,11 @@ const styles = StyleSheet.create({
   },
   subtitleText: {
     fontSize: 14,
-    color: '#BDC3C7',
+    color: AdminColors.border,
   },
   dateText: {
     fontSize: 12,
-    color: '#ECF0F1',
+    color: AdminColors.lightBorder,
     backgroundColor: 'rgba(255,255,255,0.1)',
     paddingHorizontal: 10,
     paddingVertical: 6,
@@ -279,38 +279,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#ECF0F1',
-  },
-  statusIcon: {
-    fontSize: 24,
-    marginRight: 12,
-  },
-  actionsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  actionButton: {
-    minWidth: 140,
-    flex: 1,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  actionIcon: {
-    fontSize: 28,
-    marginBottom: 8,
-  },
-  actionLabel: {
-    fontSize: 14,
-    color: AdminColors.textPrimary,
-    textAlign: 'center',
-    fontWeight: '600',
+    borderBottomColor: AdminColors.lightBorder,
   },
 });

@@ -12,6 +12,7 @@ export const AdminColors = {
   secondary: '#34495E',
   card: '#FFFFFF',
   border: '#BDC3C7',
+  lightBorder: '#ECF0F1',
   textPrimary: '#2C3E50',
   textSecondary: '#7F8C8D',
   textLight: '#95A5A6',
