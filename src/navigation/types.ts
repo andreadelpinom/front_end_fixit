@@ -21,6 +21,7 @@ export type ClientServicesStackParamList = {
     summary?: ProposalsRequestSummary | null;
   };
   CreateRequestStack: NavigatorScreenParams<RequestWizardStackParamList> | undefined;
+  MaestritoChat: undefined;
 };
 
 export type ClientProfileStackParamList = {

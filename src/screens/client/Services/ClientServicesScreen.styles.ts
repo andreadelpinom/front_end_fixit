@@ -29,8 +29,13 @@ export const clientServicesStyles = StyleSheet.create({
     fontSize: 14,
     color: theme.colors.text.muted,
   },
-  createButton: {
+  actionsRow: {
+    flexDirection: 'row',
     marginTop: theme.spacing.sm,
+  },
+  createButton: {
+    flex: 1,
+    marginRight: theme.spacing.sm,
     backgroundColor: theme.colors.primary,
     borderRadius: theme.spacing.lg,
     paddingVertical: theme.spacing.md,
@@ -44,6 +49,26 @@ export const clientServicesStyles = StyleSheet.create({
     color: theme.colors.text.inverse,
     fontSize: 15,
     fontWeight: theme.typography.weights.medium,
+    textAlign: 'center',
+  },
+  maestritoButton: {
+    flex: 1,
+    borderRadius: theme.spacing.lg,
+    paddingVertical: theme.spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.surface,
+  },
+  maestritoButtonPressed: {
+    opacity: 0.9,
+  },
+  maestritoButtonText: {
+    color: theme.colors.primary,
+    fontSize: 15,
+    fontWeight: theme.typography.weights.medium,
+    textAlign: 'center',
   },
   content: {
     flex: 1,

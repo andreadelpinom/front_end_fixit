@@ -13,6 +13,7 @@ import ActiveServicesScreen from '../screens/client/ActiveServicesScreen';
 import { NotificationsScreen } from '../screens/client/Notifications/NotificationsScreen';
 import SupportScreen from '../screens/client/SupportScreen';
 import BecomeTechnicianScreen from '../screens/BecomeTechnicianScreen';
+import MaestritoChatScreen from '../screens/client/Maestrito/MaestritoChatScreen';
 import RequestStepServiceScreen from '../screens/client/request-wizard/RequestStepServiceScreen';
 import RequestStepProblemScreen from '../screens/client/request-wizard/RequestStepProblemScreen';
 import RequestStepScheduleScreen from '../screens/client/request-wizard/RequestStepScheduleScreen';
@@ -97,6 +98,11 @@ function ServicesStack() {
         name="CreateRequestStack"
         component={CreateRequestStack as any}
         options={{ headerShown: false }}
+      />
+      <ServicesStackNavigator.Screen
+        name="MaestritoChat"
+        component={MaestritoChatScreen}
+        options={{ title: 'Chat con Maestrito' }}
       />
     </ServicesStackNavigator.Navigator>
   );

@@ -9,14 +9,7 @@ import { ActivityIndicator } from 'react-native';
 import { appNavigatorStyles } from './AppNavigator.styles';
 import { theme } from '../theme';
 import { ThemedView } from '../ui';
-
-// ✅ Crear un listener externo para cambios de activeRole
-// Esto permite que AppNavigator reaccione sin necesitar cambios en user
-let roleChangeListeners: Set<(role: 'CLIENTE' | 'TECNICO') => void> = new Set();
-
-export const notifyRoleChange = (role: 'CLIENTE' | 'TECNICO') => {
-  roleChangeListeners.forEach(listener => listener(role));
-};
+import { subscribeToRoleChange } from './roleChangeEmitter';
 
 export default function AppNavigator() {
   const { isAuthenticated, user, isRoleSelectionNeeded } = useAuth();
@@ -25,15 +18,12 @@ export default function AppNavigator() {
 
   // ✅ Escuchar cambios de rol desde switchRole
   useEffect(() => {
-    const listener = (role: 'CLIENTE' | 'TECNICO') => {
+    const unsubscribe = subscribeToRoleChange(role => {
       setActiveRole(role);
       console.log('[AppNavigator] Role changed to:', role);
-    };
-    
-    roleChangeListeners.add(listener);
-    return () => {
-      roleChangeListeners.delete(listener);
-    };
+    });
+
+    return unsubscribe;
   }, []);
 
   // ✅ Cargar rol inicial cuando auth cambia

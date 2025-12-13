@@ -8,7 +8,7 @@ import React, {
 import { authService } from '../services/auth.service';
 import { storageService } from '../services/storage.service';
 import { tokenRefreshService } from '../services/token-refresh.service';
-import { notifyRoleChange } from '../navigation/AppNavigator';
+import { notifyRoleChange } from '../navigation/roleChangeEmitter';
 import { AuthState, LoginDto, User } from '../types/auth.types';
 
 /**

@@ -78,6 +78,10 @@ export default function ClientServicesScreen({ navigation }: Props): React.React
     navigation.navigate('CreateRequestStack');
   };
 
+  const handleOpenMaestritoChat = () => {
+    navigation.navigate('MaestritoChat');
+  };
+
   const emptyState = EMPTY_STATE_COPY[activeTab];
 
   if (loading) {
@@ -99,15 +103,26 @@ export default function ClientServicesScreen({ navigation }: Props): React.React
             <Text style={styles.title}>Servicios</Text>
           </View>
           <Text style={styles.subtitle}>Gestiona tus solicitudes en un mismo lugar</Text>
-          <Pressable
-            onPress={handleCreateRequest}
-            style={({ pressed }) => [
-              styles.createButton,
-              pressed && styles.createButtonPressed,
-            ]}
-          >
-            <Text style={styles.createButtonText}>Crear nueva solicitud</Text>
-          </Pressable>
+          <View style={styles.actionsRow}>
+            <Pressable
+              onPress={handleCreateRequest}
+              style={({ pressed }) => [
+                styles.createButton,
+                pressed && styles.createButtonPressed,
+              ]}
+            >
+              <Text style={styles.createButtonText}>Crear nueva solicitud</Text>
+            </Pressable>
+            <Pressable
+              onPress={handleOpenMaestritoChat}
+              style={({ pressed }) => [
+                styles.maestritoButton,
+                pressed && styles.maestritoButtonPressed,
+              ]}
+            >
+              <Text style={styles.maestritoButtonText}>Hablar con Maestrito</Text>
+            </Pressable>
+          </View>
         </View>
 
         <ServicesTabsSection
