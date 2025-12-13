@@ -3,6 +3,7 @@ import { storageService } from './storage.service';
 import { getApiUrl, API_CONFIG } from '../config/api.config';
 import { AuthResponse, LoginDto, User, RegisterDto } from '../types/auth.types';
 import { ErrorUtils } from '../utils/error.utils';
+import { extractData } from './response-helpers';
 
 class AuthService {
   async login(
@@ -15,7 +16,9 @@ class AuthService {
       // LoginDto is union type, safely access either email or cedula
       const identifier = 'email' in credentials ? credentials.email : ('cedula' in credentials ? credentials.cedula : 'unknown');
       console.log('[AuthService] Login attempt with:', { identifier });
-      const response = await apiClient.post<AuthResponse>(url, credentials);
+      const response = extractData<AuthResponse>(
+        await apiClient.post<unknown>(url, credentials),
+      );
       
       console.log('[AuthService] Login response received:', {
         hasAccessToken: !!response.access_token,
@@ -54,8 +57,8 @@ class AuthService {
     const url = getApiUrl(API_CONFIG.ENDPOINTS.USERS.CREATE);
 
     try {
-      const response = await apiClient.post(url, payload);
-      return response;
+      const response = await apiClient.post<unknown>(url, payload);
+      return extractData(response);
     } catch (error) {
       ErrorUtils.logError(error, 'Register');
       throw new Error(ErrorUtils.getErrorMessage(error));
@@ -72,9 +75,11 @@ class AuthService {
     const url = getApiUrl(API_CONFIG.ENDPOINTS.AUTH.REFRESH);
 
     try {
-      const response = await apiClient.post<AuthResponse>(url, {
+      const response = extractData<AuthResponse>(
+        await apiClient.post<unknown>(url, {
         refresh_token: refreshToken,
-      });
+        }),
+      );
 
       await storageService.saveTokens({
         access_token: response.access_token,
@@ -115,9 +120,15 @@ class AuthService {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000);
       
-      const response = await apiClient.post<AuthResponse>(url, { nuevoRol }, {
-        signal: controller.signal as any,
-      });
+      const response = extractData<AuthResponse>(
+        await apiClient.post<unknown>(
+          url,
+          { nuevoRol },
+          {
+            signal: controller.signal as any,
+          },
+        ),
+      );
       clearTimeout(timeoutId);
 
       // ✅ VALIDACIÓN: Verificar que backend devolvió los tokens requeridos

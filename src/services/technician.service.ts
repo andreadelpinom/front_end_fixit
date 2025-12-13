@@ -9,6 +9,10 @@ import {
   SolicitudTecnico,
   EstadoAceptacion,
 } from '../types/api';
+import { extractCollection, extractData } from './response-helpers';
+
+const SOLICITUD_KEYS = ['solicitudes', 'items', 'data', 'rows'];
+const PROPUESTA_KEYS = ['propuestas', 'items', 'data', 'rows'];
 
 // ==================== PERFIL TÉCNICO ====================
 
@@ -79,41 +83,7 @@ export async function getAvailableRequests(filterDto?: any): Promise<Solicitud[]
       params: filterDto || {},
     });
 
-    console.log('[TechnicianService] Raw response:', JSON.stringify(resp, null, 2));
-
-    // Unwrap response structure
-    let allRequests: Solicitud[] = [];
-    if (Array.isArray(resp)) {
-      allRequests = resp;
-    } else if (resp && typeof resp === 'object') {
-      const anyResp = resp as any;
-      
-      // Direct solicitudes property
-      if (Array.isArray(anyResp.solicitudes)) {
-        allRequests = anyResp.solicitudes;
-        console.log('[TechnicianService] Found solicitudes directly:', allRequests.length);
-      }
-      // Wrapped in data
-      else if (anyResp.data && typeof anyResp.data === 'object') {
-        const dataObj = anyResp.data as any;
-        if (Array.isArray(dataObj.solicitudes)) {
-          allRequests = dataObj.solicitudes;
-          console.log('[TechnicianService] Found in data.solicitudes:', allRequests.length);
-        } else if (Array.isArray(dataObj.items)) {
-          allRequests = dataObj.items;
-          console.log('[TechnicianService] Found in data.items:', allRequests.length);
-        } else if (Array.isArray(dataObj.data)) {
-          allRequests = dataObj.data;
-          console.log('[TechnicianService] Found in data.data:', allRequests.length);
-        }
-      }
-      // Direct array in data
-      else if (Array.isArray(anyResp.data)) {
-        allRequests = anyResp.data;
-        console.log('[TechnicianService] Found direct array in data:', allRequests.length);
-      }
-    }
-
+    const allRequests = extractCollection<Solicitud>(resp, SOLICITUD_KEYS);
     console.log('[TechnicianService] Available requests loaded:', allRequests.length);
     return allRequests;
   } catch (error) {
@@ -149,27 +119,7 @@ export async function getMyProposals(): Promise<SolicitudTecnico[]> {
     const url = getApiUrl('/request/solicitudes-tecnicos/my/propuestas');
     const resp = await apiClient.get<unknown>(url);
 
-    // Unwrap response structure (handles { data: {...} })
-    let proposals: SolicitudTecnico[] = [];
-    if (Array.isArray(resp)) {
-      proposals = resp;
-    } else if (resp && typeof resp === 'object') {
-      const anyResp = resp as any;
-      if (Array.isArray(anyResp.data)) {
-        proposals = anyResp.data;
-      } else if (anyResp.data && typeof anyResp.data === 'object') {
-        const dataObj = anyResp.data as any;
-        if (Array.isArray(dataObj.propuestas)) {
-          proposals = dataObj.propuestas;
-        } else if (Array.isArray(dataObj.items)) {
-          proposals = dataObj.items;
-        } else if (Array.isArray(dataObj.data)) {
-          proposals = dataObj.data;
-        }
-      }
-    }
-
-    return proposals;
+    return extractCollection<SolicitudTecnico>(resp, PROPUESTA_KEYS);
   } catch (error) {
     console.error('Error fetching my proposals:', error);
     return [];
@@ -215,19 +165,32 @@ export interface TechnicianStats {
 }
 
 // ✅ ACTUALIZADO: Usa el endpoint /my/stats del backend
+const toNumber = (value: unknown, fallback = 0): number => {
+  if (value === null || value === undefined) {
+    return fallback;
+  }
+
+  const numeric = typeof value === 'string' ? parseFloat(value) : Number(value);
+  return Number.isFinite(numeric) ? numeric : fallback;
+};
+
 export async function getTechnicianStats(): Promise<TechnicianStats> {
   try {
     // ✅ CAMBIO: El backend tiene un endpoint específico para esto
     const url = getApiUrl('/request/solicitudes-tecnicos/my/stats');
-    const backendStats = await apiClient.get<any>(url);
+    const backendStats = extractData<Record<string, unknown>>(
+      await apiClient.get<unknown>(url),
+    );
+
+    const stats = backendStats ?? {};
 
     // Mapear la respuesta del backend al formato que espera el frontend
     return {
-      totalProposals: backendStats.totalPropuestas || 0,
-      acceptedJobs: backendStats.propuestasAceptadas || 0,
-      completedJobs: backendStats.trabajosCompletados || 0,
-      averageRating: backendStats.promedioCalificacion || 0,
-      totalEarnings: backendStats.gananciasTotales || 0,
+      totalProposals: toNumber(stats['totalPropuestas'] ?? stats['totalProposals']),
+      acceptedJobs: toNumber(stats['propuestasAceptadas'] ?? stats['acceptedJobs']),
+      completedJobs: toNumber(stats['trabajosCompletados'] ?? stats['completedJobs']),
+      averageRating: toNumber(stats['promedioCalificacion'] ?? stats['averageRating']),
+      totalEarnings: toNumber(stats['gananciasTotales'] ?? stats['totalEarnings']),
     };
   } catch (error) {
     console.error('Error fetching technician stats:', error);

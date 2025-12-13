@@ -1,5 +1,7 @@
 import { apiClient } from './api-client.service';
 import { ErrorUtils } from '../utils/error.utils';
+import { getApiUrl } from '../config/api.config';
+import { extractData } from './response-helpers';
 
 /**
  * Servicio para gestionar verificaciones de perfil de técnico
@@ -7,6 +9,11 @@ import { ErrorUtils } from '../utils/error.utils';
  */
 class TechnicianProfileService {
   private TAG = '[TechnicianProfileService]';
+
+  private async fetchProfileByUser(idUser: string): Promise<any> {
+    const url = getApiUrl(`/technician/tecnicos/user/${idUser}`);
+    return extractData(await apiClient.get<unknown>(url));
+  }
 
   /**
    * Extrae el statusCode de un error
@@ -30,7 +37,8 @@ class TechnicianProfileService {
    */
   async checkTechnicianProfileExists(idUser: string): Promise<boolean> {
     try {
-      await apiClient.get(`/api/v1/technician/tecnicos/user/${idUser}`);
+      const url = getApiUrl(`/technician/tecnicos/user/${idUser}`);
+      await apiClient.get<unknown>(url);
 
       // Si llegamos aquí sin error 404, el perfil existe
       console.log(
@@ -70,16 +78,17 @@ class TechnicianProfileService {
           `${this.TAG} Perfil de técnico ya existe, saltando creación`
         );
         // Traer el perfil existente
-        return await apiClient.get(`/api/v1/technician/tecnicos/user/${idUser}`);
+        return await this.fetchProfileByUser(idUser);
       }
 
       // Si no existe, crear nuevo
       console.log(`${this.TAG} Creando nuevo perfil de técnico para: ${idUser}`);
-      const response = await apiClient.post('/api/v1/technician/tecnicos', {
+      const url = getApiUrl('/technician/tecnicos');
+      const response = await apiClient.post<unknown>(url, {
         idUser: parseInt(idUser, 10),
       });
 
-      return response;
+      return extractData(response);
     } catch (error) {
       const statusCode = this.getStatusCode(error);
 
@@ -91,7 +100,7 @@ class TechnicianProfileService {
         );
         // Traer el perfil existente
         try {
-          return await apiClient.get(`/api/v1/technician/tecnicos/user/${idUser}`);
+          return await this.fetchProfileByUser(idUser);
         } catch (fetchError) {
           console.log(
             `${this.TAG} No se pudo recuperar perfil existente, retornando error original`

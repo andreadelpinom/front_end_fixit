@@ -11,7 +11,7 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../../context/AuthContext';
 import { requestService } from '../../services/request.service';
-import { WIZARD_COLORS } from './request-wizard/WizardShared';
+
 
 interface ActiveRequest {
   idSolicitud: number;
@@ -217,7 +217,6 @@ export default function HomeScreen({ navigation }: any): React.ReactElement {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: WIZARD_COLORS.background,
   },
   scroll: {
     flex: 1,

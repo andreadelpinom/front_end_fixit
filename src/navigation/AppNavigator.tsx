@@ -5,7 +5,10 @@ import AuthNavigator from './AuthNavigator';
 import ClientNavigator from './ClientNavigator';
 import TechnicianNavigator from './TechnicianNavigator';
 import { RequestProvider } from '../context/RequestContext';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator } from 'react-native';
+import { appNavigatorStyles } from './AppNavigator.styles';
+import { theme } from '../theme';
+import { ThemedView } from '../ui';
 
 // ✅ Crear un listener externo para cambios de activeRole
 // Esto permite que AppNavigator reaccione sin necesitar cambios en user
@@ -64,9 +67,9 @@ export default function AppNavigator() {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="#007AFF" />
-      </View>
+      <ThemedView style={appNavigatorStyles.loadingContainer}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+      </ThemedView>
     );
   }
 

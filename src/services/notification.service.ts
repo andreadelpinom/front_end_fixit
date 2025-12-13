@@ -1,5 +1,6 @@
 import { apiClient } from './api-client.service';
 import { getApiUrl } from '../config/api.config';
+import { extractCollection, extractData } from './response-helpers';
 
 /**
  * Tipos de notificación disponibles según backend
@@ -41,15 +42,38 @@ export interface NotificationPaginationResponse {
   };
 }
 
-/**
- * Interface para respuesta de mark as read
- */
-interface MarkAsReadResponse {
-  success: boolean;
-  data: Notification;
-  error?: string;
-  statusCode?: number;
-}
+const ARRAY_KEYS = ['notificaciones', 'items', 'data', 'rows'];
+
+const toNumber = (value: unknown, fallback = 0): number => {
+  if (value === null || value === undefined) {
+    return fallback;
+  }
+
+  const numeric = typeof value === 'string' ? parseFloat(value) : Number(value);
+  return Number.isFinite(numeric) ? numeric : fallback;
+};
+
+const buildPagination = (
+  source: Record<string, unknown> | undefined,
+  page: number,
+  limit: number,
+  totalFallback: number,
+) => {
+  const total = toNumber(source?.total, totalFallback);
+  const normalizedLimit = Math.max(1, toNumber(source?.limit, limit));
+  const normalizedPage = Math.max(1, toNumber(source?.page, page));
+  const totalPages = toNumber(
+    source?.totalPages,
+    normalizedLimit > 0 ? Math.ceil(total / normalizedLimit) : 0,
+  );
+
+  return {
+    total,
+    page: normalizedPage,
+    limit: normalizedLimit,
+    totalPages,
+  };
+};
 
 /**
  * Servicio para la gestión de notificaciones del usuario
@@ -96,11 +120,26 @@ export const notificationService = {
 
       console.log('[notificationService] Fetching notifications', { url, queryParams });
 
-      const data = await apiClient.get<NotificationPaginationResponse>(url, {
+      const response = await apiClient.get<unknown>(url, {
         params: queryParams,
       });
 
-      return data;
+      const data = extractData<Record<string, unknown>>(response);
+      const notifications = extractCollection<Notification>(data, ARRAY_KEYS);
+      const paginationSource =
+        data && typeof data === 'object' && data.pagination && typeof data.pagination === 'object'
+          ? (data.pagination as Record<string, unknown>)
+          : undefined;
+
+      return {
+        notificaciones: notifications,
+        pagination: buildPagination(
+          paginationSource,
+          sanitizedPage,
+          sanitizedLimit,
+          notifications.length,
+        ),
+      };
     } catch (error) {
       console.error('[notificationService] Error fetching notifications:', error);
       throw error;
@@ -119,9 +158,9 @@ export const notificationService = {
 
       console.log('[notificationService] Fetching unread count', { url });
 
-      const data = await apiClient.get<{ unreadCount: number }>(url);
-
-      return data.unreadCount;
+      const response = await apiClient.get<unknown>(url);
+      const data = extractData<Record<string, unknown>>(response);
+      return toNumber(data?.unreadCount ?? data?.count ?? 0, 0);
     } catch (error) {
       console.error('[notificationService] Error fetching unread count:', error);
       throw error;
@@ -141,12 +180,7 @@ export const notificationService = {
 
       console.log('[notificationService] Marking notification as read', { url, idNotificacion });
 
-      const response = await apiClient.put<MarkAsReadResponse>(url);
-
-      if (!response.success) {
-        throw new Error('Error marking notification as read');
-      }
-
+      await apiClient.put<unknown>(url);
       console.log('[notificationService] Notification marked as read', { idNotificacion });
     } catch (error) {
       console.error('[notificationService] Error marking notification as read:', error);

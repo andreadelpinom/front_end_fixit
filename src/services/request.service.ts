@@ -1,6 +1,55 @@
 import { apiClient } from './api-client.service';
 import { getApiUrl } from '../config/api.config';
 import { PaginatedSolicitudes } from '../types/api';
+import { extractCollection, extractData } from './response-helpers';
+
+const COLLECTION_KEYS = ['solicitudes', 'items', 'data', 'rows'];
+
+const buildEmptyPaginated = (page: number, limit: number): PaginatedSolicitudes => ({
+  solicitudes: [],
+  pagination: {
+    total: 0,
+    page,
+    limit,
+    totalPages: 0,
+  },
+});
+
+const normalizePaginatedSolicitudes = (
+  payload: unknown,
+  page: number,
+  limit: number,
+): PaginatedSolicitudes => {
+  const data = extractData<Record<string, unknown>>(payload);
+  const solicitudes = extractCollection<any>(data, COLLECTION_KEYS);
+  const rawPagination =
+    data && typeof data === 'object' && data.pagination && typeof data.pagination === 'object'
+      ? (data.pagination as Record<string, unknown>)
+      : {};
+
+  const safeNumber = (value: unknown, fallback: number): number => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  };
+
+  const total = safeNumber(rawPagination.total, solicitudes.length);
+  const normalizedLimit = Math.max(1, safeNumber(rawPagination.limit, limit));
+  const normalizedPage = Math.max(1, safeNumber(rawPagination.page, page));
+  const totalPages = safeNumber(
+    rawPagination.totalPages,
+    normalizedLimit > 0 ? Math.ceil(total / normalizedLimit) : 0,
+  );
+
+  return {
+    solicitudes,
+    pagination: {
+      total,
+      page: normalizedPage,
+      limit: normalizedLimit,
+      totalPages,
+    },
+  };
+};
 
 /**
  * Servicio para obtener solicitudes de servicio del cliente
@@ -30,36 +79,11 @@ export const requestService = {
 
       console.log('[requestService] Fetching completed requests', { url, params });
 
-      const response = await apiClient.get<any>(url, {
-        params,
-      });
-
-      // Check if response has the expected solicitudes array
-      if (!response?.solicitudes) {
-        console.warn('[requestService] No solicitudes in response for completed requests:', response);
-        return {
-          solicitudes: [],
-          pagination: {
-            total: 0,
-            page: sanitizedPage,
-            limit: sanitizedLimit,
-            totalPages: 0,
-          },
-        };
-      }
-
-      return response as PaginatedSolicitudes;
+      const response = await apiClient.get<unknown>(url, { params });
+      return normalizePaginatedSolicitudes(response, sanitizedPage, sanitizedLimit);
     } catch (error) {
       console.error('[requestService] Error fetching completed requests:', error);
-      return {
-        solicitudes: [],
-        pagination: {
-          total: 0,
-          page: 1,
-          limit: 20,
-          totalPages: 0,
-        },
-      };
+      return buildEmptyPaginated(1, 20);
     }
   },
 
@@ -74,26 +98,17 @@ export const requestService = {
     page: number = 1
   ): Promise<PaginatedSolicitudes> {
     try {
-      const response = await apiClient.get<any>('/request/solicitudes/my/solicitudes', {
-        params: {
-          limit,
-          page,
-        },
-      });
-
-      if (!response?.solicitudes) {
-        return {
-          solicitudes: [],
-          pagination: {
-            total: 0,
-            page: 1,
-            limit: limit,
-            totalPages: 0,
+      const response = await apiClient.get<unknown>(
+        getApiUrl('/request/solicitudes/my/solicitudes'),
+        {
+          params: {
+            limit,
+            page,
           },
-        };
-      }
+        },
+      );
 
-      return response as PaginatedSolicitudes;
+      return normalizePaginatedSolicitudes(response, page, limit);
     } catch (error) {
       console.error('[requestService] Error fetching all requests:', error);
       throw error;
@@ -113,7 +128,7 @@ export const requestService = {
     page: number = 1
   ): Promise<PaginatedSolicitudes> {
     try {
-      const response = await apiClient.get<any>(
+      const response = await apiClient.get<unknown>(
         getApiUrl('/request/solicitudes'),
         {
           params: {
@@ -123,34 +138,10 @@ export const requestService = {
           },
         }
       );
-
-      if (!response?.solicitudes) {
-        console.warn('[requestService] No solicitudes in response:', response);
-        // Return empty response instead of throwing
-        return {
-          solicitudes: [],
-          pagination: {
-            total: 0,
-            page: 1,
-            limit: limit,
-            totalPages: 0,
-          },
-        };
-      }
-
-      return response as PaginatedSolicitudes;
+      return normalizePaginatedSolicitudes(response, page, limit);
     } catch (error) {
       console.error('[requestService] Error fetching requests by status:', error);
-      // Return empty response instead of throwing, for graceful degradation
-      return {
-        solicitudes: [],
-        pagination: {
-          total: 0,
-          page: 1,
-          limit: limit,
-          totalPages: 0,
-        },
-      };
+      return buildEmptyPaginated(1, limit);
     }
   },
 };
