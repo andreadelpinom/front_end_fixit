@@ -1,0 +1,59 @@
+{
+  "extends": "expo/tsconfig.base.json",
+  "compilerOptions": {
+    "typeRoots": ["./types", "./node_modules/@types"],
+    /* ✅ Strict type safety */
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+
+    /* ✅ Modern module behavior */
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "moduleResolution": "nodenext",
+    "module": "nodenext",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+
+    /* ✅ Project paths */
+    "baseUrl": "./src",
+    "paths": {
+      "ui": ["ui"],
+      "screens/*": ["screens/*"],
+      "core/*": ["core/*"],
+      "api/*": ["api/*"],
+      "mock/*": ["mock/*"]
+    }
+  },
+
+  /* ✅ Include all code files properly */
+  "include": [
+    "src",
+    "index.ts",
+    "index.tsx",
+    "app.config.ts",
+    "app.config.js",
+    "eslint.config.mts",
+    "types"
+  ],
+
+  /* ✅ Exclude unneeded build/config files */
+  "exclude": [
+    "node_modules",
+    "babel.config.js",
+    "metro.config.js",
+    "jest.config.js",
+    "dist",
+    "build"
+  ]
+}
